@@ -186,6 +186,7 @@ protected:
     virtual void Run(color_ostream & out) = 0;
 
     bool isFinished() const { return finished; }
+    void ClearExpectedScreen() { expectedScreen = nullptr; expectedFocus.clear(); expectedParentFocus.clear(); }
 
 private:
     class ostream_proxy : public color_ostream_proxy

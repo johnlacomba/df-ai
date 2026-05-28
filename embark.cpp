@@ -114,6 +114,7 @@ void EmbarkExclusive::Run(color_ostream & out)
 {
     while (!isFinished() && !MaybeExpectScreen<df::viewscreen_dwarfmodest>(""))
     {
+        ClearExpectedScreen();
         AssertDelayed();
 
         DumpScreenInfo(out);
