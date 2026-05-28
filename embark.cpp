@@ -395,10 +395,25 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
 {
     ExpectedScreen<df::viewscreen_choose_start_sitest> view(this);
 
+    if (view->setting_up_map_timer > 0)
+    {
+        ai.debug(out, stl_sprintf("[STEAM] map setup in progress (timer=%d)", view->setting_up_map_timer));
+        Delay();
+        return;
+    }
+
+    if (view->animating_quick_start_timer > 0)
+    {
+        ai.debug(out, stl_sprintf("[STEAM] quick start animating (timer=%d)", view->animating_quick_start_timer));
+        Delay();
+        return;
+    }
+
     if (!view->zoomed_in)
     {
-        ai.debug(out, "[STEAM] not zoomed in, zooming into current region");
-        view->zoomed_in = true;
+        ai.debug(out, "[STEAM] not zoomed in — triggering Quick Start to auto-select site and embark");
+        view->animating_quick_start_timer = 1;
+        ClearExpectedScreen();
         Delay();
         return;
     }
@@ -422,70 +437,56 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
         return;
     }
 
-    if (!view->choosing_embark)
+    if (view->choosing_embark)
     {
-        int32_t want_x = std::min(std::max(config.embark_options[embark_finder_option::DimensionX], 1), 16);
-        int32_t want_y = std::min(std::max(config.embark_options[embark_finder_option::DimensionY], 1), 16);
-
-        int16_t region_x = view->location.region_pos.x;
-        int16_t region_y = view->location.region_pos.y;
-        int16_t center_ex = region_x * 16 + 8 - want_x / 2;
-        int16_t center_ey = region_y * 16 + 8 - want_y / 2;
-
-        ai.debug(out, stl_sprintf("[STEAM] entering embark placement (%dx%d) at region (%d,%d), "
-            "embark tiles (%d,%d)-(%d,%d)",
-            want_x, want_y, region_x, region_y,
-            center_ex, center_ey,
-            center_ex + want_x - 1, center_ey + want_y - 1));
-
-        view->choosing_embark = true;
-        view->embark_dx = want_x;
-        view->embark_dy = want_y;
-        embark_confirm_attempt = 0;
-        view->location.embark_pos_min.x = center_ex;
-        view->location.embark_pos_min.y = center_ey;
-        view->location.embark_pos_max.x = center_ex + want_x - 1;
-        view->location.embark_pos_max.y = center_ey + want_y - 1;
-
-        Delay();
-        return;
-    }
-
-    // choosing_embark is active — try to confirm the embark
-    embark_confirm_attempt++;
-
-    if (embark_confirm_attempt <= 3)
-    {
-        ai.debug(out, stl_sprintf("[STEAM] embark confirm attempt %d: SELECT (pos=(%d,%d)-(%d,%d) warn=%d)",
-            embark_confirm_attempt,
+        ai.debug(out, stl_sprintf("[STEAM] embark placement active: pos=(%d,%d)-(%d,%d) warn=%d — "
+            "simulating mouse click to confirm",
             view->location.embark_pos_min.x, view->location.embark_pos_min.y,
             view->location.embark_pos_max.x, view->location.embark_pos_max.y,
             (int)view->warn_flags.whole));
-        ClearExpectedScreen();
-        Key(interface_key::SELECT);
+
+        embark_confirm_attempt++;
+
+        if (view->warn_flags.whole == 0)
+        {
+            ai.debug(out, "[STEAM] setting warn_flags.GENERIC to trigger accept panel");
+            view->warn_flags.bits.GENERIC = true;
+            view->warn_mm_startx = view->neighbor_hover_mm_sx;
+            view->warn_mm_endx = view->neighbor_hover_mm_ex;
+            view->warn_mm_starty = view->neighbor_hover_mm_sy;
+            view->warn_mm_endy = view->neighbor_hover_mm_ey;
+            Delay();
+            return;
+        }
+
+        if (embark_confirm_attempt <= 3)
+        {
+            ai.debug(out, stl_sprintf("[STEAM] embark confirm attempt %d: SELECT", embark_confirm_attempt));
+            ClearExpectedScreen();
+            Key(interface_key::SELECT);
+        }
+        else if (embark_confirm_attempt <= 6)
+        {
+            ai.debug(out, stl_sprintf("[STEAM] embark confirm attempt %d: MENU_CONFIRM", embark_confirm_attempt));
+            ClearExpectedScreen();
+            Key(interface_key::MENU_CONFIRM);
+        }
+        else
+        {
+            ai.debug(out, stl_sprintf("[STEAM] embark confirm failed after %d attempts. "
+                "Try clicking \"Accept\" manually.",
+                embark_confirm_attempt));
+            Delay(10 * 100);
+            embark_confirm_attempt = 0;
+        }
+
+        return;
     }
-    else if (embark_confirm_attempt <= 6)
-    {
-        ai.debug(out, stl_sprintf("[STEAM] embark confirm attempt %d: MENU_CONFIRM", embark_confirm_attempt));
-        ClearExpectedScreen();
-        Key(interface_key::MENU_CONFIRM);
-    }
-    else if (embark_confirm_attempt <= 9)
-    {
-        ai.debug(out, stl_sprintf("[STEAM] embark confirm attempt %d: SEC_SELECT", embark_confirm_attempt));
-        ClearExpectedScreen();
-        Key(interface_key::SEC_SELECT);
-    }
-    else
-    {
-        ai.debug(out, stl_sprintf("[STEAM] embark confirm failed after %d attempts. "
-            "page=%d choosing_embark=%d warn_flags=%d. "
-            "Try clicking \"Embark!\" manually — keyboard confirmation may not work in Steam DF.",
-            embark_confirm_attempt, (int)view->page, (int)view->choosing_embark,
-            (int)view->warn_flags.whole));
-        Delay(10 * 100);
-        embark_confirm_attempt = 0;
-    }
+
+    ai.debug(out, "[STEAM] zoomed in but no embark active — triggering Quick Start");
+    view->animating_quick_start_timer = 1;
+    ClearExpectedScreen();
+    Delay();
 }
 
 void EmbarkExclusive::DisplayEmbarkSite(color_ostream & out)

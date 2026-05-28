@@ -67,36 +67,64 @@ AI::~AI()
 
 bool AI::is_dwarfmode_viewscreen()
 {
-    if (plotinfo->main.mode != ui_sidebar_mode::Default)
-        return false;
     if (!world->status.popups.empty())
         return false;
-    auto view = Gui::getCurViewscreen(false);
+    auto view = Gui::getCurViewscreen(true);
     if (Screen::isDismissed(view))
         return false;
-    if (!strict_virtual_cast<df::viewscreen_dwarfmodest>(view))
-        return false;
-    return true;
+    if (strict_virtual_cast<df::viewscreen_dwarfmodest>(view))
+        return true;
+    if (auto hack = dfhack_viewscreen::try_cast(view))
+    {
+        if (view->parent && strict_virtual_cast<df::viewscreen_dwarfmodest>(view->parent))
+            return true;
+    }
+    return false;
 }
 
 command_result AI::startup(color_ostream & out)
 {
-    command_result res = Core::getInstance().runCommand(out, "disable confirm");;
-    if (res == CR_OK && !config.manage_labors.empty())
+    debug(out, "startup: disabling confirm plugin...");
+    command_result res = Core::getInstance().runCommand(out, "disable confirm");
+    if (res != CR_OK)
+        debug(out, "[WARN] startup: 'disable confirm' failed (non-fatal)");
+    res = CR_OK;
+
+    if (!config.manage_labors.empty())
+    {
+        debug(out, "startup: enabling " + config.manage_labors + "...");
         res = Core::getInstance().runCommand(out, "enable " + config.manage_labors);
-    if (res == CR_OK && config.manage_labors == "autolabor")
-        res = Core::getInstance().runCommand(out, "multicmd autolabor PLANT 5 200 ; autolabor HERBALIST 1 3");
-    if (res == CR_OK && config.manage_labors == "labormanager")
-        res = Core::getInstance().runCommand(out, "multicmd labormanager max HERBALIST 3 ; labormanager priority MINE 250");
-    if (res == CR_OK)
-        res = pop.startup(out);
-    if (res == CR_OK)
-        res = plan.startup(out);
-    if (res == CR_OK)
-        res = stocks.startup(out);
-    if (res == CR_OK)
-        res = camera.startup(out);
-    return res;
+        if (res != CR_OK)
+            debug(out, "[WARN] startup: 'enable " + config.manage_labors + "' failed (non-fatal)");
+        res = CR_OK;
+    }
+    if (config.manage_labors == "autolabor")
+    {
+        Core::getInstance().runCommand(out, "multicmd autolabor PLANT 5 200 ; autolabor HERBALIST 1 3");
+    }
+    if (config.manage_labors == "labormanager")
+    {
+        Core::getInstance().runCommand(out, "multicmd labormanager max HERBALIST 3 ; labormanager priority MINE 250");
+    }
+
+    debug(out, "startup: pop.startup...");
+    res = pop.startup(out);
+    if (res != CR_OK) { debug(out, "[ERROR] startup: pop.startup failed"); return res; }
+
+    debug(out, "startup: plan.startup...");
+    res = plan.startup(out);
+    if (res != CR_OK) { debug(out, "[ERROR] startup: plan.startup failed"); return res; }
+
+    debug(out, "startup: stocks.startup...");
+    res = stocks.startup(out);
+    if (res != CR_OK) { debug(out, "[ERROR] startup: stocks.startup failed"); return res; }
+
+    debug(out, "startup: camera.startup...");
+    res = camera.startup(out);
+    if (res != CR_OK) { debug(out, "[ERROR] startup: camera.startup failed"); return res; }
+
+    debug(out, "startup: complete.");
+    return CR_OK;
 }
 
 class AbandonExclusive : public ExclusiveCallback

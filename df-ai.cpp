@@ -52,11 +52,24 @@ bool check_enabled(color_ostream & out)
                 df::viewscreen_dwarfmodest *view = strict_virtual_cast<df::viewscreen_dwarfmodest>(Gui::getCurViewscreen(true));
                 if (view)
                 {
+                    dwarfAI->debug(out, "df-ai start: dwarfmodest detected, starting up...");
                     command_result res = dwarfAI->onupdate_register(out);
-                    if (res == CR_OK)
-                        res = dwarfAI->startup(out);
+                    if (res != CR_OK)
+                    {
+                        dwarfAI->debug(out, "[ERROR] df-ai start: onupdate_register failed");
+                    }
                     if (res == CR_OK)
                     {
+                        dwarfAI->debug(out, "df-ai start: onupdate_register OK, calling startup...");
+                        res = dwarfAI->startup(out);
+                    }
+                    if (res != CR_OK)
+                    {
+                        dwarfAI->debug(out, "[ERROR] df-ai start: startup failed");
+                    }
+                    if (res == CR_OK)
+                    {
+                        dwarfAI->debug(out, "df-ai start: startup OK, AI is running.");
                         if (*pause_state)
                         {
                             view->feed_key(interface_key::D_PAUSE);
