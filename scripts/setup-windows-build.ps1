@@ -113,8 +113,15 @@ $env:PATH = "$PythonDir;$PythonDir\Scripts;$env:PATH"
 
 Write-Step "Step 2/5: Jinja2"
 
-$jinja2Check = & $PythonExe -c "import jinja2; print('ok')" 2>&1
-if ($jinja2Check -eq "ok") {
+try {
+    $ErrorActionPreference = "Continue"
+    $jinja2Check = & $PythonExe -c "import jinja2; print('ok')" 2>&1
+    $ErrorActionPreference = "Stop"
+} catch {
+    $jinja2Check = ""
+    $ErrorActionPreference = "Stop"
+}
+if ("$jinja2Check".Trim() -eq "ok") {
     Write-Skip "Jinja2 already installed."
 } else {
     & $PythonExe -m pip install --no-warn-script-location Jinja2
