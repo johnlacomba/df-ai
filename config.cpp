@@ -82,6 +82,7 @@ void Config::load(color_ostream & out)
                 auto & options = v["embark_options"];
                 FOR_ENUM_ITEMS(embark_finder_option, o)
                 {
+                    if (o < 0) continue;
                     auto name = ENUM_KEY_STR(embark_finder_option, o);
                     if (options.isMember(name))
                     {
@@ -193,6 +194,7 @@ void Config::save(color_ostream & out)
     Json::Value options(Json::objectValue);
     FOR_ENUM_ITEMS(embark_finder_option, o)
     {
+        if (o < 0) continue;
         options[ENUM_KEY_STR(embark_finder_option, o)] = Json::Int(embark_options.at(o));
     }
     setComment(v["embark_options"], options, "// site finder options. -1 is \"N/A\", 0 is the first option, 1 is the second, and so on.");
