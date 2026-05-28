@@ -73,9 +73,7 @@ bool Stocks::is_item_free(df::item *i, bool allow_nonempty)
                 auto & inv = u->inventory;
                 for (auto ii : inv)
                 {
-                    // unit_inventory_item::Hauled removed in Steam DF
-                    // TODO: determine new enum for hauled inventory mode
-                    if (ii->item == i && ii->mode != df::unit_inventory_item::Carried)
+                    if (ii->item == i)
                     {
                         return false;
                     }

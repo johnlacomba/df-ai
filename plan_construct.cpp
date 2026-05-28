@@ -805,6 +805,8 @@ bool Plan::try_furnish_construction(color_ostream &, df::construction_type ctype
         if (tt == tiletype::ConstructedRampTrackNSEW)
             return true;
         break;
+    default:
+        break;
     }
 
     // fall through = must build actual construction
@@ -1807,8 +1809,8 @@ bool Plan::link_lever(color_ostream &, furniture *src, furniture *dst, std::ostr
 
     // job_item_ref::LinkToTarget and LinkToTrigger removed in Steam DF
     // TODO: determine new API for attaching mechanism items to lever link jobs
-    Job::attachJobItem(job, mechas[0], df::job_item_ref::Hauled);
-    Job::attachJobItem(job, mechas[1], df::job_item_ref::Hauled);
+    Job::attachJobItem(job, mechas[0], df::job_item_ref::ByType);
+    Job::attachJobItem(job, mechas[1], df::job_item_ref::ByType);
 
     reason << "waiting for lever to be linked to target";
     return false;

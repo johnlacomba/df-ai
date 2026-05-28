@@ -222,7 +222,7 @@ private:
     size_t wait_frames;
     bool did_delay;
     std::vector<df::interface_key> feed_keys;
-    virtual_identity *expectedScreen;
+    const virtual_identity *expectedScreen;
     std::string expectedFocus;
     std::string expectedParentFocus;
 

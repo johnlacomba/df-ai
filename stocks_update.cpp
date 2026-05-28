@@ -6,6 +6,7 @@
 #include "modules/Maps.h"
 
 #include "df/building_slabst.h"
+#include "df/building_stockpilest.h"
 #include "df/historical_figure.h"
 #include "df/item_plant_growthst.h"
 #include "df/item_plantst.h"

@@ -52,7 +52,7 @@ void Population::update_deads(color_ostream & out)
             ai.stocks.queue_slab(out, u->hist_figure_id);
         }
         else if (Units::isCitizen(u) && Units::isDead(u) && std::find_if(u->owned_buildings.begin(), u->owned_buildings.end(),
-            [](df::building *bld) -> bool { return bld->getType() == building_type::Coffin; }) != u->owned_buildings.end())
+            [](auto *bld) -> bool { return bld->getType() == building_type::Coffin; }) != u->owned_buildings.end())
         {
             want_coffin++;
         }
@@ -60,24 +60,11 @@ void Population::update_deads(color_ostream & out)
 
     for (auto bld : world->buildings.other[buildings_other_id::COFFIN])
     {
-        // burial_mode and owner removed from building_coffinst in Steam DF
-        // just count unassigned coffins based on building having no owner ref
-        bool has_owner = false;
-        for (auto ref : bld->general_refs)
-        {
-            // general_ref_type::BUILDING_OWNER removed in Steam DF
-            // Using BUILDING_CIVZONE_ASSIGNED as closest equivalent
-            if (ref->getType() == general_ref_type::BUILDING_CIVZONE_ASSIGNED)
-            {
-                has_owner = true;
-                break;
-            }
-        }
-        if (!has_owner)
-        {
-            want_coffin--;
-            want_pet_coffin--;
-        }
+        // burial_mode and owner fields removed from building_coffinst in Steam DF
+        // TODO: determine new way to check coffin assignment
+        // For now, count all existing coffins as available
+        want_coffin--;
+        want_pet_coffin--;
     }
 
     if (want_coffin > 0)

@@ -28,10 +28,14 @@
 #include "df/squad_order_kill_listst.h"
 #include "df/squad_position.h"
 #include "df/syndrome.h"
+#include "df/body_part_raw.h"
+#include "df/item.h"
 #include "df/unit.h"
 #include "df/unit_health_info.h"
+#include "df/unit_patient_profile_completed_jobst.h"
 #include "df/unit_relationship_type.h"
 #include "df/unit_wound.h"
+#include "df/unit_wound_layerst.h"
 #include "df/plotinfost.h"
 #include "df/world.h"
 #include "df/wound_curse_info.h"
@@ -347,7 +351,8 @@ void Population::report(std::ostream & out, bool html)
                     case occupation_type::SCRIBE:
                         out << " (scribe)";
                         break;
-                    // occupation_type::MESSENGER removed in Steam DF
+                    default:
+                        break;
                     }
                 }
             }
@@ -666,9 +671,10 @@ void Population::report(std::ostream & out, bool html)
 
         any_crimes = true;
 
-        auto convicted = df::unit::find(crime->convict_data.convicted);
+        // convict_data and victim_data sub-structs removed in Steam DF
         auto criminal = df::unit::find(crime->criminal);
-        auto victim = df::unit::find(crime->victim_data.victim);
+        df::unit *convicted = nullptr;
+        df::unit *victim = nullptr;
 
         out << (html ? "<li>" : "- ");
         out << "[" << AI::timestamp(crime->event_year, crime->event_time) << "] ";
@@ -782,12 +788,7 @@ void Population::report(std::ostream & out, bool html)
             {
                 std::string before = html ? "<br/>" : "\n  ";
                 before += "Needs healthcare: ";
-                if (u->health->flags.bits.needs_recovery)
-                {
-                    out << before;
-                    before = ", ";
-                    out << "unable to walk to hospital";
-                }
+                // needs_recovery removed in Steam DF
                 if (u->job.current_job && u->job.current_job->job_type == job_type::Rest)
                 {
                     out << before;

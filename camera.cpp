@@ -227,6 +227,8 @@ void Camera::update(color_ostream &)
             return -50;
         case job_type_class::Medicine:
             return -70;
+        default:
+            break;
         }
         return 0;
     };

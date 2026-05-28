@@ -87,7 +87,7 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
     {
         is_valid = false;
         out.printerr("The df-ai-blueprints folder is missing! Download it from https://github.com/BenLubar/df-ai/releases to use the new scriptable blueprint system.\n");
-        out.printerr("The df-ai-blueprints folder should be inside %s.\n", Filesystem::getcwd().c_str());
+        out.printerr("The df-ai-blueprints folder should be inside %s.\n", Filesystem::getcwd().string().c_str());
         return;
     }
 
