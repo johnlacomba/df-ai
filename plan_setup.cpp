@@ -66,6 +66,40 @@ void PlanSetup::Run(color_ostream & out)
         Log(stl_sprintf("  first entry: %s", diag_entries[0].string().c_str()));
     }
 
+    // Independent plan file diagnostic before loading
+    diag_entries.clear();
+    diag_rc = Filesystem::listdir(bp_path + "/plans", diag_entries);
+    Log(stl_sprintf("listdir plans: rc=%d count=%zu", diag_rc, diag_entries.size()));
+    for (auto & e : diag_entries)
+    {
+        std::string ename = e.string();
+        Log(stl_sprintf("  plan entry: '%s'", ename.c_str()));
+        if (ename.rfind(".json") != std::string::npos)
+        {
+            std::string test_path = bp_path + "/plans/" + ename;
+            std::ifstream test_f(test_path);
+            if (test_f.good())
+            {
+                Json::Value val;
+                Json::CharReaderBuilder b;
+                std::string parse_err;
+                bool ok = Json::parseFromStream(b, test_f, &val, &parse_err);
+                Log(stl_sprintf("  parse '%s': ok=%d good_after=%d err='%s'",
+                    ename.c_str(), (int)ok, (int)test_f.good(), parse_err.substr(0, 200).c_str()));
+                if (ok && val.isObject())
+                {
+                    auto members = val.getMemberNames();
+                    Log(stl_sprintf("  members: %zu, has_start=%d has_priorities=%d",
+                        members.size(), (int)val.isMember("start"), (int)val.isMember("priorities")));
+                }
+            }
+            else
+            {
+                Log(stl_sprintf("  FAILED to open '%s'", test_path.c_str()));
+            }
+        }
+    }
+
     blueprints_t blueprints(out);
 
     Log(stl_sprintf("Blueprint load result: is_valid=%d, plans=%zu, room_types=%zu",
