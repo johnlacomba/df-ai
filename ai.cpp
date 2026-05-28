@@ -7,6 +7,7 @@
 #include "camera.h"
 #include "embark.h"
 #include "trade.h"
+#include "tee_ostream.h"
 
 #include "modules/Gui.h"
 #include "modules/Screen.h"
@@ -84,8 +85,10 @@ bool AI::is_dwarfmode_viewscreen()
 
 command_result AI::startup(color_ostream & out)
 {
+    tee_color_ostream tee_out(out, logger);
+
     debug(out, "startup: disabling confirm plugin...");
-    command_result res = Core::getInstance().runCommand(out, "disable confirm");
+    command_result res = Core::getInstance().runCommand(tee_out, "disable confirm");
     if (res != CR_OK)
         debug(out, "[WARN] startup: 'disable confirm' failed (non-fatal)");
     res = CR_OK;
@@ -93,34 +96,34 @@ command_result AI::startup(color_ostream & out)
     if (!config.manage_labors.empty())
     {
         debug(out, "startup: enabling " + config.manage_labors + "...");
-        res = Core::getInstance().runCommand(out, "enable " + config.manage_labors);
+        res = Core::getInstance().runCommand(tee_out, "enable " + config.manage_labors);
         if (res != CR_OK)
             debug(out, "[WARN] startup: 'enable " + config.manage_labors + "' failed (non-fatal)");
         res = CR_OK;
     }
     if (config.manage_labors == "autolabor")
     {
-        Core::getInstance().runCommand(out, "multicmd autolabor PLANT 5 200 ; autolabor HERBALIST 1 3");
+        Core::getInstance().runCommand(tee_out, "multicmd autolabor PLANT 5 200 ; autolabor HERBALIST 1 3");
     }
     if (config.manage_labors == "labormanager")
     {
-        Core::getInstance().runCommand(out, "multicmd labormanager max HERBALIST 3 ; labormanager priority MINE 250");
+        Core::getInstance().runCommand(tee_out, "multicmd labormanager max HERBALIST 3 ; labormanager priority MINE 250");
     }
 
     debug(out, "startup: pop.startup...");
-    res = pop.startup(out);
+    res = pop.startup(tee_out);
     if (res != CR_OK) { debug(out, "[ERROR] startup: pop.startup failed"); return res; }
 
     debug(out, "startup: plan.startup...");
-    res = plan.startup(out);
+    res = plan.startup(tee_out);
     if (res != CR_OK) { debug(out, "[ERROR] startup: plan.startup failed"); return res; }
 
     debug(out, "startup: stocks.startup...");
-    res = stocks.startup(out);
+    res = stocks.startup(tee_out);
     if (res != CR_OK) { debug(out, "[ERROR] startup: stocks.startup failed"); return res; }
 
     debug(out, "startup: camera.startup...");
-    res = camera.startup(out);
+    res = camera.startup(tee_out);
     if (res != CR_OK) { debug(out, "[ERROR] startup: camera.startup failed"); return res; }
 
     debug(out, "startup: complete.");
