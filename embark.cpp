@@ -179,11 +179,8 @@ void EmbarkExclusive::Run(color_ostream & out)
             continue;
         }
 
-        // DFHack overlays (launcher, etc.) — dismiss and wait
         if (strict_virtual_cast<dfhack_viewscreen>(Gui::getCurViewscreen(true)))
         {
-            ai.debug(out, "[EMBARK] dismissing DFHack overlay");
-            KeyNoDelay(interface_key::LEAVESCREEN);
             Delay();
             continue;
         }
@@ -421,73 +418,18 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
 
     if (!view->doing_site_finder)
     {
-        ai.debug(out, "choosing \"Site Finder\"");
+        // TODO: SETUP_FIND key removed in Steam DF — site finder can't be opened via keyboard.
+        // For now, set embark dimensions directly and embark at current location.
+        ai.debug(out, stl_sprintf("[STEAM] site finder not available, embarking at current location "
+            "(doing_site_finder=%d, find_param_list.size=%zu)",
+            (int)view->doing_site_finder, view->find_param_list.size()));
 
-        // TODO: interface_key::SETUP_FIND removed in Steam DF
-        // Key(interface_key::SETUP_FIND);
+        int32_t want_x = std::min(std::max(config.embark_options[embark_finder_option::DimensionX], 1), 16);
+        int32_t want_y = std::min(std::max(config.embark_options[embark_finder_option::DimensionY], 1), 16);
+        view->embark_pos_max.x = view->embark_pos_min.x + want_x - 1;
+        view->embark_pos_max.y = view->embark_pos_min.y + want_y - 1;
 
-        // Set site finder parameters using the flattened find_param array
-        FOR_ENUM_ITEMS(embark_finder_option, o)
-        {
-            if (o < 0)
-                continue;
-
-            if (view->find_param[o] == config.embark_options[o])
-            {
-                continue;
-            }
-
-            // In Steam DF, the finder options are flattened into find_param[].
-            // find_select is the cursor index, find_param_list contains visible options.
-            auto visible = std::find(view->find_param_list.begin(), view->find_param_list.end(), (int32_t)o);
-
-            if (visible == view->find_param_list.end())
-            {
-                ai.debug(out, "[CHEAT] Setting hidden site finder option " + enum_item_key(o));
-                view->find_param[o] = config.embark_options[o];
-
-                continue;
-            }
-
-            MoveToItem(&view->find_select, int32_t(visible - view->find_param_list.begin()));
-
-            if (o == embark_finder_option::DimensionX || o == embark_finder_option::DimensionY)
-            {
-                int32_t target = std::min(std::max(config.embark_options[o], 1), 16);
-                MoveToItem(&view->find_param[o], target, interface_key::STANDARDSCROLL_RIGHT, interface_key::STANDARDSCROLL_LEFT);
-                continue;
-            }
-
-            if (config.embark_options[o] == -1)
-            {
-                while (view->find_param[o] != -1)
-                {
-                    Key(interface_key::STANDARDSCROLL_LEFT);
-                }
-
-                continue;
-            }
-
-            if (view->find_param[o] == -1)
-            {
-                Key(interface_key::STANDARDSCROLL_RIGHT);
-            }
-
-            while (view->find_param[o] != -1 && view->find_param[o] != config.embark_options[o])
-            {
-                if (view->find_param[o] > config.embark_options[o])
-                {
-                    Key(interface_key::STANDARDSCROLL_LEFT);
-                }
-                else
-                {
-                    Key(interface_key::STANDARDSCROLL_RIGHT);
-                }
-            }
-        }
-
-        Key(interface_key::SELECT);
-
+        DisplayEmbarkSite(out);
         return;
     }
 
@@ -572,20 +514,20 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
     DisplayEmbarkSite(out);
 }
 
-void EmbarkExclusive::DisplayEmbarkSite(color_ostream &)
+void EmbarkExclusive::DisplayEmbarkSite(color_ostream & out)
 {
-    // TODO: viewscreen_choose_start_sitest::Biome, interface_key::SETUP_BIOME_1,
-    // and interface_key::SETUP_EMBARK all removed in Steam DF.
-    // The embark site display/biome selection and embark confirmation flow
-    // needs to be rewritten for the new UI.
     ExpectedScreen<df::viewscreen_choose_start_sitest> view(this);
+
+    ai.debug(out, stl_sprintf("[STEAM] DisplayEmbarkSite: pos=(%d,%d)-(%d,%d)",
+        view->embark_pos_min.x, view->embark_pos_min.y,
+        view->embark_pos_max.x, view->embark_pos_max.y));
 
     Delay(5 * 100);
 
-    // Just try to embark with SELECT for now
+    ai.debug(out, "[STEAM] pressing SELECT to embark");
     Key(interface_key::SELECT);
 
-    // dismiss warnings
+    ai.debug(out, "[STEAM] pressing SELECT to confirm");
     Key(interface_key::SELECT);
 }
 
