@@ -50,9 +50,26 @@ void PlanSetup::Run(color_ostream & out)
 
     Log("Reading blueprints...");
     Log(stl_sprintf("Working directory: %s", Filesystem::getcwd().string().c_str()));
+
+    std::string bp_path = "df-ai-blueprints";
+    Log(stl_sprintf("Checking df-ai-blueprints exists: %d", (int)Filesystem::isdir(bp_path)));
+    Log(stl_sprintf("Checking rooms subdir: %d", (int)Filesystem::isdir(bp_path + "/rooms")));
+    Log(stl_sprintf("Checking rooms/templates: %d", (int)Filesystem::isdir(bp_path + "/rooms/templates")));
+    Log(stl_sprintf("Checking rooms/instances: %d", (int)Filesystem::isdir(bp_path + "/rooms/instances")));
+    Log(stl_sprintf("Checking plans subdir: %d", (int)Filesystem::isdir(bp_path + "/plans")));
+
+    std::vector<std::filesystem::path> diag_entries;
+    int diag_rc = Filesystem::listdir(bp_path + "/rooms/templates", diag_entries);
+    Log(stl_sprintf("listdir rooms/templates: rc=%d count=%zu", diag_rc, diag_entries.size()));
+    if (!diag_entries.empty())
+    {
+        Log(stl_sprintf("  first entry: %s", diag_entries[0].string().c_str()));
+    }
+
     blueprints_t blueprints(out);
 
-    Log(stl_sprintf("Blueprint load result: is_valid=%d", (int)blueprints.is_valid));
+    Log(stl_sprintf("Blueprint load result: is_valid=%d, plans=%zu, room_types=%zu",
+        (int)blueprints.is_valid, blueprints.plans.size(), blueprints.blueprints.size()));
 
     if (build_from_blueprint(blueprints))
     {
