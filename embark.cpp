@@ -51,7 +51,7 @@ EmbarkExclusive::~EmbarkExclusive()
 
 void EmbarkExclusive::Run(color_ostream & out)
 {
-    while (!MaybeExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Default"))
+    while (!isFinished() && !MaybeExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Default"))
     {
         AssertDelayed();
 
@@ -239,7 +239,7 @@ void EmbarkExclusive::ViewNewRegion(color_ostream & out)
 
     config.set(out, config.random_embark_world, std::string());
 
-    while (view->raw_load)
+    while (!isFinished() && view->raw_load)
     {
         // wait for screen to initialize (loading raw files)
         Delay();
@@ -315,6 +315,9 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
 
     FOR_ENUM_ITEMS(embark_finder_option, o)
     {
+        if (o < 0)
+            continue;
+
         if (o == embark_finder_option::DimensionX || o == embark_finder_option::DimensionY)
         {
             continue;
@@ -346,6 +349,9 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
         // Set site finder parameters using the flattened find_param array
         FOR_ENUM_ITEMS(embark_finder_option, o)
         {
+            if (o < 0)
+                continue;
+
             if (view->find_param[o] == config.embark_options[o])
             {
                 continue;
@@ -405,7 +411,7 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
         return;
     }
 
-    while (view->find_block_dx != -1)
+    while (!isFinished() && view->find_block_dx != -1)
     {
         ai.debug(out, stl_sprintf("searching for a site (%d/%d, %d/%d)",
             view->find_block_x,
@@ -437,6 +443,7 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
         ai.debug(out, "leaving embark selector (no good embarks)");
         config.set(out, config.random_embark_world, std::string());
         AI::abandon(out);
+        Delay();
         return;
     }
 
@@ -556,7 +563,7 @@ void RestartWaitExclusive::Run(color_ostream & out)
 
     Key(interface_key::LEAVESCREEN);
 
-    while (!MaybeExpectScreen<df::viewscreen_titlest>("title"))
+    while (!isFinished() && !MaybeExpectScreen<df::viewscreen_titlest>("title"))
     {
         Delay();
     }

@@ -136,14 +136,14 @@ protected:
     {
         viewscreen_relative_ptr<const int32_t> current(cur);
 
-        while (*current != target)
+        while (!finished && *current != target)
         {
             Key(*current < target ? inc : dec, filename, lineno);
         }
     }
     inline void MoveToItem(const std::function<int32_t()> & current, int32_t target, df::interface_key inc = interface_key::STANDARDSCROLL_DOWN, df::interface_key dec = interface_key::STANDARDSCROLL_UP, FL)
     {
-        while (current() != target)
+        while (!finished && current() != target)
         {
             Key(current() < target ? inc : dec, filename, lineno);
         }
@@ -154,13 +154,13 @@ protected:
         viewscreen_relative_ptr<const char[N]> current(cur);
 
         size_t len = strnlen(*cur, N);
-        while (len > target.size() || *cur != target.substr(0, len))
+        while (!finished && (len > target.size() || *cur != target.substr(0, len)))
         {
             Key(interface_key::STRING_A000, filename, lineno);
             len--;
         }
 
-        while (len < target.size())
+        while (!finished && len < target.size())
         {
             Char(target.at(len), filename, lineno);
             len++;
@@ -170,12 +170,12 @@ protected:
     {
         viewscreen_relative_ptr<std::string> current(cur);
 
-        while (current->size() > target.size() || *current != target.substr(0, current->size()))
+        while (!finished && (current->size() > target.size() || *current != target.substr(0, current->size())))
         {
             Key(interface_key::STRING_A000, filename, lineno);
         }
 
-        while (current->size() < target.size())
+        while (!finished && current->size() < target.size())
         {
             Char(target.at(current->size()), filename, lineno);
         }
@@ -184,6 +184,8 @@ protected:
     virtual bool SuppressStateChange(color_ostream &, state_change_event event) { return event == SC_VIEWSCREEN_CHANGED; }
     virtual ExclusiveCallback *ReplaceOnScreenChange() { return nullptr; }
     virtual void Run(color_ostream & out) = 0;
+
+    bool isFinished() const { return finished; }
 
 private:
     class ostream_proxy : public color_ostream_proxy

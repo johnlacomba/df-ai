@@ -13,7 +13,7 @@ public:
     EmbarkExclusive(AI & ai);
     virtual ~EmbarkExclusive();
 
-    virtual ExclusiveCallback *ReplaceOnScreenChange() { return new EmbarkExclusive(ai); }
+    virtual ExclusiveCallback *ReplaceOnScreenChange() { return nullptr; }
     virtual void Run(color_ostream & out);
 
 private:

@@ -145,7 +145,15 @@ void ExclusiveCallback::Delay(size_t frames)
 
 void ExclusiveCallback::AssertDelayed()
 {
-    DFAI_ASSERT(did_delay, "previous iteration of exclusive callback \"" << description << "\" did not call Delay.");
+    if (!did_delay)
+    {
+        df::viewscreen *curview = Gui::getCurViewscreen(true);
+        auto focusStrings = Gui::getFocusStrings(curview);
+        std::string curFocus = focusStrings.empty() ? "(none)" : focusStrings.front();
+        std::string vsName = virtual_identity::get(curview) ? virtual_identity::get(curview)->getName() : "(null)";
+        DFAI_ASSERT(did_delay, "previous iteration of exclusive callback \"" << description << "\" did not call Delay. screen=" << vsName << " focus=" << curFocus);
+        Delay();
+    }
     did_delay = false;
 }
 
@@ -159,6 +167,11 @@ void ExclusiveCallback::checkScreen(const char *filename, int lineno)
     bool first = true;
     for (;;)
     {
+        if (finished)
+        {
+            return;
+        }
+
         df::viewscreen *curview = Gui::getCurViewscreen(true);
 
         auto curFocusStrings = Gui::getFocusStrings(curview);
