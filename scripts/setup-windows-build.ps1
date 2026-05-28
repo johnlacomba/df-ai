@@ -23,11 +23,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 $PythonDir  = Join-Path $BaseDir "Python3"
+$PerlDir    = Join-Path $BaseDir "StrawberryPerl"
 $DfhackDir  = Join-Path $BaseDir "dfhack"
 $DfAiDir    = Join-Path $BaseDir "df-ai"
 $BuildDir   = Join-Path $DfhackDir "build"
 $PythonExe  = Join-Path $PythonDir "python.exe"
-$PipExe     = Join-Path $PythonDir "Scripts\pip.exe"
+$PerlExe    = Join-Path $PerlDir "perl\bin\perl.exe"
 
 # ---------- helpers ----------
 
@@ -68,7 +69,7 @@ if ($BuildOnly) {
 
 # ---------- 1. Python (embeddable package — no installer needed) ----------
 
-Write-Step "Step 1/5: Python 3.12"
+Write-Step "Step 1/7: Python 3.12"
 
 if (Test-Path $PythonExe) {
     Write-Skip "Already installed at $PythonDir"
@@ -111,7 +112,7 @@ $env:PATH = "$PythonDir;$PythonDir\Scripts;$env:PATH"
 
 # ---------- 2. Jinja2 ----------
 
-Write-Step "Step 2/5: Jinja2"
+Write-Step "Step 2/7: Jinja2"
 
 try {
     $ErrorActionPreference = "Continue"
@@ -128,9 +129,35 @@ if ("$jinja2Check".Trim() -eq "ok") {
     Write-Ok "Jinja2 installed."
 }
 
-# ---------- 3. DFHack ----------
+# ---------- 3. Strawberry Perl (portable) ----------
 
-Write-Step "Step 3/5: Clone DFHack"
+Write-Step "Step 3/7: Strawberry Perl"
+
+if (Test-Path $PerlExe) {
+    Write-Skip "Already installed at $PerlDir"
+} else {
+    $perlZipUrl = "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_53822_64bit/strawberry-perl-5.38.2.2-64bit-portable.zip"
+    $perlZipPath = Join-Path $env:TEMP "strawberry-perl-portable.zip"
+
+    Write-Host "  Downloading Strawberry Perl 5.38 portable..."
+    Invoke-WebRequest -Uri $perlZipUrl -OutFile $perlZipPath -UseBasicParsing
+
+    Write-Host "  Extracting to $PerlDir (this may take a couple minutes)..."
+    New-Item -ItemType Directory -Path $PerlDir -Force | Out-Null
+    Expand-Archive -Path $perlZipPath -DestinationPath $PerlDir -Force
+    Remove-Item $perlZipPath -ErrorAction SilentlyContinue
+
+    if (!(Test-Path $PerlExe)) {
+        throw "Perl setup failed. $PerlExe not found."
+    }
+    Write-Ok "Perl installed."
+}
+
+$env:PATH = "$PerlDir\perl\bin;$PerlDir\c\bin;$env:PATH"
+
+# ---------- 4. DFHack ----------
+
+Write-Step "Step 4/7: Clone DFHack"
 
 if (Test-Path (Join-Path $DfhackDir ".git")) {
     Write-Skip "Already cloned at $DfhackDir"
@@ -149,9 +176,9 @@ if (Test-Path (Join-Path $DfhackDir ".git")) {
     Write-Ok "DFHack cloned."
 }
 
-# ---------- 4. Link df-ai ----------
+# ---------- 5. Link df-ai ----------
 
-Write-Step "Step 4/5: Link df-ai as external plugin"
+Write-Step "Step 5/7: Link df-ai as external plugin"
 
 if (!(Test-Path $DfAiDir)) {
     throw "df-ai not found at $DfAiDir. Clone it there first."
@@ -171,9 +198,9 @@ if (Test-Path $linkPath) {
     Write-Ok "Created junction: $linkPath -> $DfAiDir"
 }
 
-# ---------- 5. CMake configure + build ----------
+# ---------- 6+7. CMake configure + build ----------
 
-Write-Step "Step 5/5: Configure and build"
+Write-Step "Step 6/7: Configure and build"
 
 $cmake = Find-VsCmake
 Write-Host "  Using CMake: $cmake"
@@ -185,7 +212,8 @@ if (!(Test-Path (Join-Path $BuildDir "CMakeCache.txt"))) {
         "-B", "$BuildDir",
         "-G", "Visual Studio 17 2022",
         "-A", "x64",
-        "-DPython3_ROOT_DIR=$PythonDir"
+        "-DPython3_ROOT_DIR=$PythonDir",
+        "-DPERL_EXECUTABLE=$PerlExe"
     )
     if ($DfInstallDir) {
         $configArgs += "-DCMAKE_INSTALL_PREFIX=$DfInstallDir"
