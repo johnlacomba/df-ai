@@ -12,9 +12,10 @@
 
 ExclusiveCallback::ExclusiveCallback(const std::string & description, size_t wait_multiplier) :
     out_proxy(),
-    pull(nullptr),
-    push([&](coroutine_t::pull_type & input) { init(input); }),
-    wait_multiplier(wait_multiplier),
+    turn(turn_t::MAIN),
+    finished(false),
+    current_out(nullptr),
+    wait_multiplier(wait_multiplier < 1 ? 1 : wait_multiplier),
     wait_frames(0),
     did_delay(true),
     feed_keys(),
@@ -24,14 +25,46 @@ ExclusiveCallback::ExclusiveCallback(const std::string & description, size_t wai
     description(description),
     dfplex_blacklist(false)
 {
-    if (wait_multiplier < 1)
-    {
-        wait_multiplier = 1;
-    }
+    worker = std::thread([this]() { worker_main(); });
 }
 
 ExclusiveCallback::~ExclusiveCallback()
 {
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        finished = true;
+        turn = turn_t::WORKER;
+    }
+    cv_worker.notify_one();
+    if (worker.joinable())
+        worker.join();
+}
+
+void ExclusiveCallback::worker_main()
+{
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cv_worker.wait(lock, [this]() { return turn == turn_t::WORKER || finished; });
+        if (finished)
+            return;
+    }
+
+    out_proxy.set(*current_out);
+    Run(out_proxy);
+    out_proxy.clear();
+
+    if (!feed_keys.empty())
+    {
+        wait_multiplier = 1;
+        Delay();
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        finished = true;
+        turn = turn_t::MAIN;
+    }
+    cv_main.notify_one();
 }
 
 void ExclusiveCallback::KeyNoDelay(df::interface_key key)
@@ -71,17 +104,39 @@ void ExclusiveCallback::Delay(size_t frames)
 {
     for (size_t i = 0; i < frames; i++)
     {
-        out_proxy.clear();
-        out_proxy.set(*(*pull)().get());
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            turn = turn_t::MAIN;
+        }
+        cv_main.notify_one();
+
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            cv_worker.wait(lock, [this]() { return turn == turn_t::WORKER || finished; });
+            if (finished)
+                return;
+        }
+        out_proxy.set(*current_out);
     }
 
-    // Wait until we have an actual viewscreen.
     while (Screen::isDismissed(Gui::getCurViewscreen(false)))
     {
         size_t real_wait_multiplier = wait_multiplier;
         wait_multiplier = 1;
-        out_proxy.clear();
-        out_proxy.set(*(*pull)().get());
+
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            turn = turn_t::MAIN;
+        }
+        cv_main.notify_one();
+
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            cv_worker.wait(lock, [this]() { return turn == turn_t::WORKER || finished; });
+            if (finished)
+                return;
+        }
+        out_proxy.set(*current_out);
         wait_multiplier = real_wait_multiplier;
     }
 
@@ -137,32 +192,29 @@ bool ExclusiveCallback::run(color_ostream & out, const std::function<void(std::v
         return false;
     }
 
-    bool done = !push(&out);
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        current_out = &out;
+        turn = turn_t::WORKER;
+    }
+    cv_worker.notify_one();
+
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cv_main.wait(lock, [this]() { return turn == turn_t::MAIN; });
+    }
+
     if (!feed_keys.empty())
     {
         send_keys(feed_keys);
+        feed_keys.clear();
     }
 
-    if (!done)
+    if (finished)
     {
-        wait_frames = wait_multiplier - 1;
-        return false;
+        return true;
     }
 
-    return true;
-}
-
-void ExclusiveCallback::init(coroutine_t::pull_type & input)
-{
-    pull = &input;
-    out_proxy.set(*pull->get());
-    Run(out_proxy);
-    out_proxy.clear();
-
-    // Make sure we wait for the screen to go back to normal if our last calls before returning were to KeyNoWait.
-    if (!feed_keys.empty())
-    {
-        wait_multiplier = 1;
-        Delay();
-    }
+    wait_frames = wait_multiplier - 1;
+    return false;
 }

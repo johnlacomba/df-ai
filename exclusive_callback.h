@@ -2,7 +2,10 @@
 
 #include "dfhack_shared.h"
 
-#include <boost/coroutine2/coroutine.hpp>
+#include <condition_variable>
+#include <functional>
+#include <mutex>
+#include <thread>
 #include <type_traits>
 
 #include "Error.h"
@@ -12,7 +15,6 @@
 #include "df/viewscreen.h"
 
 #if WIN32
-// TODO: actual filename/line number of caller
 #define FL const char *filename = __FILE__, int lineno = __LINE__
 #else
 #define FL const char *filename = __builtin_FILE(), int lineno = __builtin_LINE()
@@ -146,7 +148,7 @@ protected:
         size_t len = strnlen(*cur, N);
         while (len > target.size() || *cur != target.substr(0, len))
         {
-            Key(interface_key::STRING_A000, filename, lineno); // backspace
+            Key(interface_key::STRING_A000, filename, lineno);
             len--;
         }
 
@@ -162,7 +164,7 @@ protected:
 
         while (current->size() > target.size() || *current != target.substr(0, current->size()))
         {
-            Key(interface_key::STRING_A000, filename, lineno); // backspace
+            Key(interface_key::STRING_A000, filename, lineno);
         }
 
         while (current->size() < target.size())
@@ -200,9 +202,14 @@ private:
         return strict_virtual_cast<T>(Gui::getCurViewscreen(true));
     }
 
-    using coroutine_t = boost::coroutines2::coroutine<color_ostream *>;
-    coroutine_t::pull_type *pull;
-    coroutine_t::push_type push;
+    std::thread worker;
+    std::mutex mtx;
+    std::condition_variable cv_main;
+    std::condition_variable cv_worker;
+    enum class turn_t { MAIN, WORKER } turn;
+    bool finished;
+    color_ostream *current_out;
+
     size_t wait_multiplier;
     size_t wait_frames;
     bool did_delay;
@@ -213,7 +220,7 @@ private:
 
     void checkScreen(const char *filename, int lineno);
     bool run(color_ostream & out, const std::function<void(std::vector<df::interface_key> &)> & send_keys);
-    void init(coroutine_t::pull_type & input);
+    void worker_main();
 
     friend struct EventManager;
 

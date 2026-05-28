@@ -2,7 +2,19 @@
 
 #include "dfhack_shared.h"
 
-#include <boost/config.hpp>
+#ifdef _MSC_VER
+#define DFAI_NOINLINE __declspec(noinline)
+#else
+#define DFAI_NOINLINE __attribute__((noinline))
+#endif
+
+#ifdef _MSC_VER
+#define DFAI_UNLIKELY(x) (!!(x))
+#else
+#define DFAI_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#endif
+#define DFAI_STRINGIZE_IMPL(x) #x
+#define DFAI_STRINGIZE(x) DFAI_STRINGIZE_IMPL(x)
 
 #ifdef DFAI_RELEASE
 #define DFAI_IS_RELEASE true
@@ -38,7 +50,7 @@ extern DebugCategoryConfig debug_category_config;
 #endif
 #endif
 
-extern BOOST_NOINLINE std::ostream & dfai_debug_log();
+extern DFAI_NOINLINE std::ostream & dfai_debug_log();
 
 // Get base filename (without directory) as a constexpr so it gets run at compile time. Arguments should be __FILE__, __FILE__.
 static inline constexpr const char *dfai_debug_basename(const char *lastSlash, const char *lastChar) noexcept
@@ -52,9 +64,9 @@ static inline constexpr const char *dfai_debug_basename(const char *lastSlash, c
 #define DFAI_ASSERT_LOC(ok, message, filename, lineno) \
     do \
     { \
-        if (BOOST_UNLIKELY(!(ok))) \
+        if (DFAI_UNLIKELY(!(ok))) \
         { \
-            dfai_debug_log() << "Assertion failed on " << dfai_debug_basename(filename, filename) << " line " << lineno << ": " << BOOST_STRINGIZE(ok) << std::endl; \
+            dfai_debug_log() << "Assertion failed on " << dfai_debug_basename(filename, filename) << " line " << lineno << ": " << DFAI_STRINGIZE(ok) << std::endl; \
             dfai_debug_log() << message << std::endl; \
             dfai_debug_log() << std::endl; \
             DFAI_BREAKPOINT(); \
@@ -71,7 +83,7 @@ static inline constexpr const char *dfai_debug_basename(const char *lastSlash, c
     { \
         static_assert(level > 0, "debug log level must be positive"); \
         static_assert(level < 666, "debug log level too high"); \
-        if (BOOST_UNLIKELY(level < 4 && debug_category_config.category >= level)) \
+        if (DFAI_UNLIKELY(level < 4 && debug_category_config.category >= level)) \
         { \
             /* in release builds, write to debug file */ \
             dfai_debug_log() << "[DEBUG:" #category ":" #level << "] " << dfai_debug_basename(__FILE__, __FILE__) << " line " << __LINE__ << ": " << message << std::endl; \
@@ -83,13 +95,13 @@ static inline constexpr const char *dfai_debug_basename(const char *lastSlash, c
     { \
         static_assert(level > 0, "debug log level must be positive"); \
         static_assert(level < 666, "debug log level too high"); \
-        if (BOOST_UNLIKELY(debug_category_config.category >= level)) \
+        if (DFAI_UNLIKELY(debug_category_config.category >= level)) \
         { \
             /* in debug builds, write to console */ \
             Core::getInstance().getConsole() << "[DEBUG:" #category ":" #level << "] " << dfai_debug_basename(__FILE__, __FILE__) << " line " << __LINE__ << ": " << message << std::endl; \
             dfai_debug_log() << "[DEBUG:" #category ":" #level << "] " << dfai_debug_basename(__FILE__, __FILE__) << " line " << __LINE__ << ": " << message << std::endl; \
         } \
-        if (BOOST_UNLIKELY(debug_category_config.category == 666)) \
+        if (DFAI_UNLIKELY(debug_category_config.category == 666)) \
         { \
             DFAI_BREAKPOINT(); \
         } \
