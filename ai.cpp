@@ -134,12 +134,19 @@ public:
 
     virtual void Run(color_ostream & out)
     {
-        out << "AI: abandon not yet implemented for Steam DF" << std::endl;
+        out << "AI: abandoning — blueprint setup failed. AI will stop managing this fortress." << std::endl;
+        out << "AI: to retry, run: disable df-ai   then: enable df-ai" << std::endl;
     }
 };
 
-void AI::abandon(color_ostream &)
+void AI::abandon(color_ostream & out)
 {
+    extern std::unique_ptr<AI> dwarfAI;
+    if (dwarfAI)
+    {
+        dwarfAI->debug(out, "[ERROR] AI is shutting down (abandon called).");
+        dwarfAI->onupdate_unregister(out);
+    }
     events.register_exclusive(std::make_unique<AbandonExclusive>(), true);
 }
 

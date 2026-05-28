@@ -83,9 +83,12 @@ void load_objects(color_ostream & out, const std::string & subtype, std::functio
 
 blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
 {
+    out << "df-ai: loading blueprints from " << Filesystem::getcwd().string() << "/df-ai-blueprints/" << std::endl;
+
     if (!Filesystem::isdir("df-ai-blueprints"))
     {
         is_valid = false;
+        out << "[ERROR] df-ai: df-ai-blueprints folder is missing!" << std::endl;
         out.printerr("The df-ai-blueprints folder is missing! Download it from https://github.com/BenLubar/df-ai/releases to use the new scriptable blueprint system.\n");
         out.printerr("The df-ai-blueprints folder should be inside %s.\n", Filesystem::getcwd().string().c_str());
         return;
@@ -102,6 +105,8 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
         rooms[type].second.push_back(std::make_pair(name, inst));
     });
 
+    out << "df-ai: loaded " << rooms.size() << " room types" << std::endl;
+
     std::string error;
     for (auto & type : rooms)
     {
@@ -110,12 +115,12 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
         if (type.second.first.empty())
         {
             is_valid = false;
-            out.printerr("%s: no templates\n", type.first.c_str());
+            out << "[ERROR] df-ai: " << type.first << ": no templates" << std::endl;
         }
         if (type.second.second.empty())
         {
             is_valid = false;
-            out.printerr("%s: no instances\n", type.first.c_str());
+            out << "[ERROR] df-ai: " << type.first << ": no instances" << std::endl;
         }
         for (auto tmpl : type.second.first)
         {
@@ -130,14 +135,14 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
                 if (!rb->apply(error))
                 {
                     is_valid = false;
-                    out.printerr("%s + %s: %s\n", tmpl.first.c_str(), inst.first.c_str(), error.c_str());
+                    out << "[ERROR] df-ai: " << tmpl.first << " + " << inst.first << ": " << error << std::endl;
                     delete rb;
                     continue;
                 }
                 if (rb->warn(error))
                 {
                     is_valid = false;
-                    out.printerr("%s + %s: %s\n", tmpl.first.c_str(), inst.first.c_str(), error.c_str());
+                    out << "[WARN] df-ai: " << tmpl.first << " + " << inst.first << ": " << error << std::endl;
                 }
                 rbs.push_back(rb);
             }
@@ -152,6 +157,7 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
     std::vector<std::filesystem::path> plan_names;
     if (!Filesystem::listdir("df-ai-blueprints/plans", plan_names))
     {
+        out << "df-ai: found " << plan_names.size() << " files in plans directory" << std::endl;
         for (auto & name_path : plan_names)
         {
             std::string name = name_path.string();
@@ -165,15 +171,22 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
 
             if (auto plan = load_json<blueprint_plan_template>(path, "plan", name.substr(0, ext), error))
             {
+                out << "df-ai: loaded plan: " << name.substr(0, ext) << std::endl;
                 plans[name.substr(0, ext)] = plan;
             }
             else
             {
                 is_valid = false;
-                out.printerr("%s\n", error.c_str());
+                out << "[ERROR] df-ai: failed to load plan " << name << ": " << error << std::endl;
             }
         }
     }
+    else
+    {
+        out << "[ERROR] df-ai: could not list df-ai-blueprints/plans directory" << std::endl;
+    }
+
+    out << "df-ai: blueprint loading complete. " << plans.size() << " plans, " << blueprints.size() << " room types loaded." << std::endl;
 }
 
 blueprints_t::~blueprints_t()
