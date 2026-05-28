@@ -174,9 +174,13 @@ void AI::statechanged(color_ostream & out, state_change_event st)
                     Gui::getCurViewscreen(true)->feed_key(interface_key::LEAVESCREEN);
                 });
             }
-            else if (seen_focus.insert(focus).second)
+            else
             {
-                debug(out, "[ERROR] paused in unknown DFHack viewscreen " + focus);
+                if (seen_focus.insert(focus).second)
+                {
+                    debug(out, "dismissing DFHack overlay: " + focus);
+                }
+                Screen::dismiss(hack);
             }
         }
         else if (const virtual_identity *ident = virtual_identity::get(curview))

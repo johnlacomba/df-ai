@@ -247,7 +247,15 @@ void EmbarkExclusive::ViewTitle(color_ostream & out)
 
         auto new_world = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), main_choice_type::NewWorld);
 
-        ai.debug(out, "choosing \"New World\"");
+        if (new_world == view->menu_line_id.end())
+        {
+            ai.debug(out, "[ERROR] ViewTitle: \"New World\" not found in menu");
+            Delay();
+            return;
+        }
+
+        ai.debug(out, stl_sprintf("choosing \"New World\" (index %d, selected=%d)",
+            int32_t(new_world - view->menu_line_id.begin()), view->selected));
         SelectVerticalMenuItem(&view->selected, int32_t(new_world - view->menu_line_id.begin()));
     }
     else if (view->mode == title_mode_type::CONTINUE_INACTIVE)
@@ -634,7 +642,7 @@ void RestartWaitExclusive::Run(color_ostream & out)
 
     Key(interface_key::LEAVESCREEN);
 
-    while (!isFinished() && !MaybeExpectScreen<df::viewscreen_titlest>("title"))
+    while (!isFinished() && !MaybeExpectScreen<df::viewscreen_titlest>(""))
     {
         Delay();
     }
