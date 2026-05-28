@@ -1482,131 +1482,13 @@ void Population::report(std::ostream & out, bool html)
             {
                 out << "  ";
             }
-            out << "item";
-            if (item->role == df::job_item_ref::T_role::Reagent)
-            {
-                auto ji = vector_get(j->item->job_items, item->job_item_idx);
-                auto reaction = ji != nullptr ? df::reaction::find(ji->reaction_id) : nullptr;
-                auto reagent = reaction != nullptr ? vector_get(reaction->reagents, ji->reagent_index) : nullptr;
-                if (reagent)
-                {
-                    out << " (" << reagent->code << ")";
-                }
-                else
-                {
-                    out << " (" << enum_item_key(item->role) << ")";
-                }
-            }
-            else if (item->role != 0)
-            {
-                out << " (" << enum_item_key(item->role) << ")";
-            }
-            out << ": " << maybe_escape(AI::describe_item(item->item), html);
-            if (item->is_fetching)
-            {
-                out << " (fetching)";
-            }
+            out << "item: " << maybe_escape(AI::describe_item(item->item), html);
             if (!html)
             {
                 out << "\n";
             }
         }
-        for (size_t i = 0; i < j->item->job_items.size(); i++)
-        {
-            if (handled_items.count(i))
-            {
-                continue;
-            }
-            auto & item = j->item->job_items.at(i);
-            if (html)
-            {
-                out << "<br/>";
-            }
-            else
-            {
-                out << "  ";
-            }
-            out << "item (not yet selected): ";
-            MaterialInfo mat(item);
-            ItemTypeInfo typ(item);
-            if (mat.isValid())
-            {
-                out << maybe_escape(mat.toString(), html) << " ";
-            }
-            if (typ.isValid())
-            {
-                out << maybe_escape(typ.toString(), html) << " ";
-            }
-            if (!item->has_material_reaction_product.empty())
-            {
-                out << "(has product: " << maybe_escape(item->has_material_reaction_product, html) << ") ";
-            }
-            if (item->has_tool_use != tool_uses::NONE)
-            {
-                out << "(has tool use: " << enum_item_key(item->has_tool_use) << ") ";
-            }
-            if (auto ore = df::inorganic_raw::find(item->metal_ore))
-            {
-                out << "(ore of " << maybe_escape(ore->material.state_name[matter_state::Solid], html) << ") ";
-            }
-            std::vector<std::string> flags;
-            bitfield_to_string(&flags, item->flags1);
-            bitfield_to_string(&flags, item->flags2);
-            bitfield_to_string(&flags, item->flags3);
-            //bitfield_to_string(&flags, item->flags4);
-            //bitfield_to_string(&flags, item->flags5);
-            if (!flags.empty())
-            {
-                out << "(";
-                bool first = true;
-                for (auto & flag : flags)
-                {
-                    if (first)
-                    {
-                        first = false;
-                    }
-                    else
-                    {
-                        out << ", ";
-                    }
-                    out << flag;
-                }
-                out << ") ";
-            }
-            int32_t base_quantity;
-            switch (item->item_type)
-            {
-            case item_type::BAR:
-            case item_type::POWDER_MISC:
-            case item_type::LIQUID_MISC:
-            case item_type::DRINK:
-                base_quantity = 150;
-                break;
-            case item_type::THREAD:
-                base_quantity = 15000;
-                break;
-            case item_type::CLOTH:
-                base_quantity = 10000;
-                break;
-            default:
-                base_quantity = 1;
-                break;
-            }
-            int32_t remainder = item->quantity % base_quantity;
-            if (item->quantity / base_quantity != 1 || remainder != 0)
-            {
-                out << "(quantity: " << (item->quantity / base_quantity);
-                if (remainder != 0)
-                {
-                    out << " and " << remainder << "/" << base_quantity;
-                }
-                out << ") ";
-            }
-            if (!html)
-            {
-                out << "\n";
-            }
-        }
+        // job_items (job_reqst) restructured in Steam DF — detailed item display stubbed
         for (auto & ref : j->item->general_refs)
         {
             if (html)
@@ -1714,7 +1596,7 @@ void Population::report(std::ostream & out, bool html)
     std::map<std::string, size_t> boring_job_count;
     for (auto j = world->jobs.list.next; j; j = j->next)
     {
-        if (j->item->items.empty() && j->item->job_items.empty() && j->item->general_refs.empty())
+        if (j->item->items.empty() && j->item->general_refs.empty())
         {
             boring_job_count[AI::describe_job(j->item)]++;
             continue;

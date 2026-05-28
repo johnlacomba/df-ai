@@ -5,6 +5,7 @@
 
 #include "modules/Units.h"
 
+#include "df/building_civzonest.h"
 #include "df/building_coffinst.h"
 #include "df/buildings_other_id.h"
 #include "df/general_ref.h"
