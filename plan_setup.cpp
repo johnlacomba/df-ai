@@ -4,6 +4,8 @@
 #include "blueprint.h"
 #include "debug.h"
 
+#include "modules/Filesystem.h"
+
 #include "df/inorganic_raw.h"
 
 REQUIRE_GLOBAL(pause_state);
