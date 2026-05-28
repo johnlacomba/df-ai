@@ -80,8 +80,15 @@ if (Test-Path $PythonExe) {
     Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
 
     Write-Host "  Installing to $PythonDir (this may take a minute)..."
-    $pyArgs = "/quiet InstallAllUsers=0 `"TargetDir=$PythonDir`" AssociateFiles=0 Shortcuts=0 Include_launcher=0 Include_pip=1 Include_test=0"
-    Start-Process -FilePath $installerPath -ArgumentList $pyArgs -Wait -NoNewWindow
+    $pyLog = Join-Path $env:TEMP "python-install.log"
+    $pyArgs = "/passive InstallAllUsers=0 TargetDir=`"$PythonDir`" AssociateFiles=0 Shortcuts=0 Include_launcher=0 Include_pip=1 Include_test=0 /log `"$pyLog`""
+    Write-Host "  Install log: $pyLog"
+    $proc = Start-Process -FilePath $installerPath -ArgumentList $pyArgs -Wait -PassThru
+    Write-Host "  Installer exit code: $($proc.ExitCode)"
+    if ($proc.ExitCode -ne 0 -and (Test-Path $pyLog)) {
+        Write-Host "  Last 20 lines of install log:" -ForegroundColor Yellow
+        Get-Content $pyLog -Tail 20
+    }
 
     Remove-Item $installerPath -ErrorAction SilentlyContinue
 
