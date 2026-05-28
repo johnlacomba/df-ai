@@ -426,8 +426,8 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
 
         int32_t want_x = std::min(std::max(config.embark_options[embark_finder_option::DimensionX], 1), 16);
         int32_t want_y = std::min(std::max(config.embark_options[embark_finder_option::DimensionY], 1), 16);
-        view->embark_pos_max.x = view->embark_pos_min.x + want_x - 1;
-        view->embark_pos_max.y = view->embark_pos_min.y + want_y - 1;
+        view->location.embark_pos_max.x = view->location.embark_pos_min.x + want_x - 1;
+        view->location.embark_pos_max.y = view->location.embark_pos_min.y + want_y - 1;
 
         DisplayEmbarkSite(out);
         return;
@@ -519,8 +519,8 @@ void EmbarkExclusive::DisplayEmbarkSite(color_ostream & out)
     ExpectedScreen<df::viewscreen_choose_start_sitest> view(this);
 
     ai.debug(out, stl_sprintf("[STEAM] DisplayEmbarkSite: pos=(%d,%d)-(%d,%d)",
-        view->embark_pos_min.x, view->embark_pos_min.y,
-        view->embark_pos_max.x, view->embark_pos_max.y));
+        view->location.embark_pos_min.x, view->location.embark_pos_min.y,
+        view->location.embark_pos_max.x, view->location.embark_pos_max.y));
 
     Delay(5 * 100);
 
