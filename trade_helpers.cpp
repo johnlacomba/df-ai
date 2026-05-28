@@ -20,7 +20,6 @@
 #include "df/general_ref_contains_itemst.h"
 #include "df/general_ref_contains_unitst.h"
 #include "df/general_ref_unit_workerst.h"
-#include "df/graphic.h"
 #include "df/historical_entity.h"
 #include "df/item.h"
 #include "df/item_armorst.h"
@@ -40,12 +39,10 @@
 #include "df/itemdef_weaponst.h"
 #include "df/job.h"
 #include "df/sphere_type.h"
-#include "df/ui.h"
+#include "df/plotinfost.h"
 #include "df/unit.h"
-#include "df/viewscreen_tradegoodsst.h"
 
-REQUIRE_GLOBAL(gps);
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 
 Trade::Trade(AI & ai) :
     ai(ai)
@@ -61,7 +58,7 @@ bool Trade::can_trade()
     auto room = ai.find_room(room_type::tradedepot);
     auto bld = room ? room->dfbuilding() : nullptr;
 
-    for (auto & caravan : ui->caravans)
+    for (auto & caravan : plotinfo->caravans)
     {
         if (caravan->trade_state == df::caravan_state::AtDepot && caravan->time_remaining > 0)
         {
@@ -85,7 +82,7 @@ bool Trade::can_trade()
 
 bool Trade::can_move_goods()
 {
-    for (auto & caravan : ui->caravans)
+    for (auto & caravan : plotinfo->caravans)
     {
         if (caravan->trade_state == df::caravan_state::Approaching || (caravan->trade_state == df::caravan_state::AtDepot && caravan->time_remaining > 0))
         {
@@ -100,71 +97,6 @@ void Trade::read_trader_reply(std::string & reply, std::string & mood)
 {
     reply.clear();
     mood.clear();
-    bool start = false;
-
-    for (int32_t j = 1; j < gps->dimy - 2; j++)
-    {
-        bool empty = true;
-
-        for (int32_t i = 2; i < gps->dimx - 1; i++)
-        {
-            char ch = gps->screen[(i * gps->dimy + j) * 4];
-
-            if (!start)
-            {
-                start = ch == ':';
-            }
-            else
-            {
-                if (ch != 0)
-                {
-                    if (ch != ' ')
-                    {
-                        if (empty && !reply.empty() && reply.back() != ' ')
-                        {
-                            reply.push_back(' ');
-                        }
-                        empty = false;
-                    }
-
-                    if (!empty && (ch != ' ' || reply.back() != ' '))
-                    {
-                        reply.push_back(ch);
-                    }
-                }
-            }
-        }
-
-        if (empty && !reply.empty())
-        {
-            for (j = j + 1; j < gps->dimy - 2; j++)
-            {
-                uint8_t ch = gps->screen[(2 * gps->dimy + j) * 4];
-
-                if (ch != 0)
-                {
-                    if (ch == 219)
-                    {
-                        break;
-                    }
-
-                    for (int32_t i = 2; i < gps->dimx - 1; i++)
-                    {
-                        ch = gps->screen[(i*gps->dimy + j) * 4];
-
-                        if (ch != ' ' || (!mood.empty() && mood.back() != ' '))
-                        {
-                            mood.push_back(ch);
-                        }
-                    }
-
-                    break;
-                }
-            }
-
-            break;
-        }
-    }
 }
 
 static bool match_mat_vec(const df::material_vec_ref & mat_vec, size_t idx, int16_t mat_type, int32_t mat_index)

@@ -13,15 +13,12 @@
 
 #include "df/enabler.h"
 #include "df/viewscreen_dwarfmodest.h"
-#include "df/viewscreen_movieplayerst.h"
-#include "df/viewscreen_optionst.h"
-#include "df/viewscreen_textviewerst.h"
 #include "df/viewscreen_titlest.h"
 #include "df/world.h"
 
 REQUIRE_GLOBAL(enabler);
 REQUIRE_GLOBAL(pause_state);
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 AI::AI() :
@@ -65,12 +62,11 @@ AI::AI() :
 
 AI::~AI()
 {
-    events.remove_dfplex_client();
 }
 
 bool AI::is_dwarfmode_viewscreen()
 {
-    if (ui->main.mode != ui_sidebar_mode::Default)
+    if (plotinfo->main.mode != ui_sidebar_mode::Default)
         return false;
     if (!world->status.popups.empty())
         return false;
@@ -84,8 +80,6 @@ bool AI::is_dwarfmode_viewscreen()
 
 command_result AI::startup(color_ostream & out)
 {
-    events.create_dfplex_client();
-
     command_result res = Core::getInstance().runCommand(out, "disable confirm");;
     if (res == CR_OK && !config.manage_labors.empty())
         res = Core::getInstance().runCommand(out, "enable " + config.manage_labors);
@@ -109,53 +103,14 @@ class AbandonExclusive : public ExclusiveCallback
 public:
     AbandonExclusive() : ExclusiveCallback("abandon", 2) {}
 
-    virtual void Run(color_ostream &)
+    virtual void Run(color_ostream & out)
     {
-        {
-            auto view = df::allocate<df::viewscreen_optionst>();
-
-            // TODO: These are the options from regular fortress mode. Are they different during a siege?
-            view->options.push_back(df::viewscreen_optionst::Return);
-            view->options.push_back(df::viewscreen_optionst::Save);
-            view->options.push_back(df::viewscreen_optionst::KeyBindings);
-            view->options.push_back(df::viewscreen_optionst::ExportImage);
-            view->options.push_back(df::viewscreen_optionst::MusicSound);
-            view->options.push_back(df::viewscreen_optionst::AbortRetire);
-            view->options.push_back(df::viewscreen_optionst::Abandon);
-
-            Screen::show(std::unique_ptr<df::viewscreen>(view));
-            ExpectScreen<df::viewscreen_optionst>("option");
-        }
-
-        Delay();
-
-        ExpectedScreen<df::viewscreen_optionst> view(this);
-
-        auto option = std::find(view->options.begin(), view->options.end(), df::viewscreen_optionst::Abandon);
-        MoveToItem(&view->sel_idx, int32_t(option - view->options.begin()));
-
-        Key(interface_key::SELECT);
-        if (MaybeExpectScreen<df::viewscreen_titlest>("title"))
-        {
-            // no confirmation before embark
-            return;
-        }
-
-        Key(interface_key::MENU_CONFIRM);
-        while (MaybeExpectScreen<df::viewscreen_optionst>("option"))
-        {
-            Delay();
-        }
-
-        // current view switches to a textviewer at this point
-        ExpectScreen<df::viewscreen_textviewerst>("textviewer");
-        Key(interface_key::SELECT);
+        out << "AI: abandon not yet implemented for Steam DF" << std::endl;
     }
 };
 
 void AI::abandon(color_ostream &)
 {
-    events.remove_dfplex_client();
     events.register_exclusive(std::make_unique<AbandonExclusive>(), true);
 }
 
@@ -182,14 +137,6 @@ void AI::timeout_sameview(int32_t seconds, std::function<void(color_ostream &)> 
 
     events.onupdate_register_once("timeout_sameview on " + name, [this, curscreen, counter, cb](color_ostream & out) -> bool
     {
-        if (auto view = strict_virtual_cast<df::viewscreen_movieplayerst>(Gui::getCurViewscreen(true)))
-        {
-            if (!view->is_playing)
-            {
-                Screen::dismiss(view);
-                camera.check_record_status();
-            }
-        }
         if (Gui::getCurViewscreen(true) != curscreen)
         {
             delete counter;

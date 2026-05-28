@@ -44,8 +44,8 @@ void viewscreen_ai_plan_setupst::render()
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#define STATIC_FIELDS_GROUP
-#include "../DataStaticsFields.cpp"
+
+#include "DataStaticsFields.inc"
 
 using df::identity_traits;
 

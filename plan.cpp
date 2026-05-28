@@ -135,7 +135,7 @@ struct gathering_zone_hide_hook : df::building_civzonest {
 
     DEFINE_VMETHOD_INTERPOSE(bool, isVisibleInViewport, (df::map_viewport *viewport))
     {
-        if (this->zone_flags.whole == (T_zone_flags::mask_gather | T_zone_flags::mask_water_source | T_zone_flags::mask_active))
+        if (this->type == civzone_type::PlantGathering)
         {
             return false;
         }
@@ -1396,12 +1396,11 @@ command_result Plan::setup_outdoor_gathering_zones(color_ostream &)
                 Buildings::constructAbstract(bld);
                 bld->is_room = true;
 
-                bld->zone_flags.bits.active = 1;
-                bld->zone_flags.bits.water_source = 1;
-                bld->zone_flags.bits.gather = 1;
-                bld->gather_flags.bits.pick_trees = 1;
-                bld->gather_flags.bits.pick_shrubs = 1;
-                bld->gather_flags.bits.gather_fallen = 1;
+                bld->spec_sub_flag.bits.active = 1;
+                bld->type = civzone_type::PlantGathering;
+                bld->zone_settings.gather.flags.bits.pick_trees = 1;
+                bld->zone_settings.gather.flags.bits.pick_shrubs = 1;
+                bld->zone_settings.gather.flags.bits.gather_fallen = 1;
             }
 
             ground.clear();

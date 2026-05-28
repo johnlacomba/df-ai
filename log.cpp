@@ -4,7 +4,6 @@
 #include "plan.h"
 #include "population.h"
 
-#include "modules/Gui.h"
 #include "modules/Translation.h"
 #include "modules/Units.h"
 

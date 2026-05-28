@@ -8,19 +8,19 @@
 #include "df/job.h"
 #include "df/squad.h"
 #include "df/squad_order_kill_listst.h"
-#include "df/ui.h"
+#include "df/plotinfost.h"
 #include "df/world.h"
 
 #include "modules/Maps.h"
 #include "modules/Units.h"
 
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 bool AI::tag_enemies(color_ostream & out)
 {
     bool found = false;
-    for (auto id : ui->main.fortress_entity->squads)
+    for (auto id : plotinfo->main.fortress_entity->squads)
     {
         auto squad = df::squad::find(id);
         for (auto order : squad->orders)

@@ -29,14 +29,14 @@
 #include "df/unit_health_info.h"
 #include "df/unit_relationship_type.h"
 #include "df/unit_wound.h"
-#include "df/ui.h"
+#include "df/plotinfost.h"
 #include "df/world.h"
 #include "df/wound_curse_info.h"
 
 REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(cur_year_tick);
 REQUIRE_GLOBAL(standing_orders_forbid_used_ammo);
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 Population::Population(AI & ai) :
@@ -218,7 +218,7 @@ void Population::update_citizenlist(color_ostream & out)
         {
             visitor.insert(u->id);
         }
-        else if (!Units::isOwnGroup(u) && std::find_if(u->occupations.begin(), u->occupations.end(), [](df::occupation *occ) -> bool { return occ->group_id == ui->group_id; }) != u->occupations.end())
+        else if (!Units::isOwnGroup(u) && std::find_if(u->occupations.begin(), u->occupations.end(), [](df::occupation *occ) -> bool { return occ->group_id == plotinfo->group_id; }) != u->occupations.end())
         {
             resident.insert(u->id);
         }
@@ -322,7 +322,7 @@ void Population::report(std::ostream & out, bool html)
         {
             for (auto occ : u->occupations)
             {
-                if (occ->site_id == ui->site_id)
+                if (occ->site_id == plotinfo->site_id)
                 {
                     switch (occ->type)
                     {
@@ -421,7 +421,7 @@ void Population::report(std::ostream & out, bool html)
     }
 
     // Output all Miltary Squads, their Members, and their target
-    for (auto sqid : ui->main.fortress_entity->squads)
+    for (auto sqid : plotinfo->main.fortress_entity->squads)
     {
         df::squad *sq = df::squad::find(sqid);
 
@@ -658,7 +658,7 @@ void Population::report(std::ostream & out, bool html)
     bool any_crimes = false;
     for (auto crime : world->crimes.all)
     {
-        if (crime->site != ui->site_id)
+        if (crime->site != plotinfo->site_id)
         {
             continue;
         }
@@ -1522,7 +1522,7 @@ void Population::report(std::ostream & out, bool html)
     {
         auto d = virtual_cast<df::history_event_hist_figure_diedst>(e);
 
-        if (!d || d->site != ui->site_id)
+        if (!d || d->site != plotinfo->site_id)
         {
             continue;
         }

@@ -24,10 +24,8 @@
 #include "df/viewscreen_export_regionst.h"
 #include "df/viewscreen_game_cleanerst.h"
 #include "df/viewscreen_loadgamest.h"
-#include "df/viewscreen_movieplayerst.h"
 #include "df/viewscreen_new_regionst.h"
 #include "df/viewscreen_setupdwarfgamest.h"
-#include "df/viewscreen_textviewerst.h"
 #include "df/viewscreen_titlest.h"
 #include "df/viewscreen_update_regionst.h"
 #include "df/world.h"
@@ -58,12 +56,6 @@ void EmbarkExclusive::Run(color_ostream & out)
         if (Screen::isDismissed(Gui::getCurViewscreen(false)))
         {
             Delay();
-            continue;
-        }
-
-        if (MaybeExpectScreen<df::viewscreen_movieplayerst>("movieplayer"))
-        {
-            Key(interface_key::LEAVESCREEN);
             continue;
         }
 
@@ -122,17 +114,15 @@ void EmbarkExclusive::Run(color_ostream & out)
             continue;
         }
 
-        if (MaybeExpectScreen<df::viewscreen_textviewerst>("textviewer"))
-        {
-            ViewTextViewer(out);
-            return;
-        }
-
         // viewscreen is unknown
         ai.statechanged(out, SC_VIEWSCREEN_CHANGED);
         Delay();
     }
 
+    ai.debug(out, "embark complete, setting up initial state.");
+    Gui::setMenuWidth(3, 3);
+    *standing_orders_gather_refuse_outside = 1;
+    *standing_orders_job_cancel_announce = config.cancel_announce;
     ai.unpause();
 }
 
@@ -801,17 +791,8 @@ void EmbarkExclusive::ViewSetupDwarfGame(color_ostream & out)
     Key(interface_key::SETUP_EMBARK);
 }
 
-void EmbarkExclusive::ViewTextViewer(color_ostream & out)
+void EmbarkExclusive::ViewTextViewer(color_ostream &)
 {
-    ai.debug(out, "site is ready.");
-
-    Delay(5 * 100);
-
-    ai.debug(out, "disabling minimap.");
-    Gui::getCurViewscreen(true)->feed_key(interface_key::LEAVESCREEN);
-    Gui::setMenuWidth(3, 3);
-    *standing_orders_gather_refuse_outside = 1;
-    *standing_orders_job_cancel_announce = config.cancel_announce;
 }
 
 RestartWaitExclusive::RestartWaitExclusive(AI & ai) :
@@ -826,17 +807,9 @@ RestartWaitExclusive::~RestartWaitExclusive()
 
 void RestartWaitExclusive::Run(color_ostream & out)
 {
-    ExpectScreen<df::viewscreen_textviewerst>("textviewer");
-
     ai.debug(out, "game over. restarting in 1 minute.");
 
     Delay(60 * 100);
-
-    if (!MaybeExpectScreen<df::viewscreen_textviewerst>("textviewer"))
-    {
-        ai.debug(out, "[ERROR] unexpected screen during restart.");
-        return;
-    }
 
     ai.debug(out, "restarting.");
 

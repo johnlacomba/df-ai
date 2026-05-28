@@ -6,9 +6,10 @@
 
 #include "df/interface_key.h"
 
-// from dfplex
+#ifdef DF_AI_DFPLEX
 struct Client;
 struct ClientUpdateInfo;
+#endif
 
 struct OnupdateCallback
 {
@@ -50,8 +51,10 @@ public:
     OnstatechangeCallback *onstatechange_register(const std::string & descr, std::function<void(color_ostream &, state_change_event)> b);
     OnstatechangeCallback *onstatechange_register_once(const std::string & descr, std::function<bool(color_ostream &, state_change_event)> b);
     void onstatechange_unregister(OnstatechangeCallback *&b);
+#ifdef DF_AI_DFPLEX
     void create_dfplex_client();
     void remove_dfplex_client();
+#endif
 
     bool register_exclusive(std::unique_ptr<ExclusiveCallback> && cb, bool force = false);
     void queue_exclusive(std::unique_ptr<ExclusiveCallback> && cb);
@@ -95,7 +98,11 @@ public:
 
     void onstatechange(color_ostream & out, state_change_event event);
     void onupdate(color_ostream & out, const std::function<void(std::vector<df::interface_key> &)> & send_keys);
+#ifdef DF_AI_DFPLEX
     bool is_client();
+#else
+    inline bool is_client() { return false; }
+#endif
 private:
     friend class AI;
     friend class Camera;
@@ -106,7 +113,9 @@ private:
     std::list<std::unique_ptr<ExclusiveCallback>> exclusive_queue;
     std::vector<OnupdateCallback *> onupdate_list;
     std::vector<OnstatechangeCallback *> onstatechange_list;
+#ifdef DF_AI_DFPLEX
     Client *dfplex_client;
+#endif
 };
 
 extern EventManager events;

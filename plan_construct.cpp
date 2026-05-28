@@ -29,15 +29,12 @@
 #include "df/job_item.h"
 #include "df/map_block.h"
 #include "df/plant.h"
-#include "df/ui.h"
-#include "df/ui_sidebar_menus.h"
+#include "df/plotinfost.h"
 #include "df/viewscreen_dwarfmodest.h"
-#include "df/viewscreen_layer_stockpilest.h"
 #include "df/world.h"
 
 REQUIRE_GLOBAL(cursor);
-REQUIRE_GLOBAL(ui);
-REQUIRE_GLOBAL(ui_sidebar_menus);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 static bool find_item(df::items_other_id idx, df::item *&item, bool fire_safe = false, bool non_economic = false)
@@ -47,7 +44,7 @@ static bool find_item(df::items_other_id idx, df::item *&item, bool fire_safe = 
         df::item *i = *it;
         if (Stocks::is_item_free(i) &&
             (!fire_safe || i->isTemperatureSafe(1)) &&
-            (!non_economic || virtual_cast<df::item_boulderst>(i)->mat_type != 0 || !ui->economic_stone[virtual_cast<df::item_boulderst>(i)->mat_index]))
+            (!non_economic || virtual_cast<df::item_boulderst>(i)->mat_type != 0 || !plotinfo->economic_stone[virtual_cast<df::item_boulderst>(i)->mat_index]))
         {
             item = i;
             return true;
@@ -64,7 +61,7 @@ static bool find_items(df::items_other_id idx, std::vector<df::item *> & items, 
         df::item *i = *it;
         if (Stocks::is_item_free(i) &&
             (!fire_safe || i->isTemperatureSafe(1)) &&
-            (!non_economic || virtual_cast<df::item_boulderst>(i)->mat_type != 0 || !ui->economic_stone[virtual_cast<df::item_boulderst>(i)->mat_index]))
+            (!non_economic || virtual_cast<df::item_boulderst>(i)->mat_type != 0 || !plotinfo->economic_stone[virtual_cast<df::item_boulderst>(i)->mat_index]))
         {
             items.push_back(i);
             j++;
@@ -1234,145 +1231,47 @@ public:
 protected:
     void Run(color_ostream & out)
     {
-        ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Default");
-
-        int32_t start_x, start_y, start_z;
-        Gui::getViewCoords(start_x, start_y, start_z);
-
-        Key(interface_key::D_STOCKPILES);
-
-        ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Stockpiles");
-
-        Gui::revealInDwarfmodeMap(r->min + df::coord(1, 0, 0), true);
-        Gui::setCursorCoords(r->min.x + 1, r->min.y, r->min.z);
-
-        Key(interface_key::CURSOR_LEFT);
-        Key(interface_key::STOCKPILE_CUSTOM);
-        Key(interface_key::STOCKPILE_CUSTOM_SETTINGS);
-
-        // don't constrain the focus string
-        ExpectScreen<df::viewscreen_layer_stockpilest>("");
-
-        ExpectedScreen<df::viewscreen_layer_stockpilest> view(this);
-
-        auto wanted_group = stockpile_keys.map.at(r->stockpile_type);
-        bool seen = false, passed = false;
-        for (size_t i = 0; i < view->group_ids.size(); i++)
+        df::building *bld_raw = Buildings::allocInstance(r->min, building_type::Stockpile);
+        if (!bld_raw)
         {
-            auto group = view->group_ids.at(i);
-            if (group == wanted_group)
-            {
-                seen = true;
-                continue;
-            }
-
-            if (group == stockpile_list::AdditionalOptions)
-            {
-                continue;
-            }
-
-            if (view->settings->flags.whole & view->group_bits.at(i).whole)
-            {
-                passed = seen;
-                while (view->cur_group != group)
-                {
-                    Key(interface_key::STANDARDSCROLL_DOWN);
-                }
-
-                Key(interface_key::STOCKPILE_SETTINGS_DISABLE);
-            }
+            ai.debug(out, "Failed to allocate stockpile: " + AI::describe_room(r));
+            return;
         }
+        Buildings::setSize(bld_raw, r->size());
+        Buildings::constructWithItems(bld_raw, std::vector<df::item *>());
 
-        while (view->cur_group != wanted_group)
-        {
-            Key(passed ? interface_key::STANDARDSCROLL_UP : interface_key::STANDARDSCROLL_DOWN);
-        }
-
-        Key(interface_key::STOCKPILE_SETTINGS_ENABLE);
-        Key(interface_key::STANDARDSCROLL_RIGHT);
-
-        if (r->stockpile_type == stockpile_type::fresh_raw_hide)
-        {
-            Key(interface_key::STOCKPILE_SETTINGS_FORBID_ALL);
-            Key(interface_key::STANDARDSCROLL_RIGHT);
-            Key(interface_key::STANDARDSCROLL_DOWN);
-            DFAI_ASSERT(view->item_status.at(1) == &view->settings->refuse.fresh_raw_hide, "fresh raw hide not in expected location");
-            Key(interface_key::SELECT);
-        }
-        else
-        {
-            Key(interface_key::STOCKPILE_SETTINGS_PERMIT_ALL);
-            if (r->stock_disable.size() > view->list_ids.size() / 2)
-            {
-                std::vector<df::stockpile_list> stock_enable = view->list_ids;
-                for (auto disable : r->stock_disable)
-                {
-                    auto it = std::find(stock_enable.begin(), stock_enable.end(), disable);
-                    if (it != stock_enable.end())
-                    {
-                        stock_enable.erase(it);
-                    }
-                }
-
-                Key(interface_key::STOCKPILE_SETTINGS_FORBID_ALL);
-                KeyNoDelay(interface_key::STOCKPILE_SETTINGS_SPECIFIC1);
-                KeyNoDelay(interface_key::STOCKPILE_SETTINGS_SPECIFIC2);
-
-                for (auto enable : stock_enable)
-                {
-                    while (view->cur_list != enable)
-                    {
-                        Key(interface_key::STANDARDSCROLL_DOWN);
-                    }
-                    Key(interface_key::STOCKPILE_SETTINGS_PERMIT_SUB);
-                }
-            }
-            else
-            {
-                for (auto disable : r->stock_disable)
-                {
-                    while (view->cur_list != disable)
-                    {
-                        Key(interface_key::STANDARDSCROLL_DOWN);
-                    }
-                    Key(interface_key::STOCKPILE_SETTINGS_FORBID_SUB);
-                }
-            }
-
-            if (r->stock_specific1)
-            {
-                Key(interface_key::STOCKPILE_SETTINGS_SPECIFIC1);
-            }
-
-            if (r->stock_specific2)
-            {
-                Key(interface_key::STOCKPILE_SETTINGS_SPECIFIC2);
-            }
-        }
-        Key(interface_key::LEAVESCREEN);
-
-        ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Stockpiles");
-
-        size_t buildings_before = world->buildings.all.size();
-        Key(interface_key::SELECT);
-        for (int16_t x = r->min.x; x < r->max.x; x++)
-        {
-            Key(interface_key::CURSOR_RIGHT);
-        }
-        for (int16_t y = r->min.y; y < r->max.y; y++)
-        {
-            Key(interface_key::CURSOR_DOWN);
-        }
-        Key(interface_key::SELECT);
-        Key(interface_key::LEAVESCREEN);
-
-        ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Default");
-
-        df::building_stockpilest *bld = virtual_cast<df::building_stockpilest>(world->buildings.all.back());
-        if (!bld || buildings_before == world->buildings.all.size())
+        df::building_stockpilest *bld = virtual_cast<df::building_stockpilest>(bld_raw);
+        if (!bld)
         {
             ai.debug(out, "Failed to create stockpile: " + AI::describe_room(r));
             return;
+        }
+
+        bld->settings.flags.whole = 0;
+        switch (r->stockpile_type)
+        {
+        case stockpile_type::animals:        bld->settings.flags.bits.animals = true; break;
+        case stockpile_type::food:           bld->settings.flags.bits.food = true; break;
+        case stockpile_type::weapons:        bld->settings.flags.bits.weapons = true; break;
+        case stockpile_type::armor:          bld->settings.flags.bits.armor = true; break;
+        case stockpile_type::furniture:      bld->settings.flags.bits.furniture = true; break;
+        case stockpile_type::corpses:        bld->settings.flags.bits.corpses = true; break;
+        case stockpile_type::refuse:         bld->settings.flags.bits.refuse = true; break;
+        case stockpile_type::wood:           bld->settings.flags.bits.wood = true; break;
+        case stockpile_type::stone:          bld->settings.flags.bits.stone = true; break;
+        case stockpile_type::gems:           bld->settings.flags.bits.gems = true; break;
+        case stockpile_type::bars_blocks:    bld->settings.flags.bits.bars_blocks = true; break;
+        case stockpile_type::cloth:          bld->settings.flags.bits.cloth = true; break;
+        case stockpile_type::leather:        bld->settings.flags.bits.leather = true; break;
+        case stockpile_type::ammo:           bld->settings.flags.bits.ammo = true; break;
+        case stockpile_type::coins:          bld->settings.flags.bits.coins = true; break;
+        case stockpile_type::finished_goods: bld->settings.flags.bits.finished_goods = true; break;
+        case stockpile_type::sheets:         bld->settings.flags.bits.sheet = true; break;
+        case stockpile_type::fresh_raw_hide:
+            bld->settings.flags.bits.refuse = true;
+            bld->settings.refuse.fresh_raw_hide = true;
+            break;
+        default: break;
         }
 
         r->bld_id = bld->id;
@@ -1392,23 +1291,15 @@ protected:
             }
         }
 
-        // TODO: do this through the UI
-        // setup stockpile links with adjacent level
         ai.find_room(room_type::stockpile, [&](room *o) -> bool
         {
             int32_t diff = o->level - r->level;
             if (o->workshop && r->workshop)
-            {
                 return false;
-            }
             if (o->workshop)
-            {
                 diff = -1;
-            }
             else if (r->workshop)
-            {
                 diff = 1;
-            }
             if (o->stockpile_type == r->stockpile_type && diff != 0)
             {
                 if (df::building_stockpilest *obld = virtual_cast<df::building_stockpilest>(o->dfbuilding()))
@@ -1427,18 +1318,14 @@ protected:
                     for (auto btf : b_to->links.take_from_pile)
                     {
                         if (btf->id == b_from->id)
-                        {
                             return false;
-                        }
                     }
                     b_to->links.take_from_pile.push_back(b_from);
                     b_from->links.give_to_pile.push_back(b_to);
                 }
             }
-            return false; // loop on all stockpiles
+            return false;
         });
-
-        ai.ignore_pause(start_x, start_y, start_z);
     }
 };
 
@@ -1465,94 +1352,48 @@ public:
         ai(ai),
         r(r)
     {
-        dfplex_blacklist = true;
     }
 
 protected:
-    void Run(color_ostream &)
+    void Run(color_ostream & out)
     {
         if (r->dfbuilding())
+            return;
+
+        auto bld = virtual_cast<df::building_civzonest>(
+            Buildings::allocInstance(r->min, building_type::Civzone));
+        if (!bld)
         {
-            // we already have a zone. don't double up.
+            ai.debug(out, "Failed to allocate activity zone: " + AI::describe_room(r));
             return;
         }
+        Buildings::setSize(bld, r->size());
+        Buildings::constructWithItems(bld, std::vector<df::item *>());
 
-        ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Default");
-
-        int32_t start_x, start_y, start_z;
-        Gui::getViewCoords(start_x, start_y, start_z);
-
-        Key(interface_key::D_CIVZONE);
-
-        ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Zones");
-
-        Gui::revealInDwarfmodeMap(r->min + df::coord(1, 0, 0), true);
-        Gui::setCursorCoords(r->min.x + 1, r->min.y, r->min.z);
-
-        Key(interface_key::CURSOR_LEFT);
-        Key(interface_key::SELECT);
-
-        for (int16_t x = r->min.x; x < r->max.x; x++)
-        {
-            Key(interface_key::CURSOR_RIGHT);
-        }
-        for (int16_t y = r->min.y; y < r->max.y; y++)
-        {
-            Key(interface_key::CURSOR_DOWN);
-        }
-        for (int16_t z = r->min.z; z < r->max.z; z++)
-        {
-            Key(interface_key::CURSOR_UP_Z);
-        }
-
-        Key(interface_key::SELECT);
-        auto bld = virtual_cast<df::building_civzonest>(world->buildings.all.back());
-        DFAI_ASSERT(bld, "newly created civzone is missing!");
         r->bld_id = bld->id;
-
-        if (bld->zone_flags.bits.active != 1)
-        {
-            Key(interface_key::CIVZONE_ACTIVE);
-        }
+        bld->spec_sub_flag.bits.active = 1;
 
         if (r->type == room_type::infirmary)
         {
-            Key(interface_key::CIVZONE_HOSPITAL);
-
-            // for the DFHack animal hospital plugin:
-            Key(interface_key::CIVZONE_ANIMAL_TRAINING);
+            ai.debug(out, "Infirmary zone deferred (Steam DF hospital zones not yet implemented)");
         }
         else if (r->type == room_type::garbagedump)
         {
-            Key(interface_key::CIVZONE_DUMP);
+            bld->type = civzone_type::Dump;
         }
         else if (r->type == room_type::pasture)
         {
-            Key(interface_key::CIVZONE_PEN);
+            bld->type = civzone_type::Pen;
         }
         else if (r->type == room_type::pitcage)
         {
-            Key(interface_key::CIVZONE_POND);
-            if (bld->pit_flags.bits.is_pond != 0)
-            {
-                Key(interface_key::CIVZONE_POND_OPTIONS);
-                ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/ZonesPitInfo");
-                Key(interface_key::CIVZONE_POND_WATER);
-                Key(interface_key::LEAVESCREEN);
-                ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Zones");
-            }
+            bld->type = civzone_type::Pond;
+            bld->zone_settings.pond.flag.bits.keep_filled = 0;
         }
         else if (r->type == room_type::pond)
         {
-            Key(interface_key::CIVZONE_POND);
-            if (bld->pit_flags.bits.is_pond != 1)
-            {
-                Key(interface_key::CIVZONE_POND_OPTIONS);
-                ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/ZonesPitInfo");
-                Key(interface_key::CIVZONE_POND_WATER);
-                Key(interface_key::LEAVESCREEN);
-                ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Zones");
-            }
+            bld->type = civzone_type::Pond;
+            bld->zone_settings.pond.flag.bits.keep_filled = 1;
             if (r->temporary && r->workshop && r->workshop->type == room_type::farmplot)
             {
                 ai.plan.add_task(task_type::monitor_farm_irrigation, r);
@@ -1560,79 +1401,9 @@ protected:
         }
         else if (r->type == room_type::location)
         {
-            Key(interface_key::CIVZONE_MEETING);
-            for (auto f : r->layout)
-            {
-                if (f->type == layout_type::well)
-                {
-                    Key(interface_key::CIVZONE_WATER_SOURCE);
-                    break;
-                }
-            }
-            Key(interface_key::ASSIGN_LOCATION);
-            ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/ZonesLocationInfo");
-            Key(interface_key::LOCATION_NEW);
-            bool known = false;
-            switch (r->location_type)
-            {
-            case location_type::guildhall:
-            {
-                Key(interface_key::LOCATION_GUILDHALL);
-                auto gh_type = df::profession(r->data1);
-                DFAI_ASSERT(gh_type != profession::NONE, "guild hall must have profession");
-                do
-                {
-                    Key(interface_key::SECONDSCROLL_DOWN);
-                }
-                while (ui_sidebar_menus->location.cursor_profession &&
-                        ui_sidebar_menus->location.profession.at(ui_sidebar_menus->location.cursor_profession) != gh_type);
-                DFAI_ASSERT(ui_sidebar_menus->location.profession.at(ui_sidebar_menus->location.cursor_profession) == gh_type, "could not find profession for this guildhall");
-                Key(interface_key::SELECT);
-                known = true;
-                break;
-            }
-            case location_type::tavern:
-                Key(interface_key::LOCATION_INN_TAVERN);
-                known = true;
-                break;
-            case location_type::library:
-                Key(interface_key::LOCATION_LIBRARY);
-                known = true;
-                break;
-            case location_type::temple:
-            {
-                Key(interface_key::LOCATION_TEMPLE);
-                if (r->data1 != -1)
-                {
-                    do
-                    {
-                        Key(interface_key::SECONDSCROLL_DOWN);
-                    }
-                    while (ui_sidebar_menus->location.cursor_deity &&
-                            (ui_sidebar_menus->location.deity_type.at(ui_sidebar_menus->location.cursor_deity) != df::temple_deity_type(r->data1) ||
-                             ui_sidebar_menus->location.deity_data.at(ui_sidebar_menus->location.cursor_deity).Deity != r->data2));
-                    DFAI_ASSERT(ui_sidebar_menus->location.cursor_deity, "could not find religion for this temple");
-                }
-                Key(interface_key::SELECT);
-                known = true;
-                break;
-            }
-            case location_type::_location_type_count:
-                break;
-            }
-            if (!known)
-            {
-                Key(interface_key::LEAVESCREEN);
-                Key(interface_key::LEAVESCREEN);
-            }
-            ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Zones");
+            bld->type = civzone_type::MeetingHall;
+            ai.debug(out, "Activity zone created for location " + AI::describe_room(r) + " (location assignment deferred)");
         }
-
-        Key(interface_key::LEAVESCREEN);
-
-        ExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Default");
-
-        ai.ignore_pause(start_x, start_y, start_z);
     }
 };
 
@@ -1665,7 +1436,7 @@ bool Plan::monitor_farm_irrigation(color_ostream & out, room *r, std::ostream & 
     if (can_place_farm(out, r->workshop, false, reason))
     {
         auto zone = virtual_cast<df::building_civzonest>(r->dfbuilding());
-        zone->pit_flags.bits.is_pond = 0;
+        zone->zone_settings.pond.flag.bits.keep_filled = 0;
         return true;
     }
 
@@ -1880,25 +1651,6 @@ bool Plan::try_endfurnish(color_ostream & out, room *r, furniture *f, std::ostre
 
     if (r->type == room_type::infirmary)
     {
-        // Toggle hospital off and on because it's easier than figuring out
-        // what Dwarf Fortress does. Shouldn't cancel any jobs, but might
-        // create jobs if we just built a box.
-
-        int32_t start_x, start_y, start_z;
-        Gui::getViewCoords(start_x, start_y, start_z);
-
-        Gui::getCurViewscreen(true)->feed_key(interface_key::D_CIVZONE);
-
-        df::coord pos = r->pos();
-        Gui::revealInDwarfmodeMap(pos, true);
-        Gui::setCursorCoords(pos.x, pos.y, pos.z);
-
-        Gui::getCurViewscreen(true)->feed_key(interface_key::CURSOR_LEFT);
-        Gui::getCurViewscreen(true)->feed_key(interface_key::CIVZONE_HOSPITAL);
-        Gui::getCurViewscreen(true)->feed_key(interface_key::CIVZONE_HOSPITAL);
-        Gui::getCurViewscreen(true)->feed_key(interface_key::LEAVESCREEN);
-
-        ai.ignore_pause(start_x, start_y, start_z);
     }
 
     if (!f->makeroom)

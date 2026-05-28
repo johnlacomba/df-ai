@@ -24,10 +24,10 @@
 #include "df/manager_order.h"
 #include "df/manager_order_template.h"
 #include "df/strain_type.h"
-#include "df/ui.h"
+#include "df/plotinfost.h"
 #include "df/world.h"
 
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 // forge weapons
@@ -79,7 +79,7 @@ void Stocks::queue_need_weapon(color_ostream & out, stock_item::item stock_item,
                 continue;
             }
 
-            for (auto mo : world->manager_orders)
+            for (auto mo : world->manager_orders.all)
             {
                 if (mo->job_type == job_type::MakeWeapon && mo->item_subtype == idef->subtype)
                 {
@@ -187,7 +187,7 @@ void Stocks::queue_need_weapon(color_ostream & out, stock_item::item stock_item,
         }
     };
 
-    auto & ue = ui->main.fortress_entity->entity_raw->equipment;
+    auto & ue = plotinfo->main.fortress_entity->entity_raw->equipment;
     if (digger)
     {
         cant_pickaxe = false;
@@ -217,7 +217,7 @@ static void queue_need_armor_helper(AI & ai, color_ostream & out, stock_item::it
         int32_t cnt = ai.stocks.num_needed(what);
         cnt -= ai.stocks.count_subtype[what][id].first;
 
-        for (auto mo : world->manager_orders)
+        for (auto mo : world->manager_orders.all)
         {
             if (mo->job_type == job && mo->item_subtype == idef->subtype)
             {
@@ -277,7 +277,7 @@ static void queue_need_armor_helper(AI & ai, color_ostream & out, stock_item::it
 // forge armor pieces
 void Stocks::queue_need_armor(color_ostream & out, stock_item::item what, std::ostream & reason)
 {
-    auto & ue = ui->main.fortress_entity->entity_raw->equipment;
+    auto & ue = plotinfo->main.fortress_entity->entity_raw->equipment;
 
     switch (what)
     {
@@ -349,7 +349,7 @@ static void queue_need_clothes_helper(AI & ai, color_ostream & out, stock_item::
         cnt -= ai.stocks.count_subtype[what][id].first;
 
         bool first_def = true;
-        for (auto mo : world->manager_orders)
+        for (auto mo : world->manager_orders.all)
         {
             if (mo->job_type == job && mo->item_subtype == idef->subtype)
             {
@@ -442,7 +442,7 @@ void Stocks::queue_need_clothes(color_ostream & out, stock_item::item what, std:
     // try to avoid cancel spam
     int32_t available_cloth = count_free.at(stock_item::cloth) - 20;
 
-    auto & ue = ui->main.fortress_entity->entity_raw->equipment;
+    auto & ue = plotinfo->main.fortress_entity->entity_raw->equipment;
 
     switch (what)
     {

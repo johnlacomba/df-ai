@@ -17,17 +17,16 @@
 #include "df/interfacest.h"
 #include "df/job.h"
 #include "df/syndrome.h"
-#include "df/ui.h"
+#include "df/plotinfost.h"
 #include "df/unit.h"
 #include "df/unit_syndrome.h"
 #include "df/viewscreen_dwarfmodest.h"
-#include "df/viewscreen_movieplayerst.h"
 #include "df/world.h"
 
 REQUIRE_GLOBAL(gps);
 REQUIRE_GLOBAL(gview);
 REQUIRE_GLOBAL(pause_state);
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 Camera::Camera(AI & ai) :
@@ -109,11 +108,11 @@ command_result Camera::onupdate_unregister(color_ostream &)
 
 void Camera::update_tick(color_ostream &)
 {
-    if (ui->follow_unit != -1 || ui->follow_item != -1)
+    if (plotinfo->follow_unit != -1 || plotinfo->follow_item != -1)
     {
         follow_stop = false;
-        follow_unit = ui->follow_unit;
-        follow_item = ui->follow_item;
+        follow_unit = plotinfo->follow_unit;
+        follow_item = plotinfo->follow_item;
     }
     else if (follow_stop)
     {
@@ -133,10 +132,10 @@ void Camera::update(color_ostream &)
         return;
     }
 
-    if (following != ui->follow_unit && !events.dfplex_client)
+    if (following != plotinfo->follow_unit && !events.is_client())
     {
-        DFAI_DEBUG(camera, 1, "followed unit changed externally! was " << following << ", now " << ui->follow_unit);
-        following = ui->follow_unit;
+        DFAI_DEBUG(camera, 1, "followed unit changed externally! was " << following << ", now " << plotinfo->follow_unit);
+        following = plotinfo->follow_unit;
         return;
     }
 
@@ -315,7 +314,7 @@ void Camera::update(color_ostream &)
     if (following != -1 && !*pause_state)
     {
         Gui::revealInDwarfmodeMap(Units::getPosition(following_unit), true);
-        ui->follow_unit = following;
+        plotinfo->follow_unit = following;
     }
 
     world->status.flags.bits.combat = 0;
@@ -328,15 +327,15 @@ void AI::ignore_pause(int32_t x, int32_t y, int32_t z)
     if (!config.camera)
     {
         Gui::setViewCoords(x, y, z);
-        ui->follow_unit = camera.follow_unit;
-        ui->follow_item = camera.follow_item;
+        plotinfo->follow_unit = camera.follow_unit;
+        plotinfo->follow_item = camera.follow_item;
         return;
     }
 
     if (df::unit *u = df::unit::find(camera.following))
     {
         Gui::revealInDwarfmodeMap(Units::getPosition(u), true);
-        ui->follow_unit = camera.following;
+        plotinfo->follow_unit = camera.following;
     }
 }
 
@@ -360,7 +359,7 @@ std::string Camera::status()
     {
         fp = " (previously: " + fp + ")";
     }
-    if (following != -1 && (ui->follow_unit == following || events.dfplex_client))
+    if (following != -1 && (plotinfo->follow_unit == following || events.is_client()))
     {
         return "following " + AI::describe_unit(df::unit::find(following)) + fp;
     }

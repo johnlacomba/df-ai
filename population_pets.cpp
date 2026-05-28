@@ -3,29 +3,25 @@
 #include "plan.h"
 
 #include "modules/Buildings.h"
-#include "modules/Gui.h"
 #include "modules/Units.h"
 
 #include "df/building_civzonest.h"
 #include "df/building_nest_boxst.h"
 #include "df/caste_raw.h"
 #include "df/creature_raw.h"
+#include "df/general_ref.h"
+#include "df/general_ref_building_civzone_assignedst.h"
 #include "df/item_eggst.h"
 #include "df/manager_order.h"
 #include "df/manager_order_template.h"
 #include "df/training_assignment.h"
-#include "df/ui.h"
-#include "df/ui_sidebar_menus.h"
+#include "df/plotinfost.h"
 #include "df/unit_misc_trait.h"
 #include "df/unit_relationship_type.h"
 #include "df/unit_wound.h"
-#include "df/viewscreen.h"
 #include "df/world.h"
 
-REQUIRE_GLOBAL(ui);
-REQUIRE_GLOBAL(ui_building_assign_units);
-REQUIRE_GLOBAL(ui_building_item_cursor);
-REQUIRE_GLOBAL(ui_sidebar_menus);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 void Population::update_pets(color_ostream & out)
@@ -38,7 +34,7 @@ void Population::update_pets(color_ostream & out)
 
     int32_t needmilk = 0;
     int32_t needshear = 0;
-    for (auto mo : world->manager_orders)
+    for (auto mo : world->manager_orders.all)
     {
         if (mo->job_type == job_type::MilkCreature)
         {
@@ -83,7 +79,7 @@ void Population::update_pets(color_ostream & out)
                 asn->trainer_id = -1;
                 asn->flags.whole = 0;
                 asn->flags.bits.any_trainer = true;
-                insert_into_vector(ui->equipment.training_assignments, &df::training_assignment::animal_id, asn);
+                insert_into_vector(plotinfo->equipment.training_assignments, &df::training_assignment::animal_id, asn);
             }
 
             continue;
@@ -290,49 +286,30 @@ void Population::update_pets(color_ostream & out)
 
 void Population::assign_unit_to_zone(df::unit *u, df::building_civzonest *bld)
 {
-    // FIXME: this should be an ExclusiveCallback
-
     if (auto ref = Units::getGeneralRef(u, general_ref_type::BUILDING_CIVZONE_ASSIGNED))
     {
         if (ref->getBuilding() == bld)
         {
-            // already assigned to the correct zone
             return;
         }
+
+        // remove from old zone
+        if (auto oldzone = virtual_cast<df::building_civzonest>(ref->getBuilding()))
+        {
+            auto & units = oldzone->assigned_units;
+            units.erase(std::remove(units.begin(), units.end(), u->id), units.end());
+        }
+        u->general_refs.erase(
+            std::remove(u->general_refs.begin(), u->general_refs.end(), ref),
+            u->general_refs.end());
+        delete ref;
     }
 
-    int32_t start_x, start_y, start_z;
-    Gui::getViewCoords(start_x, start_y, start_z);
-    Gui::getCurViewscreen(true)->feed_key(interface_key::D_CIVZONE);
-    if (ui->main.mode != ui_sidebar_mode::Zones)
-    {
-        // we probably aren't on the main dwarf fortress screen
+    auto newref = df::allocate<df::general_ref_building_civzone_assignedst>();
+    if (!newref)
         return;
-    }
-    Gui::revealInDwarfmodeMap(df::coord(bld->x1 + 1, bld->y1, bld->z), true);
-    Gui::setCursorCoords(bld->x1 + 1, bld->y1, bld->z);
-    Gui::getCurViewscreen(true)->feed_key(interface_key::CURSOR_LEFT);
-    while (ui_sidebar_menus->zone.selected != bld)
-    {
-        Gui::getCurViewscreen(true)->feed_key(interface_key::CIVZONE_NEXT);
-    }
-    if (Buildings::isPitPond(bld))
-    {
-        Gui::getCurViewscreen(true)->feed_key(interface_key::CIVZONE_POND_OPTIONS);
-    }
-    else if (Buildings::isPenPasture(bld))
-    {
-        Gui::getCurViewscreen(true)->feed_key(interface_key::CIVZONE_PEN_OPTIONS);
-    }
-    if (std::find(ui_building_assign_units->begin(), ui_building_assign_units->end(), u) != ui_building_assign_units->end())
-    {
-        while (ui_building_assign_units->at(*ui_building_item_cursor) != u)
-        {
-            Gui::getCurViewscreen(true)->feed_key(interface_key::SECONDSCROLL_DOWN);
-        }
-        Gui::getCurViewscreen(true)->feed_key(interface_key::SELECT);
-    }
-    Gui::getCurViewscreen(true)->feed_key(interface_key::LEAVESCREEN);
-    Gui::getCurViewscreen(true)->feed_key(interface_key::LEAVESCREEN);
-    ai.ignore_pause(start_x, start_y, start_z);
+
+    newref->building_id = bld->id;
+    u->general_refs.push_back(newref);
+    bld->assigned_units.push_back(u->id);
 }

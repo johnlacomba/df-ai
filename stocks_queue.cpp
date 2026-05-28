@@ -15,70 +15,10 @@
 #include "df/manager_order.h"
 #include "df/manager_order_template.h"
 #include "df/unit_relationship_type.h"
-#include "df/viewscreen_dwarfmodest.h"
 #include "df/world.h"
 
 REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(world);
-
-class MasonChairJobExclusive : public ExclusiveCallback
-{
-    AI & ai;
-    int32_t wanted_amount;
-
-public:
-    MasonChairJobExclusive(AI& ai, int32_t amount) :
-        ExclusiveCallback("assign chair construction at mason's workshop", 2),
-        ai(ai),
-        wanted_amount(amount)
-    {
-    }
-
-protected:
-    void Run(color_ostream & out)
-    {
-        int32_t start_x, start_y, start_z;
-        Gui::getViewCoords(start_x, start_y, start_z);
-
-        if (auto workshop = ai.find_room(room_type::workshop, [](room* r) -> bool
-            {
-                if (r->workshop_type != workshop_type::Masons)
-                {
-                    return false;
-                }
-
-                auto bld = r->dfbuilding();
-                return bld && bld->getBuildStage() == bld->getMaxBuildStage();
-            }))
-        {
-            auto bld = virtual_cast<df::building_workshopst>(workshop->dfbuilding());
-            int32_t wanted = min(max(wanted_amount - int(bld->jobs.size()), 0), 10 - int(bld->jobs.size()));
-
-            if (wanted > 0)
-            {
-                Key(interface_key::D_BUILDJOB);
-                Gui::setCursorCoords(workshop->min.x, workshop->min.y, workshop->min.z);
-                Key(interface_key::CURSOR_DOWNRIGHT);
-
-                ai.debug(out, stl_sprintf("queueing %d chairs directly at ", wanted) + ai.describe_room(workshop));
-                while (wanted > 0)
-                {
-                    Key(interface_key::BUILDJOB_ADD);
-                    Key(interface_key::HOTKEY_MASON_CHAIR);
-                    wanted--;
-                }
-
-                Key(interface_key::LEAVESCREEN);
-            }
-        }
-        else
-        {
-            ai.debug(out, "could not find mason's workshop");
-        }
-
-        ai.ignore_pause(start_x, start_y, start_z);
-    }
-};
 
 // make it so the stocks of 'what' rises by 'amount'
 void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amount, std::ostream & reason)
@@ -329,8 +269,9 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
                     return bld && bld->getBuildStage() == bld->getMaxBuildStage();
                 }))
             {
-                reason << "assigning job directly at mason's workshop as the manager has no office";
-                events.queue_exclusive(std::make_unique<MasonChairJobExclusive>(ai, amount));
+                reason << "queuing chair order via manager (no office, but using direct API)";
+                tmpl.job_type = job_type::ConstructThrone;
+                add_manager_order(out, tmpl, amount, reason);
                 return;
             }
 
@@ -1134,7 +1075,7 @@ void Stocks::queue_use(color_ostream & out, stock_item::item what, int32_t amoun
 // cut gems
 void Stocks::queue_use_gems(color_ostream & out, int32_t amount, std::ostream & reason)
 {
-    for (auto mo : world->manager_orders)
+    for (auto mo : world->manager_orders.all)
     {
         if (mo->job_type == job_type::CutGems)
         {

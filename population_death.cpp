@@ -8,10 +8,10 @@
 #include "df/building_coffinst.h"
 #include "df/buildings_other_id.h"
 #include "df/history_event_hist_figure_diedst.h"
-#include "df/ui.h"
+#include "df/plotinfost.h"
 #include "df/world.h"
 
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 void Population::deathwatch(color_ostream & out)
@@ -27,7 +27,7 @@ void Population::deathwatch(color_ostream & out)
     {
         auto d = virtual_cast<df::history_event_hist_figure_diedst>(*it);
 
-        if (!d || d->site != ui->site_id)
+        if (!d || d->site != plotinfo->site_id)
         {
             continue;
         }

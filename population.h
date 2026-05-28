@@ -16,7 +16,6 @@ namespace df
     struct entity_position_assignment;
     struct squad;
     struct unit;
-    struct viewscreen_tradegoodsst;
 }
 
 class AI;

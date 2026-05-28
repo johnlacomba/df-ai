@@ -89,7 +89,7 @@ bool Stocks::queue_need_forge(color_ostream & out, df::material_flags preference
     cnt -= count_free.at(item);
     cnt = (cnt + items_created_per_job - 1) / items_created_per_job;
 
-    for (auto mo : world->manager_orders)
+    for (auto mo : world->manager_orders.all)
     {
         if (mo->job_type == job && mo->item_type == item_type && mo->item_subtype == item_subtype && mo->material_category.whole == 0)
         {
@@ -108,7 +108,7 @@ bool Stocks::queue_need_forge(color_ostream & out, df::material_flags preference
     std::map<int32_t, int32_t> bars = ingots;
 
     // rough account of already queued jobs consumption
-    for (auto mo : world->manager_orders)
+    for (auto mo : world->manager_orders.all)
     {
         if (mo->mat_type == 0 && bars.count(mo->mat_index))
         {
@@ -403,7 +403,7 @@ int32_t Stocks::may_forge_bars(color_ostream & out, int32_t mat_index, std::ostr
             if (!future && !dry_run)
             {
                 bool already_making = false;
-                for (auto mo : world->manager_orders)
+                for (auto mo : world->manager_orders.all)
                 {
                     if (mo->job_type == job_type::CustomReaction && mo->reaction_name == r->code)
                     {
@@ -483,7 +483,7 @@ void Stocks::queue_use_metal_ore(color_ostream & out, int32_t amount, std::ostre
         return;
     }
 
-    for (auto mo : world->manager_orders)
+    for (auto mo : world->manager_orders.all)
     {
         if (mo->job_type == job_type::SmeltOre)
         {
@@ -558,7 +558,7 @@ void Stocks::queue_use_metal_ore(color_ostream & out, int32_t amount, std::ostre
 void Stocks::queue_use_raw_coke(color_ostream & out, int32_t amount, std::ostream & reason)
 {
     is_raw_coke(0); // populate raw_coke_inv
-    for (auto mo : world->manager_orders)
+    for (auto mo : world->manager_orders.all)
     {
         if (mo->job_type == job_type::CustomReaction && raw_coke_inv.count(mo->reaction_name))
         {

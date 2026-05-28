@@ -47,11 +47,11 @@
 #include "df/itemdef_trapcompst.h"
 #include "df/itemdef_weaponst.h"
 #include "df/itemimprovement.h"
-#include "df/ui.h"
+#include "df/plotinfost.h"
 #include "df/vehicle.h"
 #include "df/world.h"
 
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 int32_t Stocks::find_item_info::default_count(int32_t &, df::item *i)
@@ -110,7 +110,7 @@ static bool is_cage_free(df::item *i)
 static std::set<std::string> find_ammo_classes(df::job_skill skill = job_skill::NONE, bool training = false)
 {
     std::set<std::string> classes;
-    for (int16_t id : ui->main.fortress_entity->entity_raw->equipment.weapon_id)
+    for (int16_t id : plotinfo->main.fortress_entity->entity_raw->equipment.weapon_id)
     {
         auto def = df::itemdef_weaponst::find(id);
 
@@ -419,11 +419,11 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
     case stock_item::food_ingredients:
     {
         std::set<std::tuple<df::item_type, int16_t, int16_t, int32_t>> forbidden;
-        for (size_t i = 0; i < ui->kitchen.item_types.size(); i++)
+        for (size_t i = 0; i < plotinfo->kitchen.item_types.size(); i++)
         {
-            if (ui->kitchen.exc_types[i] == kitchen_exc_type::Cook)
+            if (plotinfo->kitchen.exc_types[i] == kitchen_exc_type::Cook)
             {
-                forbidden.insert(std::make_tuple(ui->kitchen.item_types[i], ui->kitchen.item_subtypes[i], ui->kitchen.mat_types[i], ui->kitchen.mat_indices[i]));
+                forbidden.insert(std::make_tuple(plotinfo->kitchen.item_types[i], plotinfo->kitchen.item_subtypes[i], plotinfo->kitchen.mat_types[i], plotinfo->kitchen.mat_indices[i]));
             }
         }
 
@@ -496,7 +496,7 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
             else if (i->isArmor())
             {
                 auto maker = df::creature_raw::find(i->getMakerRace());
-                auto own_race = df::creature_raw::find(ui->race_id);
+                auto own_race = df::creature_raw::find(plotinfo->race_id);
                 if (maker && own_race && maker->adultsize == own_race->adultsize)
                 {
                     // Keep armor if we can wear it.
@@ -700,7 +700,7 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
     case stock_item::screw:
     {
         std::set<int16_t> idefs;
-        for (auto id : ui->main.fortress_entity->entity_raw->equipment.trapcomp_id)
+        for (auto id : plotinfo->main.fortress_entity->entity_raw->equipment.trapcomp_id)
         {
             auto def = df::itemdef_trapcompst::find(id);
 
@@ -794,7 +794,7 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
     {
         return find_item_info(items_other_id::BOULDER, [](df::item *i) -> bool
         {
-            return !ui->economic_stone[i->getMaterialIndex()];
+            return !plotinfo->economic_stone[i->getMaterialIndex()];
         });
     }
     case stock_item::table:
@@ -944,12 +944,12 @@ static Stocks::find_item_info find_item_helper_weapon_helper(const std::vector<i
 
 Stocks::find_item_info Stocks::find_item_helper_weapon(df::job_skill skill, bool training, bool ranged)
 {
-    return find_item_helper_weapon_helper(ui->main.fortress_entity->entity_raw->equipment.weapon_id, skill, training, ranged, skill == job_skill::NONE);
+    return find_item_helper_weapon_helper(plotinfo->main.fortress_entity->entity_raw->equipment.weapon_id, skill, training, ranged, skill == job_skill::NONE);
 }
 
 Stocks::find_item_info Stocks::find_item_helper_digger(df::job_skill skill, bool training)
 {
-    return find_item_helper_weapon_helper(ui->main.fortress_entity->entity_raw->equipment.digger_id, skill, training, false, skill == job_skill::NONE);
+    return find_item_helper_weapon_helper(plotinfo->main.fortress_entity->entity_raw->equipment.digger_id, skill, training, false, skill == job_skill::NONE);
 }
 
 Stocks::find_item_info Stocks::find_item_helper_ammo(df::job_skill skill, bool training, bool metal)
@@ -957,7 +957,7 @@ Stocks::find_item_info Stocks::find_item_helper_ammo(df::job_skill skill, bool t
     auto classes = find_ammo_classes(skill, training);
 
     std::set<int16_t> idefs;
-    for (int16_t id : ui->main.fortress_entity->entity_raw->equipment.ammo_id)
+    for (int16_t id : plotinfo->main.fortress_entity->entity_raw->equipment.ammo_id)
     {
         auto def = df::itemdef_ammost::find(id);
 
@@ -999,7 +999,7 @@ static Stocks::find_item_info find_item_helper_armor_helper(df::items_other_id o
 
 Stocks::find_item_info Stocks::find_item_helper_armor(df::items_other_id oidx)
 {
-    auto & ue = ui->main.fortress_entity->entity_raw->equipment;
+    auto & ue = plotinfo->main.fortress_entity->entity_raw->equipment;
     switch (oidx)
     {
     case items_other_id::ARMOR:
@@ -1043,7 +1043,7 @@ static Stocks::find_item_info find_item_helper_clothes_helper(df::items_other_id
 
 Stocks::find_item_info Stocks::find_item_helper_clothes(df::items_other_id oidx)
 {
-    auto & ue = ui->main.fortress_entity->entity_raw->equipment;
+    auto & ue = plotinfo->main.fortress_entity->entity_raw->equipment;
     switch (oidx)
     {
     case items_other_id::ARMOR:
@@ -1063,7 +1063,7 @@ Stocks::find_item_info Stocks::find_item_helper_clothes(df::items_other_id oidx)
 
 Stocks::find_item_info Stocks::find_item_helper_tool(df::tool_uses use, std::function<bool(df::itemdef_toolst *)> pred)
 {
-    const auto & tool_id = ui->main.fortress_entity->entity_raw->equipment.tool_id;
+    const auto & tool_id = plotinfo->main.fortress_entity->entity_raw->equipment.tool_id;
     std::set<int16_t> idefs;
     for (auto def : world->raws.itemdefs.tools_by_type[use])
     {

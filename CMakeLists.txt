@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.11.0)
-PROJECT (df-ai)
+cmake_minimum_required(VERSION 3.21)
+PROJECT(df-ai)
 
 execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=8 --long
     WORKING_DIRECTORY "${df-ai_SOURCE_DIR}"
@@ -77,7 +77,6 @@ SET(PROJECT_SRCS
     trade_manager.cpp
     event_manager.cpp
     exclusive_callback.cpp
-    weblegends.cpp
     military.cpp
     pause.cpp
     log.cpp
@@ -107,15 +106,7 @@ SET(PROJECT_HDRS
     variable_string.h
 )
 
-IF("${DFHACK_BUILD_ARCH}" STREQUAL "32")
-    set(CMAKE_CXX_COMPILER_ARCHITECTURE_ID X86)
-    set(CMAKE_SIZEOF_VOID_P 4)
-else()
-    set(CMAKE_CXX_COMPILER_ARCHITECTURE_ID x64)
-    set(CMAKE_SIZEOF_VOID_P 8)
-endif()
-
-SET_SOURCE_FILES_PROPERTIES( ${PROJECT_HDRS} PROPERTIES HEADER_FILE_ONLY TRUE)
+SET_SOURCE_FILES_PROPERTIES(${PROJECT_HDRS} PROPERTIES HEADER_FILE_ONLY TRUE)
 
 LIST(APPEND PROJECT_SRCS ${PROJECT_HDRS})
 
@@ -129,14 +120,6 @@ find_package(Boost 1.67.0 REQUIRED COMPONENTS context)
 include_directories(${Boost_INCLUDE_DIRS})
 
 LIST(APPEND PROJECT_LIBS jsoncpp_static lua ${ZLIB_LIBRARIES} ${Boost_LIBRARIES})
-
-IF(UNIX)
-    IF(APPLE)
-        LIST(APPEND PROJECT_LIBS ${CMAKE_BINARY_DIR}/SDL)
-    ELSE()
-        LIST(APPEND PROJECT_LIBS SDL)
-    ENDIF()
-ENDIF()
 
 SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DDFAI_RELEASE")
 

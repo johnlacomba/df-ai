@@ -3,7 +3,6 @@
 #include "population.h"
 
 #include "modules/Buildings.h"
-#include "modules/Gui.h"
 #include "modules/Maps.h"
 
 #include "df/building_slabst.h"
@@ -13,14 +12,13 @@
 #include "df/item_slabst.h"
 #include "df/manager_order.h"
 #include "df/tile_occupancy.h"
-#include "df/ui.h"
+#include "df/plotinfost.h"
 #include "df/unit.h"
-#include "df/viewscreen_overallstatusst.h"
 #include "df/world.h"
 
 REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(cur_year_tick);
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 void Stocks::update(color_ostream & out)
@@ -46,9 +44,9 @@ void Stocks::update(color_ostream & out)
     if (last_managerstall != *cur_year_tick / 28 / 1200)
     {
         last_managerstall = *cur_year_tick / 28 / 1200;
-        if (!world->manager_orders.empty())
+        if (!world->manager_orders.all.empty())
         {
-            auto m = world->manager_orders.front();
+            auto m = world->manager_orders.all.front();
             if (m->status.bits.validated)
             {
                 if (m->job_type == last_managerorder)
@@ -60,7 +58,7 @@ void Stocks::update(color_ostream & out)
                     }
                     else
                     {
-                        world->manager_orders.erase(world->manager_orders.begin());
+                        world->manager_orders.all.erase(world->manager_orders.all.begin());
                         delete m;
                     }
                 }
@@ -101,24 +99,17 @@ void Stocks::update(color_ostream & out)
 
     if (ai.eventsJson.is_open())
     {
-        // update wealth by opening the status screen
-        Gui::getCurViewscreen(true)->feed_key(interface_key::D_STATUS);
-        if (auto view = strict_virtual_cast<df::viewscreen_overallstatusst>(Gui::getCurViewscreen(true)))
-        {
-            // only leave if we're on the status screen
-            view->feed_key(interface_key::LEAVESCREEN);
-        }
         Json::Value payload(Json::objectValue);
-        payload["total"] = Json::Int(ui->tasks.wealth.total);
-        payload["weapons"] = Json::Int(ui->tasks.wealth.weapons);
-        payload["armor"] = Json::Int(ui->tasks.wealth.armor);
-        payload["furniture"] = Json::Int(ui->tasks.wealth.furniture);
-        payload["other"] = Json::Int(ui->tasks.wealth.other);
-        payload["architecture"] = Json::Int(ui->tasks.wealth.architecture);
-        payload["displayed"] = Json::Int(ui->tasks.wealth.displayed);
-        payload["held"] = Json::Int(ui->tasks.wealth.held);
-        payload["imported"] = Json::Int(ui->tasks.wealth.imported);
-        payload["exported"] = Json::Int(ui->tasks.wealth.exported);
+        payload["total"] = Json::Int(plotinfo->tasks.wealth.total);
+        payload["weapons"] = Json::Int(plotinfo->tasks.wealth.weapons);
+        payload["armor"] = Json::Int(plotinfo->tasks.wealth.armor);
+        payload["furniture"] = Json::Int(plotinfo->tasks.wealth.furniture);
+        payload["other"] = Json::Int(plotinfo->tasks.wealth.other);
+        payload["architecture"] = Json::Int(plotinfo->tasks.wealth.architecture);
+        payload["displayed"] = Json::Int(plotinfo->tasks.wealth.displayed);
+        payload["held"] = Json::Int(plotinfo->tasks.wealth.held);
+        payload["imported"] = Json::Int(plotinfo->tasks.wealth.imported);
+        payload["exported"] = Json::Int(plotinfo->tasks.wealth.exported);
         ai.event("wealth", payload);
     }
 

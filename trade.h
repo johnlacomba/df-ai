@@ -10,7 +10,6 @@ namespace df
     struct entity_sell_prices;
     struct historical_entity;
     struct item;
-    struct viewscreen_tradegoodsst;
 }
 
 class AI;

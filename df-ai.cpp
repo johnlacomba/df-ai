@@ -7,24 +7,24 @@
 
 #include <fstream>
 
-#include "git-describe.h"
 #define NO_DFHACK_VERSION_MACROS
 #include "DFHackVersion.h"
 #include "df-ai-git-describe.h"
+#ifdef DF_AI_WEBLEGENDS
 #include "thirdparty/weblegends/weblegends-plugin.h"
+#endif
 
 #include "modules/Gui.h"
 #include "modules/Screen.h"
 
 #include "df/viewscreen_dwarfmodest.h"
-#include "df/viewscreen_optionst.h"
 #include "df/viewscreen_titlest.h"
 
 DFHACK_PLUGIN("df-ai");
 DFHACK_PLUGIN_IS_ENABLED(enabled);
 
 REQUIRE_GLOBAL(pause_state);
-REQUIRE_GLOBAL(ui);
+REQUIRE_GLOBAL(plotinfo);
 
 // Protected by CoreSuspender
 std::unique_ptr<AI> dwarfAI{ nullptr };
@@ -122,7 +122,9 @@ DFhackCExport command_result plugin_init(color_ostream & out, std::vector<Plugin
         "  Verifies that df-ai-blueprints is set up correctly.\n"
     ));
 
+#ifdef DF_AI_WEBLEGENDS
     add_weblegends_handler("df-ai", &ai_weblegends_handler, "Artificial Intelligence");
+#endif
 
     return CR_OK;
 }
@@ -138,7 +140,9 @@ DFhackCExport command_result plugin_shutdown(color_ostream & out)
 
     CoreSuspender suspend;
 
+#ifdef DF_AI_WEBLEGENDS
     remove_weblegends_handler("df-ai");
+#endif
 
     enabled = false;
     check_enabled(out); // delete the AI if it was enabled.
@@ -193,8 +197,8 @@ void ai_version(std::ostream & out, bool html)
     out << "Dwarf Fortress " << DFHack::Version::df_version() << br;
     out << "  " << os << " " << bits << "-bit" << br;
     out << "df-ai " << DF_AI_GIT_DESCRIPTION;
-    if (*DFHACK_BUILD_ID)
-        out << " (Build ID: " << DFHACK_BUILD_ID << ")";
+    if (*DFHack::Version::dfhack_build_id())
+        out << " (Build ID: " << DFHack::Version::dfhack_build_id() << ")";
     out << br;
     commit("code", "BenLubar/df-ai", DF_AI_GIT_COMMIT);
     out << "DFHack " << DFHack::Version::git_description();
@@ -332,13 +336,6 @@ DFhackCExport command_result plugin_onstatechange(color_ostream & out, state_cha
             return res;
     }
 
-    if (event == SC_VIEWSCREEN_CHANGED && strict_virtual_cast<df::viewscreen_optionst>(Gui::getCurViewscreen(true)))
-    {
-        command_result res = dwarfAI->persist(out);
-        if (res != CR_OK)
-            return res;
-    }
-
     events.onstatechange(out, event);
     return CR_OK;
 }
@@ -350,26 +347,20 @@ DFhackCExport command_result plugin_onupdate(color_ostream & out)
 
     Hook_Update();
 
-    if (ui->main.autosave_request)
+    if (plotinfo->main.autosave_request)
     {
         command_result res = dwarfAI->persist(out);
         if (res != CR_OK)
             return res;
     }
 
-    // update will be called by dfplex if a client exists
-    if (!events.is_client())
+    events.onupdate(out, [](std::vector<df::interface_key> & keys)
     {
-        events.onupdate(out, [](std::vector<df::interface_key> & keys)
+        for (auto key : keys)
         {
-            for (auto key : keys)
-            {
-                Gui::getCurViewscreen(true)->feed_key(key);
-            }
-            keys.clear();
-        });
-
-        events.create_dfplex_client();
-    }
+            Gui::getCurViewscreen(true)->feed_key(key);
+        }
+        keys.clear();
+    });
     return CR_OK;
 }
