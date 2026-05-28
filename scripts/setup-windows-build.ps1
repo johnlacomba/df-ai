@@ -61,8 +61,8 @@ if ($BuildOnly) {
     }
     $env:PATH = "$PythonDir;$PythonDir\Scripts;$PerlDir\perl\bin;$PerlDir\c\bin;$env:PATH"
     $cmake = Find-VsCmake
-    Invoke-Expression "& `"$cmake`" --build `"$BuildDir`" --config Release"
-    if ($LASTEXITCODE -ne 0) { throw "Build failed." }
+    $proc = Start-Process -FilePath $cmake -ArgumentList "--build `"$BuildDir`" --config Release" -Wait -PassThru -NoNewWindow
+    if ($proc.ExitCode -ne 0) { throw "Build failed." }
     Write-Ok "Build succeeded. Plugin DLL at: $BuildDir\plugins\Release\df-ai.dll"
     exit 0
 }
@@ -207,22 +207,22 @@ Write-Host "  Using CMake: $cmake"
 
 if (!(Test-Path (Join-Path $BuildDir "CMakeCache.txt"))) {
     Write-Host "  Running CMake configure..."
-    $installArg = ""
+    $configArgs = "-S `"$DfhackDir`" -B `"$BuildDir`" -G `"Visual Studio 17 2022`" -A x64 -DPython3_ROOT_DIR=`"$PythonDir`" -DPERL_EXECUTABLE=`"$PerlExe`""
     if ($DfInstallDir) {
-        $installArg = " `"-DCMAKE_INSTALL_PREFIX=$DfInstallDir`""
+        $configArgs += " -DCMAKE_INSTALL_PREFIX=`"$DfInstallDir`""
     }
-    $configCmd = "& `"$cmake`" -S `"$DfhackDir`" -B `"$BuildDir`" -G `"Visual Studio 17 2022`" -A x64 `"-DPython3_ROOT_DIR=$PythonDir`" `"-DPERL_EXECUTABLE=$PerlExe`"$installArg"
-    Write-Host "  $configCmd"
-    Invoke-Expression $configCmd
-    if ($LASTEXITCODE -ne 0) { throw "CMake configure failed." }
+    Write-Host "  cmake $configArgs"
+    $proc = Start-Process -FilePath $cmake -ArgumentList $configArgs -Wait -PassThru -NoNewWindow
+    if ($proc.ExitCode -ne 0) { throw "CMake configure failed with exit code $($proc.ExitCode)." }
     Write-Ok "Configure succeeded."
 } else {
     Write-Skip "Already configured (delete $BuildDir\CMakeCache.txt to reconfigure)"
 }
 
 Write-Host "  Building (this will take a while on first run)..."
-Invoke-Expression "& `"$cmake`" --build `"$BuildDir`" --config Release"
-if ($LASTEXITCODE -ne 0) { throw "Build failed." }
+$buildArgs = "--build `"$BuildDir`" --config Release"
+$proc = Start-Process -FilePath $cmake -ArgumentList $buildArgs -Wait -PassThru -NoNewWindow
+if ($proc.ExitCode -ne 0) { throw "Build failed." }
 
 # ---------- done ----------
 
@@ -252,7 +252,7 @@ Write-Host "  Then in DFHack console: enable df-ai" -ForegroundColor White
 
 if ($Install -and $DfInstallDir) {
     Write-Step "Installing to $DfInstallDir"
-    Invoke-Expression "& `"$cmake`" --build `"$BuildDir`" --config Release --target INSTALL"
+    $proc = Start-Process -FilePath $cmake -ArgumentList "--build `"$BuildDir`" --config Release --target INSTALL" -Wait -PassThru -NoNewWindow
     if ($LASTEXITCODE -ne 0) { throw "Install failed." }
     Write-Ok "Installed. Launch DF from Steam, then run: enable df-ai"
 }
