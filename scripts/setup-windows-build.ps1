@@ -80,7 +80,7 @@ if (Test-Path $PythonExe) {
     Start-Process -FilePath $installerPath -ArgumentList @(
         "/quiet",
         "InstallAllUsers=0",
-        "TargetDir=`"$PythonDir`"",
+        "TargetDir=$PythonDir",
         "AssociateFiles=0",
         "Shortcuts=0",
         "Include_launcher=0",
@@ -168,10 +168,10 @@ if (!(Test-Path (Join-Path $BuildDir "CMakeCache.txt"))) {
         "-B", "$BuildDir",
         "-G", "Visual Studio 17 2022",
         "-A", "x64",
-        "-DPython3_ROOT_DIR=`"$PythonDir`""
+        "-DPython3_ROOT_DIR=$PythonDir"
     )
     if ($DfInstallDir) {
-        $configArgs += "-DCMAKE_INSTALL_PREFIX=`"$DfInstallDir`""
+        $configArgs += "-DCMAKE_INSTALL_PREFIX=$DfInstallDir"
     }
     & $cmake @configArgs
     if ($LASTEXITCODE -ne 0) { throw "CMake configure failed." }
@@ -196,7 +196,7 @@ Write-Host ""
 if (Test-Path $pluginDll) {
     Write-Host "  df-ai.dll: $pluginDll"
 } else {
-    Write-Host "  DFHack built. df-ai.dll may have failed separately — check build output above." -ForegroundColor Yellow
+    Write-Host "  DFHack built. df-ai.dll may have failed separately -- check build output above." -ForegroundColor Yellow
 }
 
 Write-Host ""
