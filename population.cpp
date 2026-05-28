@@ -1304,6 +1304,9 @@ void Population::report(std::ostream & out, bool html)
                         out << (part ? *part->name_singular.at(0) : "unknown part");
                         out << ".";
                         break;
+                    default:
+                        out << "Performed medical procedure.";
+                        break;
                     }
                     break;
                 }

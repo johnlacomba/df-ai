@@ -427,13 +427,8 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
     case stock_item::food_ingredients:
     {
         std::set<std::tuple<df::item_type, int16_t, int16_t, int32_t>> forbidden;
-        for (size_t i = 0; i < plotinfo->kitchen.item_types.size(); i++)
-        {
-            if (plotinfo->kitchen.exc_types[i] != 0)
-            {
-                forbidden.insert(std::make_tuple(plotinfo->kitchen.item_types[i], plotinfo->kitchen.item_subtypes[i], plotinfo->kitchen.mat_types[i], plotinfo->kitchen.mat_indices[i]));
-            }
-        }
+        // kitchen.exc_types restructured in Steam DF — skip exclusion filtering for now
+        // TODO: determine new exc_types structure and restore kitchen exclusion check
 
         return find_item_info(items_other_id::ANY_COOKABLE, [forbidden](df::item *i) -> bool
         {
