@@ -41,7 +41,8 @@ REQUIRE_GLOBAL(world);
 
 EmbarkExclusive::EmbarkExclusive(AI & ai) :
     ExclusiveCallback{ "embarking" },
-    ai(ai)
+    ai(ai),
+    last_dump_key()
 {
 }
 
@@ -49,11 +50,73 @@ EmbarkExclusive::~EmbarkExclusive()
 {
 }
 
+void EmbarkExclusive::DumpScreenInfo(color_ostream & out)
+{
+    df::viewscreen *curview = Gui::getCurViewscreen(true);
+    const virtual_identity *ident = virtual_identity::get(curview);
+    std::string vsName = ident ? ident->getName() : "(null)";
+
+    auto focusStrings = Gui::getFocusStrings(curview);
+    std::string focusList;
+    for (auto & f : focusStrings)
+    {
+        if (!focusList.empty()) focusList += ", ";
+        focusList += "\"" + f + "\"";
+    }
+
+    std::string dump_key = vsName + "|" + focusList;
+    if (dump_key == last_dump_key)
+        return;
+    last_dump_key = dump_key;
+
+    ai.debug(out, "[SCREEN] type=" + vsName + " focus=[" + focusList + "]");
+
+    if (auto *ts = strict_virtual_cast<df::viewscreen_titlest>(curview))
+    {
+        ai.debug(out, stl_sprintf("[SCREEN]   titlest: mode=%d selected=%d menu_line_id.size=%zu",
+            (int)ts->mode, ts->selected, ts->menu_line_id.size()));
+        for (size_t i = 0; i < ts->menu_line_id.size(); i++)
+        {
+            ai.debug(out, stl_sprintf("[SCREEN]     menu[%zu] = %d (%s)",
+                i, (int)ts->menu_line_id[i],
+                ENUM_KEY_STR(main_choice_type, ts->menu_line_id[i]).c_str()));
+        }
+    }
+    else if (auto *cs = strict_virtual_cast<df::viewscreen_choose_start_sitest>(curview))
+    {
+        ai.debug(out, stl_sprintf("[SCREEN]   choose_start_sitest: doing_site_finder=%d find_select=%d",
+            (int)cs->doing_site_finder, cs->find_select));
+        ai.debug(out, stl_sprintf("[SCREEN]     location.region_pos=(%d,%d)",
+            cs->location.region_pos.x, cs->location.region_pos.y));
+    }
+    else if (auto *nr = strict_virtual_cast<df::viewscreen_new_regionst>(curview))
+    {
+        ai.debug(out, stl_sprintf("[SCREEN]   new_regionst: raw_load=%d doing_mods=%d doing_simple_params=%d simple_world_size=%d",
+            (int)nr->raw_load, (int)nr->doing_mods, nr->doing_simple_params, nr->simple_world_size));
+    }
+    else if (auto *sd = strict_virtual_cast<df::viewscreen_setupdwarfgamest>(curview))
+    {
+        ai.debug(out, stl_sprintf("[SCREEN]   setupdwarfgamest: embark_confirmation=%d initial_selection=%d",
+            (int)sd->embark_confirmation, (int)sd->initial_selection));
+    }
+    else if (auto *dm = strict_virtual_cast<df::viewscreen_dwarfmodest>(curview))
+    {
+        ai.debug(out, "[SCREEN]   dwarfmodest (fortress mode reached)");
+        (void)dm;
+    }
+    else if (auto *hack = dfhack_viewscreen::try_cast(curview))
+    {
+        ai.debug(out, "[SCREEN]   DFHack viewscreen: " + hack->getFocusString());
+    }
+}
+
 void EmbarkExclusive::Run(color_ostream & out)
 {
-    while (!isFinished() && !MaybeExpectScreen<df::viewscreen_dwarfmodest>("dwarfmode/Default"))
+    while (!isFinished() && !MaybeExpectScreen<df::viewscreen_dwarfmodest>(""))
     {
         AssertDelayed();
+
+        DumpScreenInfo(out);
 
         if (Screen::isDismissed(Gui::getCurViewscreen(false)))
         {
@@ -61,19 +124,19 @@ void EmbarkExclusive::Run(color_ostream & out)
             continue;
         }
 
-        if (MaybeExpectScreen<df::viewscreen_titlest>("title"))
+        if (MaybeExpectScreen<df::viewscreen_titlest>(""))
         {
             ViewTitle(out);
             continue;
         }
 
-        if (MaybeExpectScreen<df::viewscreen_adopt_regionst>("adopt_region") || MaybeExpectScreen<df::viewscreen_export_regionst>("export_region"))
+        if (MaybeExpectScreen<df::viewscreen_adopt_regionst>("") || MaybeExpectScreen<df::viewscreen_export_regionst>(""))
         {
             Delay();
             continue;
         }
 
-        if (MaybeExpectScreen<df::viewscreen_loadgamest>("loadgame"))
+        if (MaybeExpectScreen<df::viewscreen_loadgamest>(""))
         {
             ViewLoadGame(out);
             continue;
@@ -85,34 +148,42 @@ void EmbarkExclusive::Run(color_ostream & out)
             continue;
         }
 
-        // TODO: get a real focus string for the load_screen_options dialog
         if (MaybeExpectScreen<dfhack_lua_viewscreen>("dfhack/lua", "dfhack/lua/load_screen"))
         {
             ViewLoadScreenOptions();
             continue;
         }
 
-        if (MaybeExpectScreen<df::viewscreen_new_regionst>("new_region"))
+        if (MaybeExpectScreen<df::viewscreen_new_regionst>(""))
         {
             ViewNewRegion(out);
             continue;
         }
 
-        if (MaybeExpectScreen<df::viewscreen_update_regionst>("update_region"))
+        if (MaybeExpectScreen<df::viewscreen_update_regionst>(""))
         {
             ViewUpdateRegion(out);
             continue;
         }
 
-        if (MaybeExpectScreen<df::viewscreen_choose_start_sitest>("choose_start_site"))
+        if (MaybeExpectScreen<df::viewscreen_choose_start_sitest>(""))
         {
             ViewChooseStartSite(out);
             continue;
         }
 
-        if (MaybeExpectScreen<df::viewscreen_setupdwarfgamest>("setupdwarfgame"))
+        if (MaybeExpectScreen<df::viewscreen_setupdwarfgamest>(""))
         {
             ViewSetupDwarfGame(out);
+            continue;
+        }
+
+        // DFHack overlays (launcher, etc.) — dismiss and wait
+        if (strict_virtual_cast<dfhack_viewscreen>(Gui::getCurViewscreen(true)))
+        {
+            ai.debug(out, "[EMBARK] dismissing DFHack overlay");
+            KeyNoDelay(interface_key::LEAVESCREEN);
+            Delay();
             continue;
         }
 

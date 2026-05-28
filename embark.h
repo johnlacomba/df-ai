@@ -8,6 +8,7 @@ class AI;
 class EmbarkExclusive : public ExclusiveCallback
 {
     AI & ai;
+    std::string last_dump_key;
 
 public:
     EmbarkExclusive(AI & ai);
@@ -19,6 +20,8 @@ public:
 private:
     void SelectVerticalMenuItem(int32_t *current, int32_t target);
     void SelectHorizontalMenuItem(int32_t *current, int32_t target);
+
+    void DumpScreenInfo(color_ostream & out);
 
     void ViewTitle(color_ostream & out);
     void ViewLoadGame(color_ostream & out);
