@@ -24,6 +24,29 @@ REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(cur_year_tick);
 REQUIRE_GLOBAL(world);
 
+bool lockstep_tick_count_forced = false;
+volatile uint32_t lockstep_tick_count = 0;
+
+static void replace_all(std::string & str, const std::string & from, const std::string & to)
+{
+    size_t pos = 0;
+    while ((pos = str.find(from, pos)) != std::string::npos)
+    {
+        str.replace(pos, from.length(), to);
+        pos += to.length();
+    }
+}
+
+std::string html_escape(const std::string & str)
+{
+    std::string escaped(str);
+    replace_all(escaped, "&", "&amp;");
+    replace_all(escaped, "<", "&lt;");
+    replace_all(escaped, ">", "&gt;");
+    replace_all(escaped, "\n", "<br/>");
+    return DF2UTF(escaped);
+}
+
 std::string AI::timestamp(int32_t y, int32_t t)
 {
     if (y == 0 && t == 0)
