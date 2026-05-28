@@ -66,34 +66,43 @@ if ($BuildOnly) {
     exit 0
 }
 
-# ---------- 1. Python ----------
+# ---------- 1. Python (embeddable package — no installer needed) ----------
 
 Write-Step "Step 1/5: Python 3.12"
 
 if (Test-Path $PythonExe) {
     Write-Skip "Already installed at $PythonDir"
 } else {
-    $installerUrl = "https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe"
-    $installerPath = Join-Path $env:TEMP "python-3.12.4-amd64.exe"
+    $zipUrl = "https://www.python.org/ftp/python/3.12.4/python-3.12.4-embed-amd64.zip"
+    $zipPath = Join-Path $env:TEMP "python-3.12.4-embed-amd64.zip"
 
-    Write-Host "  Downloading Python 3.12.4..."
-    Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+    Write-Host "  Downloading Python 3.12.4 embeddable package..."
+    Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
 
-    Write-Host "  Installing to $PythonDir (this may take a minute)..."
-    $pyLog = Join-Path $env:TEMP "python-install.log"
-    $pyArgs = "/passive InstallAllUsers=0 TargetDir=`"$PythonDir`" AssociateFiles=0 Shortcuts=0 Include_launcher=0 Include_pip=1 Include_test=0 /log `"$pyLog`""
-    Write-Host "  Install log: $pyLog"
-    $proc = Start-Process -FilePath $installerPath -ArgumentList $pyArgs -Wait -PassThru
-    Write-Host "  Installer exit code: $($proc.ExitCode)"
-    if ($proc.ExitCode -ne 0 -and (Test-Path $pyLog)) {
-        Write-Host "  Last 20 lines of install log:" -ForegroundColor Yellow
-        Get-Content $pyLog -Tail 20
+    Write-Host "  Extracting to $PythonDir..."
+    New-Item -ItemType Directory -Path $PythonDir -Force | Out-Null
+    Expand-Archive -Path $zipPath -DestinationPath $PythonDir -Force
+    Remove-Item $zipPath -ErrorAction SilentlyContinue
+
+    # Enable pip: uncomment "import site" in the ._pth file
+    $pthFile = Get-ChildItem $PythonDir -Filter "python*._pth" | Select-Object -First 1
+    if ($pthFile) {
+        $content = Get-Content $pthFile.FullName
+        $content = $content -replace "^#import site", "import site"
+        Set-Content $pthFile.FullName $content
+        Write-Ok "Enabled site-packages in $($pthFile.Name)"
     }
 
-    Remove-Item $installerPath -ErrorAction SilentlyContinue
+    # Bootstrap pip
+    $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
+    $getPipPath = Join-Path $env:TEMP "get-pip.py"
+    Write-Host "  Installing pip..."
+    Invoke-WebRequest -Uri $getPipUrl -OutFile $getPipPath -UseBasicParsing
+    & "$PythonExe" $getPipPath --no-warn-script-location
+    Remove-Item $getPipPath -ErrorAction SilentlyContinue
 
     if (!(Test-Path $PythonExe)) {
-        throw "Python installation failed. $PythonExe not found."
+        throw "Python setup failed. $PythonExe not found."
     }
     Write-Ok "Python installed."
 }
@@ -108,8 +117,7 @@ $jinja2Check = & $PythonExe -c "import jinja2; print('ok')" 2>&1
 if ($jinja2Check -eq "ok") {
     Write-Skip "Jinja2 already installed."
 } else {
-    & $PythonExe -m pip install --quiet --upgrade pip
-    & $PythonExe -m pip install --quiet Jinja2
+    & $PythonExe -m pip install --no-warn-script-location Jinja2
     Write-Ok "Jinja2 installed."
 }
 
