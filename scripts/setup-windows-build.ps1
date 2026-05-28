@@ -205,7 +205,12 @@ Write-Step "Step 6/7: Configure and build"
 $cmake = Find-VsCmake
 Write-Host "  Using CMake: $cmake"
 
-if (!(Test-Path (Join-Path $BuildDir "CMakeCache.txt"))) {
+$slnFile = Get-ChildItem $BuildDir -Filter "*.sln" -ErrorAction SilentlyContinue | Select-Object -First 1
+if (!$slnFile) {
+    if (Test-Path $BuildDir) {
+        Write-Host "  Stale build directory found, cleaning..."
+        Remove-Item -Recurse -Force $BuildDir
+    }
     Write-Host "  Running CMake configure..."
     $configArgs = "-S `"$DfhackDir`" -B `"$BuildDir`" -G `"Visual Studio 17 2022`" -A x64 -DPython3_ROOT_DIR=`"$PythonDir`" -DPERL_EXECUTABLE=`"$PerlExe`""
     if ($DfInstallDir) {
