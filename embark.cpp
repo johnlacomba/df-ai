@@ -84,10 +84,18 @@ void EmbarkExclusive::DumpScreenInfo(color_ostream & out)
     }
     else if (auto *cs = strict_virtual_cast<df::viewscreen_choose_start_sitest>(curview))
     {
-        ai.debug(out, stl_sprintf("[SCREEN]   choose_start_sitest: doing_site_finder=%d find_select=%d",
-            (int)cs->doing_site_finder, cs->find_select));
-        ai.debug(out, stl_sprintf("[SCREEN]     location.region_pos=(%d,%d)",
+        ai.debug(out, stl_sprintf("[SCREEN]   choose_start_sitest: page=%d zoomed_in=%d choosing_embark=%d "
+            "doing_site_finder=%d choosing_civ=%d choosing_reclaim=%d",
+            (int)cs->page, (int)cs->zoomed_in, (int)cs->choosing_embark,
+            (int)cs->doing_site_finder, (int)cs->choosing_civilization, (int)cs->choosing_reclaim));
+        ai.debug(out, stl_sprintf("[SCREEN]     embark_dx=%d embark_dy=%d region_pos=(%d,%d)",
+            cs->embark_dx, cs->embark_dy,
             cs->location.region_pos.x, cs->location.region_pos.y));
+        ai.debug(out, stl_sprintf("[SCREEN]     embark_pos_min=(%d,%d) embark_pos_max=(%d,%d)",
+            cs->location.embark_pos_min.x, cs->location.embark_pos_min.y,
+            cs->location.embark_pos_max.x, cs->location.embark_pos_max.y));
+        ai.debug(out, stl_sprintf("[SCREEN]     warn_flags=%d animating_quick_start=%d setting_up_map=%d",
+            (int)cs->warn_flags.whole, cs->animating_quick_start_timer, cs->setting_up_map_timer));
     }
     else if (auto *nr = strict_virtual_cast<df::viewscreen_new_regionst>(curview))
     {
@@ -388,130 +396,59 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
 {
     ExpectedScreen<df::viewscreen_choose_start_sitest> view(this);
 
-    bool no_preference = true;
-
-    FOR_ENUM_ITEMS(embark_finder_option, o)
+    if (!view->zoomed_in)
     {
-        if (o < 0)
-            continue;
-
-        if (o == embark_finder_option::DimensionX || o == embark_finder_option::DimensionY)
-        {
-            continue;
-        }
-
-        if (config.embark_options[o] != -1)
-        {
-            no_preference = false;
-            break;
-        }
-    }
-
-    if (no_preference)
-    {
-        ai.debug(out, "no embark preferences; skipping site finder");
-
-        DisplayEmbarkSite(out);
-
+        ai.debug(out, "[STEAM] not zoomed in, zooming into current region");
+        view->zoomed_in = true;
+        Delay();
         return;
     }
 
-    if (!view->doing_site_finder)
+    if (view->doing_site_finder)
     {
-        // TODO: SETUP_FIND key removed in Steam DF — site finder can't be opened via keyboard.
-        // For now, set embark dimensions directly and embark at current location.
-        ai.debug(out, stl_sprintf("[STEAM] site finder not available, embarking at current location "
-            "(doing_site_finder=%d, find_param_list.size=%zu)",
-            (int)view->doing_site_finder, view->find_param_list.size()));
+        if (view->find_block_dx != -1)
+        {
+            ai.debug(out, stl_sprintf("searching for a site (%d/%d, %d/%d)",
+                view->find_block_x,
+                world->world_data->world_width / 16,
+                view->find_block_y,
+                world->world_data->world_height / 16));
+            Delay();
+            return;
+        }
 
+        ai.debug(out, "site finder complete, leaving finder view");
+        view->doing_site_finder = false;
+        Delay();
+        return;
+    }
+
+    if (!view->choosing_embark)
+    {
         int32_t want_x = std::min(std::max(config.embark_options[embark_finder_option::DimensionX], 1), 16);
         int32_t want_y = std::min(std::max(config.embark_options[embark_finder_option::DimensionY], 1), 16);
+
+        ai.debug(out, stl_sprintf("[STEAM] entering embark placement (%dx%d) at region (%d,%d) embark (%d,%d)",
+            want_x, want_y,
+            view->location.region_pos.x, view->location.region_pos.y,
+            view->location.embark_pos_min.x, view->location.embark_pos_min.y));
+
+        view->choosing_embark = true;
+        view->embark_dx = want_x;
+        view->embark_dy = want_y;
         view->location.embark_pos_max.x = view->location.embark_pos_min.x + want_x - 1;
         view->location.embark_pos_max.y = view->location.embark_pos_min.y + want_y - 1;
 
-        DisplayEmbarkSite(out);
-        return;
-    }
-
-    while (!isFinished() && view->find_block_dx != -1)
-    {
-        ai.debug(out, stl_sprintf("searching for a site (%d/%d, %d/%d)",
-            view->find_block_x,
-            world->world_data->world_width / 16,
-            view->find_block_y,
-            world->world_data->world_height / 16));
-
-        Delay();
-    }
-
-    ai.debug(out, "choosing \"Embark\"");
-
-    Key(interface_key::LEAVESCREEN);
-
-    df::coord2d start = view->location.region_pos;
-    std::vector<df::coord2d> sites;
-    for (int16_t x = 0; x < world->world_data->world_width; x++)
-    {
-        for (int16_t y = 0; y < world->world_data->world_height; y++)
-        {
-            if (world->world_data->region_map[x][y].finder_rank >= 10000)
-            {
-                sites.push_back(df::coord2d(x, y));
-            }
-        }
-    }
-    if (sites.empty())
-    {
-        ai.debug(out, "leaving embark selector (no good embarks)");
-        config.set(out, config.random_embark_world, std::string());
-        AI::abandon(out);
         Delay();
         return;
     }
 
-    ai.debug(out, stl_sprintf("found sites count: %zu", sites.size()));
-    // Don't embark on the same region every time.
-    std::vector<std::seed_seq::result_type> seeds;
-    seeds.push_back(std::seed_seq::result_type(ai.rng()));
-    seeds.push_back(std::seed_seq::result_type(*cur_year));
-    seeds.push_back(std::seed_seq::result_type(*cur_year_tick));
-    std::seed_seq seeds_seq(seeds.begin(), seeds.end());
-    std::mt19937 rng(seeds_seq);
-    df::coord2d site = sites[std::uniform_int_distribution<size_t>(0, sites.size() - 1)(rng)];
-    df::coord2d selected_site_diff = site - start;
+    ai.debug(out, stl_sprintf("[STEAM] embark placement active, pos=(%d,%d)-(%d,%d), confirming",
+        view->location.embark_pos_min.x, view->location.embark_pos_min.y,
+        view->location.embark_pos_max.x, view->location.embark_pos_max.y));
 
-    while (selected_site_diff.x > 0)
-    {
-        selected_site_diff.x--;
-
-        Key(interface_key::CURSOR_RIGHT);
-    }
-
-    while (selected_site_diff.x < 0)
-    {
-        selected_site_diff.x++;
-
-        Key(interface_key::CURSOR_LEFT);
-    }
-
-    while (selected_site_diff.y > 0)
-    {
-        selected_site_diff.y--;
-
-        Key(interface_key::CURSOR_DOWN);
-    }
-
-    while (selected_site_diff.y < 0)
-    {
-        selected_site_diff.y++;
-
-        Key(interface_key::CURSOR_UP);
-    }
-
-    // TODO: interface_key::SETUP_FIND removed in Steam DF
-    // Key(interface_key::SETUP_FIND);
-
-    DisplayEmbarkSite(out);
+    ClearExpectedScreen();
+    Key(interface_key::SELECT);
 }
 
 void EmbarkExclusive::DisplayEmbarkSite(color_ostream & out)
@@ -525,9 +462,7 @@ void EmbarkExclusive::DisplayEmbarkSite(color_ostream & out)
     Delay(5 * 100);
 
     ai.debug(out, "[STEAM] pressing SELECT to embark");
-    Key(interface_key::SELECT);
-
-    ai.debug(out, "[STEAM] pressing SELECT to confirm");
+    ClearExpectedScreen();
     Key(interface_key::SELECT);
 }
 
