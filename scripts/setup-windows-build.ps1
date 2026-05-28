@@ -55,6 +55,9 @@ function Find-VsCmake {
 
 if ($BuildOnly) {
     Write-Step "Rebuild (skipping setup)"
+    if (!(Test-Path "$BuildDir\CMakeCache.txt")) {
+        throw "No build directory found at $BuildDir. Run without -BuildOnly first to do full setup."
+    }
     $env:PATH = "$PythonDir;$PythonDir\Scripts;$env:PATH"
     $cmake = Find-VsCmake
     & $cmake --build "$BuildDir" --config Release
@@ -77,16 +80,8 @@ if (Test-Path $PythonExe) {
     Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
 
     Write-Host "  Installing to $PythonDir (this may take a minute)..."
-    Start-Process -FilePath $installerPath -ArgumentList @(
-        "/quiet",
-        "InstallAllUsers=0",
-        "TargetDir=$PythonDir",
-        "AssociateFiles=0",
-        "Shortcuts=0",
-        "Include_launcher=0",
-        "Include_pip=1",
-        "Include_test=0"
-    ) -Wait -NoNewWindow
+    $pyArgs = "/quiet InstallAllUsers=0 `"TargetDir=$PythonDir`" AssociateFiles=0 Shortcuts=0 Include_launcher=0 Include_pip=1 Include_test=0"
+    Start-Process -FilePath $installerPath -ArgumentList $pyArgs -Wait -NoNewWindow
 
     Remove-Item $installerPath -ErrorAction SilentlyContinue
 
