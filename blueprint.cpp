@@ -1,5 +1,6 @@
 #include "blueprint.h"
 
+#include <filesystem>
 #include "modules/Filesystem.h"
 
 template<typename T>
@@ -40,21 +41,23 @@ template<typename T>
 void load_objects(color_ostream & out, const std::string & subtype, std::function<void(const std::string & type, const std::string & name, T *t)> store)
 {
     std::string error;
-    std::vector<std::string> types;
+    std::vector<std::filesystem::path> types;
     if (!Filesystem::listdir("df-ai-blueprints/rooms/" + subtype, types))
     {
-        for (auto & type : types)
+        for (auto & type_path : types)
         {
+            std::string type = type_path.string();
             if (type.find('.') != std::string::npos)
             {
                 continue;
             }
 
-            std::vector<std::string> names;
+            std::vector<std::filesystem::path> names;
             if (!Filesystem::listdir("df-ai-blueprints/rooms/" + subtype + "/" + type, names))
             {
-                for (auto & name : names)
+                for (auto & name_path : names)
                 {
+                    std::string name = name_path.string();
                     auto ext = name.rfind(".json");
                     if (ext == std::string::npos || ext != name.size() - strlen(".json"))
                     {
@@ -146,11 +149,12 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
         }
     }
 
-    std::vector<std::string> names;
-    if (!Filesystem::listdir("df-ai-blueprints/plans", names))
+    std::vector<std::filesystem::path> plan_names;
+    if (!Filesystem::listdir("df-ai-blueprints/plans", plan_names))
     {
-        for (auto & name : names)
+        for (auto & name_path : plan_names)
         {
+            std::string name = name_path.string();
             auto ext = name.rfind(".json");
             if (ext == std::string::npos || ext != name.size() - strlen(".json"))
             {

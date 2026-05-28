@@ -6,6 +6,7 @@
 
 #include "modules/Buildings.h"
 
+#include "df/building.h"
 #include "df/buildings_other_id.h"
 #include "df/world.h"
 

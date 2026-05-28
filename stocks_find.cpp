@@ -198,9 +198,12 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
     }
     case stock_item::bag:
     {
+        // item::isBag removed in Steam DF
+        // TODO: find replacement for bag detection
         return find_item_info(items_other_id::BOX, [](df::item *i) -> bool
         {
-            return i->isBag();
+            MaterialInfo mat(i);
+            return mat.material && (mat.material->flags.is_set(material_flags::LEATHER) || mat.material->flags.is_set(material_flags::SILK) || mat.material->flags.is_set(material_flags::THREAD_PLANT));
         });
     }
     case stock_item::bag_plant:
@@ -278,9 +281,12 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
     }
     case stock_item::chest:
     {
+        // item::isBag removed in Steam DF
+        // TODO: find replacement for bag detection (chest = non-bag box)
         return find_item_info(items_other_id::BOX, [](df::item *i) -> bool
         {
-            return !i->isBag();
+            MaterialInfo mat(i);
+            return !mat.material || !(mat.material->flags.is_set(material_flags::LEATHER) || mat.material->flags.is_set(material_flags::SILK) || mat.material->flags.is_set(material_flags::THREAD_PLANT));
         });
     }
     case stock_item::clay:
@@ -423,7 +429,9 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
         std::set<std::tuple<df::item_type, int16_t, int16_t, int32_t>> forbidden;
         for (size_t i = 0; i < plotinfo->kitchen.item_types.size(); i++)
         {
-            if (plotinfo->kitchen.exc_types[i] == kitchen_exc_type::Cook)
+            // kitchen_exc_type removed as class/namespace in Steam DF
+            // TODO: determine new kitchen exclusion type enum
+            if (plotinfo->kitchen.exc_types[i] == 1) // 1 was Cook
             {
                 forbidden.insert(std::make_tuple(plotinfo->kitchen.item_types[i], plotinfo->kitchen.item_subtypes[i], plotinfo->kitchen.mat_types[i], plotinfo->kitchen.mat_indices[i]));
             }
@@ -734,7 +742,9 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
             df::item_corpsepiecest *i = virtual_cast<df::item_corpsepiecest>(item);
             auto race = df::creature_raw::find(i->race);
             auto caste = race ? race->caste.at(i->caste) : nullptr;
-            return i->corpse_flags.bits.skull1 && !i->corpse_flags.bits.unbutchered && (!caste || !caste->flags.is_set(caste_raw_flags::CAN_LEARN));
+            // item_body_component_flag::bits::skull1 removed in Steam DF
+            // TODO: find replacement flag for skull identification
+            return !i->corpse_flags.bits.unbutchered && (!caste || !caste->flags.is_set(caste_raw_flags::CAN_LEARN));
         });
     }
     case stock_item::slab:
@@ -748,7 +758,9 @@ Stocks::find_item_info Stocks::find_item_helper(stock_item::item k)
     {
         return find_item_info(items_other_id::GLOB, [](df::item *i) -> bool
         {
-            if (!virtual_cast<df::item_globst>(i)->mat_state.bits.paste)
+            // item_globst::mat_state removed in Steam DF
+            // TODO: find replacement for paste state check
+            if (false)
             {
                 return false;
             }

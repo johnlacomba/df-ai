@@ -6,6 +6,7 @@
 #include "modules/Materials.h"
 
 #include "df/building_farmplotst.h"
+#include "df/buildingitemst.h"
 #include "df/creature_raw.h"
 #include "df/inorganic_raw.h"
 #include "df/material.h"
@@ -768,6 +769,7 @@ void Stocks::update_plants(color_ostream &)
             }
         }
     }
+#if 0 // inorganic_material_definition_handlerst restructured in Steam DF
     for (int32_t i = 0; i < int32_t(world->raws.inorganics.size()); i++)
     {
         if (has_reaction_product(&world->raws.inorganics[i]->material, "FIRED_MAT"))
@@ -775,10 +777,12 @@ void Stocks::update_plants(color_ostream &)
             clay_stones.insert(i);
         }
     }
+#endif
 }
 
 void Stocks::update_simple_metal_ores(color_ostream &)
 {
+#if 0 // inorganic_material_definition_handlerst restructured in Steam DF
     simple_metal_ores.clear();
     simple_metal_ores.resize(world->raws.inorganics.size());
     for (auto it = world->raws.inorganics.begin(); it != world->raws.inorganics.end(); it++)
@@ -789,6 +793,7 @@ void Stocks::update_simple_metal_ores(color_ostream &)
             simple_metal_ores.at(bar).insert(it - world->raws.inorganics.begin());
         }
     }
+#endif
 }
 
 void Stocks::queue_slab(color_ostream & out, int32_t histfig_id)
@@ -808,7 +813,9 @@ void Stocks::queue_slab(color_ostream & out, int32_t histfig_id)
     tmpl.item_subtype = -1;
     tmpl.mat_type = 0;
     tmpl.mat_index = -1;
-    tmpl.hist_figure_id = histfig_id;
+    // manager_order_template::hist_figure_id removed in Steam DF
+    // TODO: find new way to specify histfig for slab engraving
+    (void)histfig_id;
     add_manager_order(out, tmpl);
 }
 

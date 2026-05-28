@@ -85,12 +85,7 @@ std::string AI::describe_unit(df::unit *u, bool html)
         s += ", ";
     }
 
-    // Curse Name
-    if (!u->curse.name.empty())
-    {
-        s += u->curse.name;
-        s += " ";
-    }
+    // unit::curse removed in Steam DF
 
     // Profession Name
     s += Units::getProfessionName(u);

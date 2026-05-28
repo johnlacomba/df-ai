@@ -18,6 +18,7 @@
 #include "df/building_furnacest.h"
 #include "df/building_hatchst.h"
 #include "df/building_stockpilest.h"
+#include "df/buildingitemst.h"
 #include "df/building_tablest.h"
 #include "df/building_trapst.h"
 #include "df/building_workshopst.h"
@@ -1804,8 +1805,10 @@ bool Plan::link_lever(color_ostream &, furniture *src, furniture *dst, std::ostr
     bld->jobs.push_back(job);
     Job::linkIntoWorld(job);
 
-    Job::attachJobItem(job, mechas[0], df::job_item_ref::LinkToTarget);
-    Job::attachJobItem(job, mechas[1], df::job_item_ref::LinkToTrigger);
+    // job_item_ref::LinkToTarget and LinkToTrigger removed in Steam DF
+    // TODO: determine new API for attaching mechanism items to lever link jobs
+    Job::attachJobItem(job, mechas[0], df::job_item_ref::Hauled);
+    Job::attachJobItem(job, mechas[1], df::job_item_ref::Hauled);
 
     reason << "waiting for lever to be linked to target";
     return false;

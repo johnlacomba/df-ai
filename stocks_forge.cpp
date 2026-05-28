@@ -74,6 +74,7 @@ bool Stocks::queue_need_forge(color_ostream & out, df::material_flags preference
 
     if (!metal_pref.count(preference))
     {
+#if 0 // inorganic_material_definition_handlerst restructured in Steam DF
         auto & pref = metal_pref[preference];
         for (size_t mi = 0; mi < world->raws.inorganics.size(); mi++)
         {
@@ -82,6 +83,9 @@ bool Stocks::queue_need_forge(color_ostream & out, df::material_flags preference
                 pref.insert(int32_t(mi));
             }
         }
+#else
+        metal_pref[preference]; // empty set
+#endif
     }
     const auto & pref = metal_pref.at(preference);
 
@@ -328,20 +332,9 @@ int32_t Stocks::may_forge_bars(color_ostream & out, int32_t mat_index, std::ostr
 
                 if (rri->metal_ore != -1)
                 {
-                    if (i->getMaterial() != 0)
-                        continue;
-                    bool found = false;
-                    auto & mis = world->raws.inorganics[i->getMaterialIndex()]->metal_ore.mat_index;
-                    for (auto mi : mis)
-                    {
-                        if (mi == rri->metal_ore)
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found)
-                        continue;
+                    // inorganic_material_definition_handlerst restructured in Steam DF
+                    // TODO: rewrite metal ore check using new inorganics API
+                    continue;
                 }
 
                 if (rri->item_type == item_type::BAR)

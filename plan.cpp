@@ -594,7 +594,9 @@ int32_t Plan::do_dig_vein(color_ostream & out, int32_t mat, df::coord b, bool pl
 {
     if (!plan_only)
     {
-        ai.debug(out, "dig_vein " + world->raws.inorganics[mat]->id);
+        // inorganic_material_definition_handlerst restructured in Steam DF
+        // ai.debug(out, "dig_vein " + world->raws.inorganics[mat]->id);
+        ai.debug(out, stl_sprintf("dig_vein mat=%d", mat));
     }
 
     int32_t count = 0;
@@ -634,7 +636,8 @@ int32_t Plan::do_dig_vein(color_ostream & out, int32_t mat, df::coord b, bool pl
     // dig whole block
     // TODO have the dwarves search for the vein
     // TODO mine in (visible?) chunks
-    DFAI_ASSERT_VALID_TILE(b, " (base position for dig_vein(" << world->raws.inorganics[mat]->id << ")");
+    // inorganic_material_definition_handlerst restructured in Steam DF
+    DFAI_ASSERT_VALID_TILE(b, " (base position for dig_vein(mat=" << mat << ")");
     df::map_block *block = Maps::getTileBlock(b);
     int16_t minx = 16, maxx = -1, miny = 16, maxy = -1;
     for (int16_t dx = 0; dx < 16; dx++)

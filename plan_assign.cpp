@@ -4,8 +4,11 @@
 #include "modules/Buildings.h"
 #include "modules/Units.h"
 
+#include "df/building.h"
+#include "df/building_civzonest.h"
 #include "df/caste_raw.h"
 #include "df/creature_raw.h"
+#include "df/general_ref.h"
 #include "df/squad.h"
 #include "df/unit.h"
 
@@ -486,7 +489,11 @@ void Plan::set_owner(color_ostream &, room *r, int32_t uid)
         df::unit *u = df::unit::find(uid);
         if (df::building *bld = r->dfbuilding())
         {
-            Buildings::setOwner(bld, u);
+            // Buildings::setOwner now takes building_civzonest* in Steam DF
+            if (auto zone = virtual_cast<df::building_civzonest>(bld))
+            {
+                Buildings::setOwner(zone, u);
+            }
         }
     }
 }

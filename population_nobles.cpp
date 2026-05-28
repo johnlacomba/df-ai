@@ -26,9 +26,10 @@ bool Population::unit_hasmilitaryduty(df::unit *u)
     {
         return false;
     }
-    df::squad *squad = df::squad::find(u->military.squad_id);
-    std::vector<df::squad_schedule_order *> & curmonth = squad->schedule[squad->cur_alert_idx][*cur_year_tick / 28 / 1200]->orders;
-    return !curmonth.empty() && (curmonth.size() != 1 || curmonth[0]->min_count != 0);
+    // squad::cur_alert_idx removed in Steam DF — squad schedule/alert structure changed
+    // TODO: rewrite using new squad schedule API
+    // For now, assume any squad member has military duty
+    return true;
 }
 
 int32_t Population::unit_totalxp(const df::unit *u)
@@ -103,7 +104,7 @@ public:
                 asn->histfig = candidate->hist_figure_id;
 
                 if (bookkeeper)
-                    plotinfo->nobles.bookkeeper_settings = 4;
+                    plotinfo->nobles.bookkeeper_settings = static_cast<df::record_precision_level_type>(4);
 
                 return;
             }

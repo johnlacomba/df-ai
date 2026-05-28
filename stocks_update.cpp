@@ -192,7 +192,8 @@ void Stocks::update(color_ostream & out)
                 continue;
             }
 
-            if (job->job_type == job_type::PenLargeAnimal || job->job_type == job_type::BringItemToDepot || job->job_type == job_type::StoreItemInHospital || job->job_type == job_type::DumpItem || job->job_type == job_type::FillPond)
+            // job_type::StoreItemInHospital removed in Steam DF
+            if (job->job_type == job_type::PenLargeAnimal || job->job_type == job_type::BringItemToDepot || job->job_type == job_type::DumpItem || job->job_type == job_type::FillPond)
             {
                 // high priority hauling jobs
                 job->flags.bits.do_now = true;
@@ -288,6 +289,9 @@ void Stocks::count_plants(color_ostream &)
 
 void Stocks::update_ingots(color_ostream & out)
 {
+    // inorganic_material_definition_handlerst restructured in Steam DF
+    // TODO: rewrite ingot update using new inorganics API
+#if 0
     std::ofstream discard;
     for (int32_t mat_index = 0; mat_index < int32_t(world->raws.inorganics.size()); mat_index++)
     {
@@ -296,6 +300,7 @@ void Stocks::update_ingots(color_ostream & out)
             ingots[mat_index] = 0;
         }
     }
+#endif
 
     // Set to 0 instead of clearing so metals stay in
     // the report after we use them all up.

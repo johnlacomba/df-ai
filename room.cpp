@@ -409,13 +409,10 @@ int32_t room::compute_value() const
         }
     }
 
-    auto u = df::unit::find(owner);
-    if (!u)
-    {
-        u = world->units.active[0];
-    }
-
-    return bld->getRoomValue(u);
+    // building::getRoomValue removed in Steam DF
+    // TODO: find replacement API for room value calculation
+    (void)owner;
+    return 0;
 }
 
 int32_t room::distance_to(const room *other) const

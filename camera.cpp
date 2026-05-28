@@ -154,20 +154,9 @@ void Camera::update(color_ostream &)
             u->flags1.bits.active_invader ||
             u->flags2.bits.underworld ||
             u->flags2.bits.visitor_uninvited ||
-            AI::is_in_conflict(u, [](df::activity_event_conflictst *c) -> bool
-            {
-                for (auto s : c->sides)
-                {
-                    for (auto e : s->enemies)
-                    {
-                        if (e->conflict_level > conflict_level::Encounter && e->conflict_level != conflict_level::Training)
-                        {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }) ||
+            // conflict_sidest removed in Steam DF — conflict side/enemy structure changed
+            // AI::is_in_conflict(u, ...) stubbed out
+            false ||
             std::find_if(u->syndromes.active.begin(), u->syndromes.active.end(), [](df::unit_syndrome *us) -> bool
             {
                 auto & s = df::syndrome::find(us->type)->ce;

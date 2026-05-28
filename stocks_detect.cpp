@@ -5,6 +5,7 @@
 #include "modules/Maps.h"
 
 #include "df/building_actual.h"
+#include "df/buildingitemst.h"
 #include "df/inorganic_raw.h"
 #include "df/material.h"
 #include "df/general_ref_building_holderst.h"
@@ -31,8 +32,7 @@ bool Stocks::is_item_free(df::item *i, bool allow_nonempty)
         i->flags.bits.encased ||
         i->flags.bits.removed || // deleted object
         i->flags.bits.forbid || // user forbidden (or dumped)
-        i->flags.bits.dump ||
-        i->flags.bits.in_chest) // in infirmary (XXX dwarf owned items ?)
+        i->flags.bits.dump) // item_flags::bits::in_chest removed in Steam DF
     {
         return false;
     }
@@ -73,7 +73,9 @@ bool Stocks::is_item_free(df::item *i, bool allow_nonempty)
                 auto & inv = u->inventory;
                 for (auto ii : inv)
                 {
-                    if (ii->item == i && ii->mode != df::unit_inventory_item::Hauled)
+                    // unit_inventory_item::Hauled removed in Steam DF
+                    // TODO: determine new enum for hauled inventory mode
+                    if (ii->item == i && ii->mode != df::unit_inventory_item::Carried)
                     {
                         return false;
                     }
@@ -124,9 +126,12 @@ bool Stocks::is_item_free(df::item *i, bool allow_nonempty)
     return td && !td->bits.hidden && td->bits.flow_size < 4;
 }
 
-bool Stocks::is_metal_ore(int32_t mi)
+bool Stocks::is_metal_ore(int32_t /* mi */)
 {
-    return world->raws.inorganics[mi]->flags.is_set(inorganic_flags::METAL_ORE);
+    // inorganic_material_definition_handlerst restructured in Steam DF
+    // return world->raws.inorganics[mi]->flags.is_set(inorganic_flags::METAL_ORE);
+    // TODO: rewrite using new inorganics API
+    return false;
 }
 
 bool Stocks::is_metal_ore(df::item *i)
@@ -196,13 +201,9 @@ std::string Stocks::is_raw_coke(df::item *i)
 
 bool Stocks::is_gypsum(int32_t mi)
 {
-    for (auto c = world->raws.inorganics[mi]->material.reaction_class.begin(); c != world->raws.inorganics[mi]->material.reaction_class.end(); c++)
-    {
-        if (**c == "GYPSUM") // XXX
-        {
-            return true;
-        }
-    }
+    // inorganic_material_definition_handlerst restructured in Steam DF
+    // TODO: rewrite using new inorganics API
+    (void)mi;
     return false;
 }
 

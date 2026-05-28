@@ -65,7 +65,9 @@ void Population::update_deads(color_ostream & out)
         bool has_owner = false;
         for (auto ref : bld->general_refs)
         {
-            if (ref->getType() == general_ref_type::BUILDING_OWNER)
+            // general_ref_type::BUILDING_OWNER removed in Steam DF
+            // Using BUILDING_CIVZONE_ASSIGNED as closest equivalent
+            if (ref->getType() == general_ref_type::BUILDING_CIVZONE_ASSIGNED)
             {
                 has_owner = true;
                 break;

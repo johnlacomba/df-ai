@@ -82,7 +82,10 @@ void Population::update_pets(color_ostream & out)
                 asn->trainer_id = -1;
                 asn->flags.whole = 0;
                 asn->flags.bits.any_trainer = true;
-                insert_into_vector(plotinfo->equipment.training_assignments, &df::training_assignment::animal_id, asn);
+                // plotinfo->equipment.training_assignments moved in Steam DF
+                // TODO: find new location for training_assignments
+                // insert_into_vector(plotinfo->equipment.training_assignments, &df::training_assignment::animal_id, asn);
+                delete asn;
             }
 
             continue;
@@ -104,12 +107,15 @@ void Population::update_pets(color_ostream & out)
 
         if (pet.count(u->id))
         {
-            if (cst->body_size_2.back() <= age && // full grown
+            // caste_raw::body_size_2 removed in Steam DF — body size data restructured
+            if (true && // TODO: check full grown using new body size API
                 u->profession != profession::TRAINED_HUNTER && // not trained
                 u->profession != profession::TRAINED_WAR && // not trained
                 u->relationship_ids[unit_relationship_type::Pet] == -1) // not owned
             {
-                if (std::find_if(u->body.wounds.begin(), u->body.wounds.end(), [](df::unit_wound *w) -> bool { return std::find_if(w->parts.begin(), w->parts.end(), [](df::unit_wound::T_parts *p) -> bool { return p->flags2.bits.gelded; }) != w->parts.end(); }) != u->body.wounds.end() || cst->sex == pronoun_type::it)
+                // unit_wound::T_parts removed in Steam DF — wound structure changed
+                // TODO: rewrite gelded check using new wound API
+                if (cst->sex == pronoun_type::it)
                 {
                     // animal can't reproduce, can't work, and will provide maximum butchering reward. kill it.
                     u->flags2.bits.slaughter = true;
@@ -139,21 +145,9 @@ void Population::update_pets(color_ostream & out)
 
             if (pet.at(u->id).bits.shearable && !Units::isBaby(u) && !Units::isChild(u))
             {
-                bool found = false;
-                for (auto stl : cst->shearable_tissue_layer)
-                {
-                    for (auto bpi : stl->bp_modifiers_idx)
-                    {
-                        if (u->appearance.bp_modifiers[bpi] >= stl->length)
-                        {
-                            needshear++;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found)
-                        break;
-                }
+                // shearable_tissue_layerst removed in Steam DF
+                // TODO: rewrite shearing check using new tissue layer API
+                needshear++;
             }
 
             np.erase(u->id);
@@ -173,10 +167,9 @@ void Population::update_pets(color_ostream & out)
             flags.bits.milkable = 1;
         }
 
-        if (!cst->shearable_tissue_layer.empty())
-        {
-            flags.bits.shearable = 1;
-        }
+        // shearable_tissue_layerst removed in Steam DF
+        // TODO: determine new way to check if caste is shearable
+        // flags.bits.shearable = 1; // disabled until new API is known
 
         if (cst->flags.is_set(caste_raw_flags::HUNTS_VERMIN))
         {

@@ -125,42 +125,11 @@ void Stocks::queue_need_weapon(color_ostream & out, stock_item::item stock_item,
             {
                 std::vector<int32_t> best;
                 best.insert(best.end(), metal_pref.at(pref).begin(), metal_pref.at(pref).end());
-                if (ranged)
-                {
-                    best.erase(std::remove_if(best.begin(), best.end(), [](int32_t mat) -> bool
-                    {
-                        // Safety feature: don't waste candy on ranged weapons.
-                        return world->raws.inorganics[mat]->flags.is_set(inorganic_flags::SPECIAL);
-                    }), best.end());
-
-                    std::sort(best.begin(), best.end(), [](int32_t a, int32_t b) -> bool
-                    {
-                        // Sort ranged weapons based on the lightest metal.
-                        return world->raws.inorganics[a]->material.solid_density < world->raws.inorganics[b]->material.solid_density;
-                    });
-                }
-                else if (idef->flags.is_set(weapon_flags::HAS_EDGE_ATTACK))
-                {
-                    std::sort(best.begin(), best.end(), [](int32_t a, int32_t b) -> bool
-                    {
-                        // All weapons grade metals except adamantine will skip this if statement.
-                        if (world->raws.inorganics[a]->material.strength.max_edge != world->raws.inorganics[b]->material.strength.max_edge)
-                        {
-                            return world->raws.inorganics[a]->material.strength.max_edge > world->raws.inorganics[b]->material.strength.max_edge;
-                        }
-
-                        // Sort edged weapons based on the blade strength.
-                        return world->raws.inorganics[a]->material.strength.fracture[strain_type::SHEAR] > world->raws.inorganics[a]->material.strength.fracture[strain_type::SHEAR];
-                    });
-                }
-                else
-                {
-                    std::sort(best.begin(), best.end(), [](int32_t a, int32_t b) -> bool
-                    {
-                        // Sort blunt weapons based on the heaviest metal.
-                        return world->raws.inorganics[a]->material.solid_density > world->raws.inorganics[b]->material.solid_density;
-                    });
-                }
+                // inorganic_material_definition_handlerst restructured in Steam DF
+                // TODO: rewrite metal sorting/filtering using new inorganics API
+                // All sort/filter lambdas that accessed world->raws.inorganics[mat]
+                // have been stubbed out. Metals will be selected in arbitrary order.
+                (void)ranged;
 
                 for (auto mi : best)
                 {
@@ -248,11 +217,8 @@ static void queue_need_armor_helper(AI & ai, color_ostream & out, stock_item::it
             std::vector<int32_t> best;
             const auto & pref = ai.stocks.metal_pref.at(material_flags::ITEMS_ARMOR);
             best.insert(best.end(), pref.begin(), pref.end());
-            std::sort(best.begin(), best.end(), [](int32_t a, int32_t b) -> bool
-            {
-                // should roughly order metals by effectiveness
-                return world->raws.inorganics[a]->material.strength.yield[strain_type::IMPACT] > world->raws.inorganics[b]->material.strength.yield[strain_type::IMPACT];
-            });
+            // inorganic_material_definition_handlerst restructured in Steam DF
+            // TODO: rewrite armor metal sorting using new inorganics API
 
             for (auto mi : best)
             {

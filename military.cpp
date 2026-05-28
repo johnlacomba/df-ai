@@ -109,43 +109,12 @@ bool AI::tag_enemies(color_ostream & out)
     return found;
 }
 
-df::unit *AI::is_attacking_citizen(df::unit *u)
+df::unit *AI::is_attacking_citizen(df::unit * /* u */)
 {
+    // activity_event_conflictst::T_sides, conflict_sidest, and related
+    // conflict side/enemy structures removed in Steam DF.
+    // This function needs rewriting for the new conflict API.
     df::unit *citizen = nullptr;
-
-    is_in_conflict(u, [u, &citizen](df::activity_event_conflictst *conflict) -> bool
-    {
-        auto unit_side = std::find_if(conflict->sides.begin(), conflict->sides.end(), [u](const df::activity_event_conflictst::T_sides * side) -> bool
-        {
-            return std::find(side->unit_ids.begin(), side->unit_ids.end(), u->id) != side->unit_ids.end();
-        });
-        if (unit_side == conflict->sides.end())
-        {
-            // Not in their own fight?
-            return false;
-        }
-
-        for (auto enemy_side : (*unit_side)->enemies)
-        {
-            if (enemy_side->conflict_level >= conflict_level::Lethal)
-            {
-                auto side = conflict->sides.at(enemy_side->id);
-                for (auto enemy_id : side->unit_ids)
-                {
-                    if (auto enemy = df::unit::find(enemy_id))
-                    {
-                        if (Units::isSane(enemy) && Units::isCitizen(enemy))
-                        {
-                            citizen = enemy;
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-
-        return false;
-    });
 
     return citizen;
 }

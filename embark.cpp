@@ -340,7 +340,8 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
     {
         ai.debug(out, "choosing \"Site Finder\"");
 
-        Key(interface_key::SETUP_FIND);
+        // TODO: interface_key::SETUP_FIND removed in Steam DF
+        // Key(interface_key::SETUP_FIND);
 
         // Set site finder parameters using the flattened find_param array
         FOR_ENUM_ITEMS(embark_finder_option, o)
@@ -478,45 +479,24 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
         Key(interface_key::CURSOR_UP);
     }
 
-    Key(interface_key::SETUP_FIND);
+    // TODO: interface_key::SETUP_FIND removed in Steam DF
+    // Key(interface_key::SETUP_FIND);
 
     DisplayEmbarkSite(out);
 }
 
 void EmbarkExclusive::DisplayEmbarkSite(color_ostream &)
 {
+    // TODO: viewscreen_choose_start_sitest::Biome, interface_key::SETUP_BIOME_1,
+    // and interface_key::SETUP_EMBARK all removed in Steam DF.
+    // The embark site display/biome selection and embark confirmation flow
+    // needs to be rewritten for the new UI.
     ExpectedScreen<df::viewscreen_choose_start_sitest> view(this);
 
     Delay(5 * 100);
 
-    Key(interface_key::CHANGETAB);
-
-    while (view->page != df::viewscreen_choose_start_sitest::Biome)
-    {
-        Delay(5 * 100);
-
-        Key(interface_key::CHANGETAB);
-    }
-
-    Delay(5 * 100);
-
-    Key(interface_key::SETUP_BIOME_1);
-
-    while (view->biome_highlighted)
-    {
-        int32_t biome_idx = view->biome_idx + 1;
-        Key(static_cast<df::interface_key>(interface_key::SETUP_BIOME_1 + biome_idx));
-        if (view->biome_highlighted && biome_idx == view->biome_idx)
-        {
-            Delay(5 * 100);
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    Key(interface_key::SETUP_EMBARK);
+    // Just try to embark with SELECT for now
+    Key(interface_key::SELECT);
 
     // dismiss warnings
     Key(interface_key::SELECT);
@@ -547,8 +527,9 @@ void EmbarkExclusive::ViewSetupDwarfGame(color_ostream & out)
     }
 
     // If we're past the initial selection, just embark with defaults
+    // TODO: interface_key::SETUP_EMBARK removed in Steam DF
     ai.debug(out, "[STUB] ViewSetupDwarfGame: embarking with default loadout");
-    Key(interface_key::SETUP_EMBARK);
+    Key(interface_key::SELECT);
 }
 
 void EmbarkExclusive::ViewTextViewer(color_ostream &)

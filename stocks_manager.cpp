@@ -46,10 +46,7 @@ static bool template_equals(const T *a, const df::manager_order_template *b)
         return false;
     if (a->mat_index != b->mat_index)
         return false;
-    if (a->item_category.whole != b->item_category.whole)
-        return false;
-    if (a->hist_figure_id != b->hist_figure_id)
-        return false;
+    // manager_order_template::item_category and hist_figure_id removed in Steam DF
     if (a->material_category.whole != b->material_category.whole)
         return false;
     return true;
@@ -110,8 +107,7 @@ void ManagerOrderExclusive::Run(color_ostream & out)
     order->item_subtype = tmpl.item_subtype;
     order->mat_type = tmpl.mat_type;
     order->mat_index = tmpl.mat_index;
-    order->item_category = tmpl.item_category;
-    order->hist_figure_id = tmpl.hist_figure_id;
+    // manager_order::item_category and hist_figure_id removed in Steam DF
     order->material_category = tmpl.material_category;
     order->amount_left = qty;
     order->amount_total = qty;

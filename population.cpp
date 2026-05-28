@@ -28,6 +28,7 @@
 #include "df/squad_order_kill_listst.h"
 #include "df/squad_position.h"
 #include "df/syndrome.h"
+#include "df/unit.h"
 #include "df/unit_health_info.h"
 #include "df/unit_relationship_type.h"
 #include "df/unit_wound.h"
@@ -346,9 +347,7 @@ void Population::report(std::ostream & out, bool html)
                     case occupation_type::SCRIBE:
                         out << " (scribe)";
                         break;
-                    case occupation_type::MESSENGER:
-                        out << " (messenger)";
-                        break;
+                    // occupation_type::MESSENGER removed in Steam DF
                     }
                 }
             }
@@ -674,78 +673,14 @@ void Population::report(std::ostream & out, bool html)
         out << (html ? "<li>" : "- ");
         out << "[" << AI::timestamp(crime->event_year, crime->event_time) << "] ";
         out << (html ? "<b>" : "");
-        using crime_type = df::crime::T_mode;
-        switch (crime->mode)
+        // crime::T_mode removed in Steam DF — crime mode enum restructured
+        // TODO: rewrite crime display for new crime mode enum
+        out << AI::describe_unit(criminal, html) << " committed a crime";
+        if (victim)
         {
-        case crime_type::ProductionOrderViolation:
-            out << AI::describe_unit(criminal, html) << " violated a production mandate set by " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::ExportViolation:
-            out << AI::describe_unit(criminal, html) << " violated an export ban set by " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::JobOrderViolation:
-            out << AI::describe_unit(criminal, html) << " violated a job order set by " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::ConspiracyToSlowLabor:
-            out << AI::describe_unit(criminal, html) << " committed conspiracy to slow labor";
-            if (victim)
-            {
-                out << " against " << AI::describe_unit(victim, html);
-            }
-            out << ".";
-            break;
-        case crime_type::Murder:
-            out << AI::describe_unit(criminal, html) << " murdered " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::DisorderlyBehavior:
-            out << AI::describe_unit(criminal, html) << " assaulted " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::BuildingDestruction:
-            out << AI::describe_unit(criminal, html) << " destroyed a building";
-            if (victim)
-            {
-                out << " owned by " << AI::describe_unit(victim, html);
-            }
-            out << ".";
-            break;
-        case crime_type::Vandalism:
-            out << AI::describe_unit(criminal, html) << " vandalized furniture";
-            if (victim)
-            {
-                out << " owned by " << AI::describe_unit(victim, html);
-            }
-            out << ".";
-            break;
-        case crime_type::Theft:
-            out << AI::describe_unit(criminal, html) << " stole an item from " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::Robbery:
-            out << AI::describe_unit(criminal, html) << " robbed " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::BloodDrinking:
-            out << AI::describe_unit(criminal, html) << " is a vampire who drank the blood of " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::Embezzlement:
-            out << AI::describe_unit(criminal, html) << " [FIXME:PLACEHOLDER:" << enum_item_key_str(crime->mode) << "] " << AI::describe_unit(victim, html);
-            break;
-        case crime_type::AttemptedMurder:
-            out << AI::describe_unit(criminal, html) << " attempted to murder " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::Kidnapping:
-            out << AI::describe_unit(criminal, html) << " abducted " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::AttemptedKidnapping:
-            out << AI::describe_unit(criminal, html) << " attempted to abduct " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::AttemptedTheft:
-            out << AI::describe_unit(criminal, html) << " attempted to steal an item from " << AI::describe_unit(victim, html) << ".";
-            break;
-        case crime_type::Treason:
-        case crime_type::Espionage:
-        case crime_type::Bribery:
-            out << AI::describe_unit(criminal, html) << " [FIXME:PLACEHOLDER:" << enum_item_key_str(crime->mode) << "] " << AI::describe_unit(victim, html);
-            break;
+            out << " against " << AI::describe_unit(victim, html);
         }
+        out << ".";
 
         out << (html ? "</b><br/>" : "\n  ");
 
@@ -764,48 +699,10 @@ void Population::report(std::ostream & out, bool html)
             out << "Convicted: " << AI::describe_unit(convicted, html);
             if (crime->flags.bits.sentenced)
             {
-                if (crime->punishment.give_beating || crime->punishment.hammerstrikes || crime->punishment.prison_time)
-                {
-                    out << (html ? "<br/>" : "\n  ");
-                    out << "Sentenced to";
-                    if (crime->punishment.give_beating)
-                    {
-                        out << " a beating";
-                    }
-                    if (crime->punishment.hammerstrikes)
-                    {
-                        if (crime->punishment.give_beating)
-                        {
-                            if (crime->punishment.prison_time)
-                            {
-                                out << ", ";
-                            }
-                            else
-                            {
-                                out << " and";
-                            }
-                        }
-                        out << " hammer strikes";
-                    }
-                    if (crime->punishment.prison_time)
-                    {
-                        if (crime->punishment.give_beating && crime->punishment.hammerstrikes)
-                        {
-                            out << ",";
-                        }
-                        if (crime->punishment.give_beating || crime->punishment.hammerstrikes)
-                        {
-                            out << " and";
-                        }
-                        out << " prison time";
-                    }
-                    out << ".";
-
-                    if (html)
-                    {
-                        out << "<!--" << crime->punishment.give_beating << "," << crime->punishment.hammerstrikes << "," << crime->punishment.prison_time << "-->";
-                    }
-                }
+                // punishmentst::give_beating, hammerstrikes, prison_time removed in Steam DF
+                // TODO: rewrite punishment display for new punishment structure
+                out << (html ? "<br/>" : "\n  ");
+                out << "Sentenced.";
             }
             else
             {
@@ -843,7 +740,8 @@ void Population::report(std::ostream & out, bool html)
             return false;
         }
 
-        return (wound->flags.whole &~df::unit_wound::T_flags::mask_diagnosed) || syn || wound->dizziness || wound->fever || wound->nausea || wound->numbness || wound->pain || wound->paralysis || !wound->parts.empty();
+        // unit_wound::T_flags::mask_diagnosed removed in Steam DF
+        return wound->flags.whole || syn || wound->dizziness || wound->fever || wound->nausea || wound->numbness || wound->pain || wound->paralysis || !wound->parts.empty();
     };
     bool any_interesting_wounds = false;
     for (auto u : world->units.active)
