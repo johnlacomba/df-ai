@@ -104,14 +104,22 @@ protected:
             return false;
         }
 
-        if (!focus.empty() && Gui::getFocusString(screen) != focus)
+        if (!focus.empty())
         {
-            return false;
+            auto focusStrings = Gui::getFocusStrings(screen);
+            if (std::find(focusStrings.begin(), focusStrings.end(), focus) == focusStrings.end())
+            {
+                return false;
+            }
         }
 
-        if (!parentFocus.empty() && Gui::getFocusString(screen->parent) != parentFocus)
+        if (!parentFocus.empty())
         {
-            return false;
+            auto parentFocusStrings = Gui::getFocusStrings(screen->parent);
+            if (std::find(parentFocusStrings.begin(), parentFocusStrings.end(), parentFocus) == parentFocusStrings.end())
+            {
+                return false;
+            }
         }
 
         ExpectScreen<T>(focus, parentFocus, filename, lineno);

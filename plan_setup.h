@@ -18,7 +18,7 @@ public:
 
     std::string getFocusString();
 
-    void render();
+    void render(uint32_t curtick);
 
     static virtual_identity _identity;
 };

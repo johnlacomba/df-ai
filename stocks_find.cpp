@@ -8,6 +8,8 @@
 
 #include "df/building_trapst.h"
 #include "df/builtin_mats.h"
+#include "df/inorganic_raw.h"
+#include "df/material.h"
 #include "df/caste_raw.h"
 #include "df/creature_raw.h"
 #include "df/entity_raw.h"

@@ -17,6 +17,7 @@
 #include "modules/Gui.h"
 #include "modules/Screen.h"
 
+#include "df/plotinfost.h"
 #include "df/viewscreen_dwarfmodest.h"
 #include "df/viewscreen_titlest.h"
 

@@ -1,7 +1,9 @@
 #include "ai.h"
 #include "population.h"
 #include "plan.h"
+#ifdef DF_AI_WEBLEGENDS
 #include "thirdparty/weblegends/weblegends-plugin.h"
+#endif
 
 #include "modules/Job.h"
 #include "modules/Maps.h"
@@ -1532,7 +1534,11 @@ void Population::report(std::ostream & out, bool html)
         if (html)
         {
             out << "<li>";
+#ifdef DF_AI_WEBLEGENDS
             weblegends_describe_event(out, d);
+#else
+            out << html_escape(AI::describe_event(d));
+#endif
             out << "</li>";
         }
         else
@@ -1738,7 +1744,7 @@ void Population::report(std::ostream & out, bool html)
                 }
                 break;
             default:
-                out << toLower(enum_item_key(ref->getType())) << ": ";
+                out << toLower_cp437(enum_item_key(ref->getType())) << ": ";
                 break;
             }
             if (auto item = ref->getItem())
@@ -1764,7 +1770,7 @@ void Population::report(std::ostream & out, bool html)
                 }
                 else
                 {
-                    out << toLower(enum_item_key(building->getType()));
+                    out << toLower_cp437(enum_item_key(building->getType()));
                 }
             }
             if (!html)

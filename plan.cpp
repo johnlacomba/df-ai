@@ -11,6 +11,7 @@
 
 #include "df/block_square_event_mineralst.h"
 #include "df/building_civzonest.h"
+#include "df/item.h"
 #include "df/feature_init_outdoor_riverst.h"
 #include "df/feature_outdoor_riverst.h"
 #include "df/map_block.h"
@@ -163,7 +164,7 @@ uint16_t Maps::getTileWalkable(df::coord t)
 {
     DFAI_ASSERT_VALID_TILE(t, "");
     df::map_block *b = getTileBlock(t);
-    if (BOOST_LIKELY(b != nullptr))
+    if (DFAI_LIKELY(b != nullptr))
         return b->walkable[t.x & 0xf][t.y & 0xf];
     return 0;
 }
@@ -171,7 +172,7 @@ uint16_t Maps::getTileWalkable(df::coord t)
 void AI::dig_tile(df::coord t, df::tile_dig_designation dig)
 {
     DFAI_ASSERT_VALID_TILE(t, " (designation: " << enum_item_key(dig) << ")");
-    if (BOOST_UNLIKELY(ENUM_ATTR(tiletype, material, *Maps::getTileType(t)) == tiletype_material::TREE && dig != tile_dig_designation::No))
+    if (DFAI_UNLIKELY(ENUM_ATTR(tiletype, material, *Maps::getTileType(t)) == tiletype_material::TREE && dig != tile_dig_designation::No))
     {
         dig = tile_dig_designation::Default;
         t = Plan::find_tree_base(t);
@@ -231,7 +232,7 @@ void Plan::room_items(color_ostream &, room *r, std::function<void(df::item *)> 
                 for (auto id : items)
                 {
                     auto i = df::item::find(id);
-                    if (BOOST_LIKELY(i && i->flags.bits.on_ground &&
+                    if (DFAI_LIKELY(i && i->flags.bits.on_ground &&
                         r->min.x <= i->pos.x && i->pos.x <= r->max.x &&
                         r->min.y <= i->pos.y && i->pos.y <= r->max.y &&
                         z == i->pos.z))
@@ -1372,7 +1373,7 @@ command_result Plan::setup_outdoor_gathering_zones(color_ostream &)
         {
             for (auto g = ground.begin(); g != ground.end(); g++)
             {
-                df::building_civzonest *bld = virtual_cast<df::building_civzonest>(Buildings::allocInstance(df::coord(x, y, g->first), building_type::Civzone, civzone_type::ActivityZone));
+                df::building_civzonest *bld = virtual_cast<df::building_civzonest>(Buildings::allocInstance(df::coord(x, y, g->first), building_type::Civzone, civzone_type::PlantGathering));
                 int16_t w = 31;
                 int16_t h = 31;
                 if (x + 31 > world->map.x_count)
@@ -1394,10 +1395,8 @@ command_result Plan::setup_outdoor_gathering_zones(color_ostream &)
                     }
                 }
                 Buildings::constructAbstract(bld);
-                bld->is_room = true;
 
                 bld->spec_sub_flag.bits.active = 1;
-                bld->type = civzone_type::PlantGathering;
                 bld->zone_settings.gather.flags.bits.pick_trees = 1;
                 bld->zone_settings.gather.flags.bits.pick_shrubs = 1;
                 bld->zone_settings.gather.flags.bits.gather_fallen = 1;

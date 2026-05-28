@@ -6,9 +6,9 @@ std::string viewscreen_ai_plan_setupst::getFocusString()
     return "df-ai/plan/setup";
 }
 
-void viewscreen_ai_plan_setupst::render()
+void viewscreen_ai_plan_setupst::render(uint32_t curtick)
 {
-    dfhack_viewscreen::render();
+    dfhack_viewscreen::render(curtick);
 
     Screen::clear();
     Screen::drawBorder("  df-ai Planning  ");

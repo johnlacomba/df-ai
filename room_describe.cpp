@@ -3,6 +3,7 @@
 
 #include "df/abstract_building_templest.h"
 #include "df/building_civzonest.h"
+#include "df/religious_practice_type.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
 #include "df/squad.h"
@@ -46,15 +47,15 @@ std::string AI::describe_room(room *r, bool html)
         switch (r->location_type)
         {
         case location_type::guildhall:
-            s << " (" << toLower(enum_item_key(df::profession(r->data1))) << " guildhall)";
+            s << " (" << toLower_cp437(enum_item_key(df::profession(r->data1))) << " guildhall)";
             break;
         case location_type::temple:
-            switch (df::temple_deity_type(r->data1))
+            switch (df::religious_practice_type(r->data1))
             {
-            case temple_deity_type::None:
+            case religious_practice_type::NONE:
                 s << " (temple)";
                 break;
-            case temple_deity_type::Deity:
+            case religious_practice_type::WORSHIP_HFID:
                 s << " (temple to ";
                 if (html)
                 {
@@ -74,7 +75,7 @@ std::string AI::describe_room(room *r, bool html)
                 }
                 s << ")";
                 break;
-            case temple_deity_type::Religion:
+            case religious_practice_type::RELIGION_ENID:
                 s << " (temple of ";
                 if (html)
                 {

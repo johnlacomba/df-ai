@@ -9,10 +9,10 @@
 
 #include "df/activity_entry.h"
 #include "df/activity_event.h"
+#include "df/unit.h"
 #include "df/activity_event_participants.h"
 #include "df/history_event.h"
 #include "df/history_event_context.h"
-#include "df/interface_button_building_new_jobst.h"
 #include "df/item.h"
 #include "df/job.h"
 #include "df/manager_order.h"
@@ -62,7 +62,7 @@ std::string AI::describe_item(df::item *i)
 
 std::string AI::describe_name(const df::language_name & name, bool in_english, bool only_last_part)
 {
-    std::string s = Translation::TranslateName(&name, in_english, only_last_part);
+    std::string s = Translation::translateName(&name, in_english, only_last_part);
     return Translation::capitalize(s);
 }
 
@@ -113,21 +113,13 @@ static std::string do_describe_job(T *job)
         return "(unknown job)";
     }
 
-    std::string desc;
-    auto button = df::allocate<df::interface_button_building_new_jobst>();
-    button->reaction_name = job->reaction_name;
-    button->hist_figure_id = job->hist_figure_id;
-    button->job_type = job->job_type;
-    button->item_type = job->item_type;
-    button->item_subtype = job->item_subtype;
-    button->mat_type = job->mat_type;
-    button->mat_index = job->mat_index;
-    button->item_category = job->item_category;
-    button->material_category = job->material_category;
-
-    button->getLabel(&desc);
-    delete button;
-
+    // interface_button_building_new_jobst fields changed in Steam DF;
+    // fall back to enum key of the job type for now.
+    std::string desc = ENUM_KEY_STR(job_type, job->job_type);
+    if (!job->reaction_name.empty())
+    {
+        desc += " (" + job->reaction_name + ")";
+    }
     return desc;
 }
 
@@ -185,7 +177,7 @@ std::string AI::describe_event(df::history_event *event)
 
     df::history_event_context context;
     std::string str;
-    event->getSentence(&str, &context);
+    event->getSentence(&str, &context, true, false);
     return str;
 }
 

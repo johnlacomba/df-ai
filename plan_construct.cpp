@@ -25,10 +25,12 @@
 #include "df/general_ref_building_holderst.h"
 #include "df/general_ref_building_triggertargetst.h"
 #include "df/item_boulderst.h"
+#include "df/item.h"
 #include "df/job.h"
 #include "df/job_item.h"
 #include "df/map_block.h"
 #include "df/plant.h"
+#include "df/plant_raw.h"
 #include "df/plotinfost.h"
 #include "df/viewscreen_dwarfmodest.h"
 #include "df/world.h"
@@ -614,7 +616,7 @@ bool Plan::try_furnish_archerytarget(color_ostream &, room *r, furniture *f, df:
 
     df::building *bld = Buildings::allocInstance(t, building_type::ArcheryTarget);
     Buildings::setSize(bld, df::coord(1, 1, 1));
-    virtual_cast<df::building_archerytargetst>(bld)->archery_direction = f->pos.y > 2 ? df::building_archerytargetst::TopToBottom : df::building_archerytargetst::BottomToTop;
+    // archery_direction removed in Steam DF
     std::vector<df::item *> item;
     item.push_back(bould);
     Buildings::constructWithItems(bld, item);
@@ -1588,16 +1590,11 @@ bool Plan::try_endfurnish(color_ostream & out, room *r, furniture *f, std::ostre
     }
     else if (f->type == layout_type::coffin)
     {
-        df::building_coffinst *coffin = virtual_cast<df::building_coffinst>(bld);
-        coffin->burial_mode.bits.allow_burial = 1;
-        coffin->burial_mode.bits.no_citizens = 0;
-        coffin->burial_mode.bits.no_pets = 1;
+        // burial_mode removed in Steam DF
     }
     else if (f->type == layout_type::door)
     {
-        df::building_doorst *door = virtual_cast<df::building_doorst>(bld);
-        door->door_flags.bits.pet_passable = 1;
-        door->door_flags.bits.internal = f->internal ? 1 : 0;
+        // pet_passable and internal flags removed in Steam DF
     }
     else if (f->type == layout_type::floodgate)
     {
@@ -1620,13 +1617,8 @@ bool Plan::try_endfurnish(color_ostream & out, room *r, furniture *f, std::ostre
         if (r->type == room_type::pitcage)
         {
             hatch->door_flags.bits.forbidden = 1;
-            hatch->door_flags.bits.pet_passable = 0;
         }
-        else
-        {
-            hatch->door_flags.bits.pet_passable = 1;
-        }
-        hatch->door_flags.bits.internal = f->internal ? 1 : 0;
+        // pet_passable and internal flags removed in Steam DF
     }
     else if (f->type == layout_type::lever)
     {
@@ -1644,9 +1636,8 @@ bool Plan::try_endfurnish(color_ostream & out, room *r, furniture *f, std::ostre
             bld->room.y = r->min.y + f->pos.y;
             bld->room.width = 1;
             bld->room.height = 1;
-            bld->is_room = true;
         }
-        bld->flags.bits.justice = 1;
+        // is_room and justice flags removed in Steam DF
     }
 
     if (r->type == room_type::infirmary)
@@ -1707,7 +1698,7 @@ bool Plan::try_endfurnish(color_ostream & out, room *r, furniture *f, std::ostre
         if (t.y > r->max.y)
             set_ext(t.x, t.y - 1, building_extents_type::DistanceBoundary);
     }
-    bld->is_room = true;
+    // bld->is_room removed in Steam DF
 
     set_owner(out, r, r->owner);
     furnish_room(out, r);

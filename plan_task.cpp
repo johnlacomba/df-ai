@@ -8,6 +8,7 @@
 #include "df/abstract_building.h"
 #include "df/building_cagest.h"
 #include "df/building_trapst.h"
+#include "df/general_ref.h"
 #include "df/item_cagest.h"
 #include "df/tile_occupancy.h"
 #include "df/viewscreen_dwarfmodest.h"

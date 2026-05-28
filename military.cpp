@@ -8,7 +8,9 @@
 #include "df/job.h"
 #include "df/squad.h"
 #include "df/squad_order_kill_listst.h"
+#include "df/tile_designation.h"
 #include "df/plotinfost.h"
+#include "df/unit.h"
 #include "df/world.h"
 
 #include "modules/Maps.h"

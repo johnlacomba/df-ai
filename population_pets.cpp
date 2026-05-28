@@ -2,10 +2,13 @@
 #include "population.h"
 #include "plan.h"
 
+#include <algorithm>
+
 #include "modules/Buildings.h"
 #include "modules/Units.h"
 
 #include "df/building_civzonest.h"
+#include "df/unit.h"
 #include "df/building_nest_boxst.h"
 #include "df/caste_raw.h"
 #include "df/creature_raw.h"

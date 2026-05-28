@@ -38,6 +38,7 @@
 #include "df/itemdef_shoesst.h"
 #include "df/itemdef_weaponst.h"
 #include "df/job.h"
+#include "df/material.h"
 #include "df/sphere_type.h"
 #include "df/plotinfost.h"
 #include "df/unit.h"

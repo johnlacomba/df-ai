@@ -179,7 +179,7 @@ void AI::statechanged(color_ostream & out, state_change_event st)
                 debug(out, "[ERROR] paused in unknown DFHack viewscreen " + focus);
             }
         }
-        else if (virtual_identity *ident = virtual_identity::get(curview))
+        else if (const virtual_identity *ident = virtual_identity::get(curview))
         {
             std::string cvname = ident->getName();
             if (seen_cvname.insert(cvname).second)

@@ -12,6 +12,7 @@
 #include "modules/Screen.h"
 
 #include "df/enabler.h"
+#include "df/plotinfost.h"
 #include "df/viewscreen_dwarfmodest.h"
 #include "df/viewscreen_titlest.h"
 #include "df/world.h"
@@ -129,7 +130,7 @@ void AI::timeout_sameview(int32_t seconds, std::function<void(color_ostream &)> 
     {
         name = "dfhack/" + hack->getFocusString();
     }
-    else if (virtual_identity *ident = virtual_identity::get(curscreen))
+    else if (const virtual_identity *ident = virtual_identity::get(curscreen))
     {
         name = ident->getName();
     }
@@ -249,11 +250,11 @@ bool AI::is_embarking()
     return events.has_exclusive<EmbarkExclusive>() || events.has_exclusive<PlanSetup>();
 }
 
-BOOST_NOINLINE std::ostream & dfai_debug_log()
+DFAI_NOINLINE std::ostream & dfai_debug_log()
 {
     static std::ofstream log;
 
-    if (BOOST_UNLIKELY(!log.is_open()))
+    if (DFAI_UNLIKELY(!log.is_open()))
     {
         log.open("df-ai-debug.log", std::ios::out | std::ios::app);
         log << "\n\ndf-ai debug log opened. version information follows:" << std::endl;

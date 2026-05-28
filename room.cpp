@@ -8,6 +8,7 @@
 #include "df/abstract_building.h"
 #include "df/abstract_building_contents.h"
 #include "df/building.h"
+#include "df/plotinfost.h"
 #include "df/tile_occupancy.h"
 #include "df/unit.h"
 #include "df/world.h"

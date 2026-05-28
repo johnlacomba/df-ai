@@ -8,6 +8,7 @@
 
 #include "df/building_floodgatest.h"
 #include "df/building_trapst.h"
+#include "df/item.h"
 #include "df/general_ref_building_holderst.h"
 #include "df/general_ref_building_triggertargetst.h"
 #include "df/job.h"

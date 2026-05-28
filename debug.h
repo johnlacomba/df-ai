@@ -13,6 +13,12 @@
 #else
 #define DFAI_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #endif
+#ifdef _MSC_VER
+#define DFAI_LIKELY(x) (!!(x))
+#else
+#define DFAI_LIKELY(x) __builtin_expect(!!(x), 1)
+#endif
+
 #define DFAI_STRINGIZE_IMPL(x) #x
 #define DFAI_STRINGIZE(x) DFAI_STRINGIZE_IMPL(x)
 

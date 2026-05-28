@@ -5,6 +5,7 @@
 
 #include "df/building_civzonest.h"
 #include "df/crime.h"
+#include "df/unit.h"
 #include "df/general_ref_contains_itemst.h"
 #include "df/general_ref_contains_unitst.h"
 #include "df/item.h"

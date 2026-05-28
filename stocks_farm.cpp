@@ -3,10 +3,13 @@
 
 #include "modules/Maps.h"
 
+#include "df/biome_type.h"
 #include "df/building_farmplotst.h"
 #include "df/item_seedsst.h"
 #include "df/job.h"
+#include "df/material.h"
 #include "df/plant.h"
+#include "df/plant_raw.h"
 #include "df/tile_designation.h"
 #include "df/world.h"
 
@@ -48,7 +51,7 @@ void Stocks::farmplot(color_ostream & out, room *r, bool initial)
 
     bool subterranean = Maps::getTileDesignation(r->pos())->bits.subterranean;
     df::coord2d region(Maps::getTileBiomeRgn(r->pos()));
-    df::biome_type biome = subterranean ? biome_type::SUBTERRANEAN_WATER : Maps::GetBiomeType(region.x, region.y);
+    df::biome_type biome = subterranean ? biome_type::SUBTERRANEAN_WATER : Maps::getBiomeTypeWithRef(region.x, region.y, region.y);
     df::plant_raw_flags plant_biome;
     if (!find_enum_item(&plant_biome, "BIOME_" + enum_item_key(biome)))
     {

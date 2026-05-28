@@ -169,7 +169,7 @@ bool Plan::is_smooth(df::coord t, bool engrave)
         mat == tiletype_material::TREE ||
         mat == tiletype_material::FROZEN_LIQUID ||
         sp == tiletype_special::TRACK ||
-        (sp == tiletype_special::SMOOTH && (!engrave || std::find_if(world->engravings.begin(), world->engravings.end(), [t](df::engraving *e) -> bool { return e->pos == t; }) != world->engravings.end())) ||
+        (sp == tiletype_special::SMOOTH && (!engrave || std::find_if(world->event.engravings.begin(), world->event.engravings.end(), [t](df::engraving *e) -> bool { return e->pos == t; }) != world->event.engravings.end())) ||
         s == tiletype_shape::FORTIFICATION ||
         sb == tiletype_shape_basic::Open ||
         sb == tiletype_shape_basic::Stair ||

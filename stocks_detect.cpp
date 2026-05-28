@@ -5,6 +5,8 @@
 #include "modules/Maps.h"
 
 #include "df/building_actual.h"
+#include "df/inorganic_raw.h"
+#include "df/material.h"
 #include "df/general_ref_building_holderst.h"
 #include "df/general_ref_contained_in_itemst.h"
 #include "df/general_ref_contains_itemst.h"

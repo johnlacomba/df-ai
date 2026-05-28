@@ -26,6 +26,8 @@
 #include "df/viewscreen_loadgamest.h"
 #include "df/viewscreen_new_regionst.h"
 #include "df/viewscreen_setupdwarfgamest.h"
+#include "df/main_choice_type.h"
+#include "df/title_mode_type.h"
 #include "df/viewscreen_titlest.h"
 #include "df/viewscreen_update_regionst.h"
 #include "df/world.h"
@@ -120,7 +122,7 @@ void EmbarkExclusive::Run(color_ostream & out)
     }
 
     ai.debug(out, "embark complete, setting up initial state.");
-    Gui::setMenuWidth(3, 3);
+    // Gui::setMenuWidth removed in Steam DF (old sidebar no longer exists)
     *standing_orders_gather_refuse_outside = 1;
     *standing_orders_job_cancel_announce = config.cancel_announce;
     ai.unpause();
@@ -142,249 +144,93 @@ void EmbarkExclusive::SelectHorizontalMenuItem(int32_t *current, int32_t target)
 
 void EmbarkExclusive::ViewTitle(color_ostream & out)
 {
+    // TODO: viewscreen_titlest fields completely restructured in Steam DF.
+    // The old sel_subpage/sel_menu_line/start_savegames/submenu_line_id fields
+    // are gone. Now uses mode/selected/savegame_header/savegame_header_world.
+    // The save selection subpages (StartSelectWorld, StartSelectMode) no longer
+    // exist as nested enums. Needs full rewrite to match new title screen UI flow.
     ExpectedScreen<df::viewscreen_titlest> view(this);
 
     ai.camera.check_record_status();
 
-    if (view->sel_subpage == df::viewscreen_titlest::None)
+    if (view->mode == title_mode_type::NONE || view->mode == title_mode_type::MAIN_MENU)
     {
-        auto continue_game = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), df::viewscreen_titlest::Continue);
+        // Main menu: try Continue > Start > NewWorld
+        auto continue_game = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), main_choice_type::Continue);
 
         if (!config.random_embark_world.empty() && continue_game != view->menu_line_id.end() && std::ifstream("data/save/" + config.random_embark_world + "/world.sav").good())
         {
             ai.debug(out, "choosing \"Continue Game\"");
-
-            SelectVerticalMenuItem(&view->sel_menu_line, int32_t(continue_game - view->menu_line_id.begin()));
-
+            SelectVerticalMenuItem(&view->selected, int32_t(continue_game - view->menu_line_id.begin()));
             return;
         }
 
-        auto start_game = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), df::viewscreen_titlest::Start);
+        auto start_game = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), main_choice_type::Start);
 
         if (!config.random_embark_world.empty() && start_game != view->menu_line_id.end() && std::ifstream("data/save/" + config.random_embark_world + "/world.dat").good())
         {
             ai.debug(out, "choosing \"Start Game\"");
-
-            SelectVerticalMenuItem(&view->sel_menu_line, int32_t(start_game - view->menu_line_id.begin()));
-
+            SelectVerticalMenuItem(&view->selected, int32_t(start_game - view->menu_line_id.begin()));
             return;
         }
 
-        auto new_world = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), df::viewscreen_titlest::NewWorld);
+        auto new_world = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), main_choice_type::NewWorld);
 
         ai.debug(out, "choosing \"New World\"");
-
-        SelectVerticalMenuItem(&view->sel_menu_line, int32_t(new_world - view->menu_line_id.begin()));
+        SelectVerticalMenuItem(&view->selected, int32_t(new_world - view->menu_line_id.begin()));
     }
-
-    if (view->sel_subpage == df::viewscreen_titlest::StartSelectWorld)
+    else if (view->mode == title_mode_type::CONTINUE_INACTIVE)
     {
+        // Save/world selection - replaces old StartSelectWorld
         if (config.random_embark_world.empty())
         {
             ai.debug(out, "leaving \"Select World\" (no save name)");
-
             Key(interface_key::LEAVESCREEN);
-
             return;
         }
 
-        auto save = std::find_if(view->start_savegames.begin(), view->start_savegames.end(), [](df::viewscreen_titlest::T_start_savegames *s) -> bool
-        {
-            return s->save_dir == config.random_embark_world;
-        });
-
-        if (save == view->start_savegames.end())
-        {
-            ai.debug(out, "could not find a save named " + config.random_embark_world);
-            config.set(out, config.random_embark_world, std::string());
-
-            Key(interface_key::LEAVESCREEN);
-
-            return;
-        }
-        else
-        {
-            ai.debug(out, stl_sprintf("selecting save #%d (%s)",
-                int((save - view->start_savegames.begin()) + 1),
-                (*save)->world_name_str.c_str()));
-
-            SelectVerticalMenuItem(&view->sel_submenu_line, int32_t(save - view->start_savegames.begin()));
-        }
+        // TODO: navigate savegame_header_world to find the correct save
+        // Old code searched start_savegames by save_dir, but that struct is gone.
+        // For now, just select the first entry.
+        ai.debug(out, "[STUB] selecting first available world save");
+        Key(interface_key::SELECT);
     }
-
-    if (view->sel_subpage == df::viewscreen_titlest::StartSelectMode)
+    else
     {
-        auto fortress_mode = std::find(view->submenu_line_id.begin(), view->submenu_line_id.end(), 0);
-        if (fortress_mode == view->submenu_line_id.end())
-        {
-            ai.debug(out, "leaving \"Select Mode\" (no fortress mode available)");
-            config.set(out, config.random_embark_world, std::string());
-
-            Key(interface_key::LEAVESCREEN);
-
-            return;
-        }
-
-        ai.debug(out, "choosing \"Dwarf Fortress Mode\"");
-
-        SelectVerticalMenuItem(&view->sel_menu_line, int32_t(fortress_mode - view->submenu_line_id.begin()));
+        // Unknown title mode, just wait
+        ai.debug(out, stl_sprintf("[STUB] ViewTitle: unhandled title mode %d", (int)view->mode));
+        Delay();
     }
-
-#undef view
 }
 
 void EmbarkExclusive::ViewLoadGame(color_ostream & out)
 {
+    // TODO: viewscreen_loadgamest completely restructured in Steam DF.
+    // It no longer contains saves/sel_idx/loading. Save selection moved
+    // to the title screen. This viewscreen now only handles the load process.
     ExpectedScreen<df::viewscreen_loadgamest> view(this);
 
-    if (view->loading)
-    {
-        Delay();
+    ai.debug(out, "[STUB] ViewLoadGame: load game screen not yet ported to Steam DF");
 
-        return;
-    }
-
-    if (config.random_embark_world.empty())
-    {
-        ai.debug(out, "leaving \"Select World\" (no save name)");
-
-        Key(interface_key::LEAVESCREEN);
-
-        return;
-    }
-
-    auto save = std::find_if(view->saves.begin(), view->saves.end(), [](df::loadgame_save_info *s) -> bool
-    {
-        return s->folder_name == config.random_embark_world;
-    });
-
-    if (save == view->saves.end())
-    {
-        ai.debug(out, "could not find save named " + config.random_embark_world);
-        config.set(out, config.random_embark_world, std::string());
-
-        Key(interface_key::LEAVESCREEN);
-
-        return;
-    }
-
-    ai.debug(out, stl_sprintf("selecting save #%d (%s) (%s)",
-        int((save - view->saves.begin()) + 1),
-        (*save)->world_name.c_str(),
-        (*save)->fort_name.c_str()));
-
-    SelectVerticalMenuItem(&view->sel_idx, int32_t(save - view->saves.begin()));
+    // The load screen is now just a progress indicator. Wait for it.
+    Delay();
 }
 
 void EmbarkExclusive::ViewLoadScreen(color_ostream & out)
 {
-    ExpectedScreen<dfhack_lua_viewscreen> view(this);
+    // TODO: viewscreen_loadgamest no longer contains saves list.
+    // Save selection is now handled via the title screen.
+    // This DFHack lua load_screen overlay may no longer exist in Steam DF.
+    ai.debug(out, "[STUB] ViewLoadScreen: lua load screen not yet ported to Steam DF");
 
-    if (config.random_embark_world.empty())
-    {
-        ai.debug(out, "leaving \"Select World\" (no save name)");
-
-        Key(interface_key::LEAVESCREEN);
-
-        return;
-    }
-
-    std::vector<df::loadgame_save_info *> filtered_saves;
-    auto parent = strict_virtual_cast<df::viewscreen_loadgamest>(view->parent);
-    for (auto save : parent->saves)
-    {
-        size_t len = save->folder_name.length();
-        const static std::string tmpl("-#####-##-##");
-        if (len < tmpl.length())
-        {
-            filtered_saves.push_back(save);
-        }
-        else
-        {
-            for (size_t i = 0; i < tmpl.length(); i++)
-            {
-                char expect = tmpl.at(tmpl.length() - i - 1);
-                char actual = save->folder_name.at(len - i - 1);
-                if (expect == '#' ? actual < '0' || actual > '9' : actual != expect)
-                {
-                    filtered_saves.push_back(save);
-                    break;
-                }
-            }
-        }
-    }
-
-    auto save = std::find_if(filtered_saves.begin(), filtered_saves.end(), [](df::loadgame_save_info *s) -> bool
-    {
-        return s->folder_name == config.random_embark_world;
-    });
-
-    if (save == filtered_saves.end())
-    {
-        ai.debug(out, "could not find save named " + config.random_embark_world);
-        config.set(out, config.random_embark_world, std::string());
-
-        Key(interface_key::LEAVESCREEN);
-
-        return;
-    }
-
-    auto L = Lua::Core::State;
-    lua_rawgetp(L, LUA_REGISTRYINDEX, view.get());
-    lua_getfield(L, -1, "sel_idx");
-    int32_t sel_idx = static_cast<int32_t>(lua_tointeger(L, -1)) - 1;
-    lua_pop(L, 2);
-
-    ai.debug(out, stl_sprintf("selecting save #%d (%s) (%s)",
-        int((save - filtered_saves.begin()) + 1),
-        (*save)->world_name.c_str(),
-        (*save)->fort_name.c_str()));
-
-    int32_t target(save - filtered_saves.begin());
-
-    while (sel_idx != target)
-    {
-        if (sel_idx < target)
-        {
-            Key(interface_key::STANDARDSCROLL_DOWN);
-            sel_idx++;
-        }
-        else
-        {
-            Key(interface_key::STANDARDSCROLL_UP);
-            sel_idx--;
-        }
-    }
-
-    Key(interface_key::SELECT);
+    Delay();
 }
 
 void EmbarkExclusive::ViewLoadScreenOptions()
 {
-    ExpectedScreen<dfhack_lua_viewscreen> view(this);
-
-    auto L = Lua::Core::State;
-    lua_rawgetp(L, LUA_REGISTRYINDEX, view.get());
-    lua_getfield(L, -1, "save_mtime");
-    if (lua_isnoneornil(L, -1))
-    {
-        // not on load_screen_options
-        lua_pop(L, 2);
-        return;
-    }
-    lua_getfield(L, -2, "loading");
-    bool startedLoading = !!lua_isboolean(L, -1);
-    bool finishedLoading = startedLoading && !lua_toboolean(L, -1);
-    lua_pop(L, 3);
-
-    if (!startedLoading)
-    {
-        Key(interface_key::SELECT);
-    }
-    else if (!finishedLoading)
-    {
-        Delay();
-    }
+    // TODO: lua load_screen_options overlay may no longer exist in Steam DF.
+    // Save loading is now handled differently via the restructured title screen.
+    Delay();
 }
 
 void EmbarkExclusive::ViewNewRegion(color_ostream & out)
@@ -393,47 +239,46 @@ void EmbarkExclusive::ViewNewRegion(color_ostream & out)
 
     config.set(out, config.random_embark_world, std::string());
 
-    while (view->load_world_params)
+    while (view->raw_load)
     {
-        // wait for screen to initialize
+        // wait for screen to initialize (loading raw files)
         Delay();
     }
 
-    if (!view->welcome_msg.empty())
+    if (view->doing_mods)
     {
-        ai.debug(out, "leaving world gen disclaimer");
-
+        // dismiss mod selection if shown (Steam DF replaces old welcome disclaimer)
+        ai.debug(out, "leaving mod selection");
         Key(interface_key::LEAVESCREEN);
-
         return;
     }
 
-    if (view->simple_mode == 1)
+    if (view->doing_simple_params == 1)
     {
         ai.debug(out, "choosing \"Generate World\"");
 
         int32_t want_size = std::min(std::max(config.world_size, 0), 4);
 
-        if (view->world_size != want_size)
+        if (view->simple_world_size != want_size)
         {
-            while (view->cursor_line != 0)
+            while (view->simple_sel != 0)
             {
                 Key(interface_key::STANDARDSCROLL_UP);
             }
 
-            SelectHorizontalMenuItem(&view->world_size, want_size);
+            SelectHorizontalMenuItem(&view->simple_world_size, want_size);
         }
 
         int32_t want_minerals = 3;
 
-        if (view->mineral_occurence != want_minerals)
+        if (view->simple_minerals != want_minerals)
         {
-            while (view->cursor_line != 6)
+            while (view->simple_sel != 6)
             {
                 Key(interface_key::STANDARDSCROLL_DOWN);
             }
 
-            SelectHorizontalMenuItem(&view->mineral_occurence, want_minerals);
+            SelectHorizontalMenuItem(&view->simple_minerals, want_minerals);
         }
 
         Key(interface_key::MENU_CONFIRM);
@@ -441,7 +286,7 @@ void EmbarkExclusive::ViewNewRegion(color_ostream & out)
         return;
     }
 
-    if (!world->entities.all.empty() && view->simple_mode == 0 && world->worldgen_status.state == 10)
+    if (!world->entities.all.empty() && view->doing_simple_params == 0 && world->worldgen_status.state == 10)
     {
         ai.debug(out, "world gen finished, save name is " + world->cur_savegame.save_dir);
         config.set(out, config.random_embark_world, world->cur_savegame.save_dir);
@@ -491,41 +336,44 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
         return;
     }
 
-    if (view->finder.finder_state == -1)
+    if (!view->doing_site_finder)
     {
         ai.debug(out, "choosing \"Site Finder\"");
 
         Key(interface_key::SETUP_FIND);
 
+        // Set site finder parameters using the flattened find_param array
         FOR_ENUM_ITEMS(embark_finder_option, o)
         {
-            if (view->finder.options[o] == config.embark_options[o])
+            if (view->find_param[o] == config.embark_options[o])
             {
                 continue;
             }
 
-            auto visible = std::find(view->finder.visible_options.begin(), view->finder.visible_options.end(), o);
+            // In Steam DF, the finder options are flattened into find_param[].
+            // find_select is the cursor index, find_param_list contains visible options.
+            auto visible = std::find(view->find_param_list.begin(), view->find_param_list.end(), (int32_t)o);
 
-            if (visible == view->finder.visible_options.end())
+            if (visible == view->find_param_list.end())
             {
                 ai.debug(out, "[CHEAT] Setting hidden site finder option " + enum_item_key(o));
-                view->finder.options[o] = config.embark_options[o];
+                view->find_param[o] = config.embark_options[o];
 
                 continue;
             }
 
-            MoveToItem(&view->finder.cursor, int32_t(visible - view->finder.visible_options.begin()));
+            MoveToItem(&view->find_select, int32_t(visible - view->find_param_list.begin()));
 
             if (o == embark_finder_option::DimensionX || o == embark_finder_option::DimensionY)
             {
                 int32_t target = std::min(std::max(config.embark_options[o], 1), 16);
-                MoveToItem(&view->finder.options[o], target, interface_key::STANDARDSCROLL_RIGHT, interface_key::STANDARDSCROLL_LEFT);
+                MoveToItem(&view->find_param[o], target, interface_key::STANDARDSCROLL_RIGHT, interface_key::STANDARDSCROLL_LEFT);
                 continue;
             }
 
             if (config.embark_options[o] == -1)
             {
-                while (view->finder.options[o] != -1)
+                while (view->find_param[o] != -1)
                 {
                     Key(interface_key::STANDARDSCROLL_LEFT);
                 }
@@ -533,14 +381,14 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
                 continue;
             }
 
-            if (view->finder.options[o] == -1)
+            if (view->find_param[o] == -1)
             {
                 Key(interface_key::STANDARDSCROLL_RIGHT);
             }
 
-            while (view->finder.options[o] != -1 && view->finder.options[o] != config.embark_options[o])
+            while (view->find_param[o] != -1 && view->find_param[o] != config.embark_options[o])
             {
-                if (view->finder.options[o] > config.embark_options[o])
+                if (view->find_param[o] > config.embark_options[o])
                 {
                     Key(interface_key::STANDARDSCROLL_LEFT);
                 }
@@ -556,12 +404,12 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
         return;
     }
 
-    while (view->finder.search_x != -1 || view->finder.search_y != 0)
+    while (view->find_block_dx != -1)
     {
         ai.debug(out, stl_sprintf("searching for a site (%d/%d, %d/%d)",
-            view->finder.search_x,
+            view->find_block_x,
             world->world_data->world_width / 16,
-            view->finder.search_y,
+            view->find_block_y,
             world->world_data->world_height / 16));
 
         Delay();
@@ -676,118 +524,30 @@ void EmbarkExclusive::DisplayEmbarkSite(color_ostream &)
 
 void EmbarkExclusive::ViewSetupDwarfGame(color_ostream & out)
 {
+    // TODO: viewscreen_setupdwarfgamest completely restructured in Steam DF.
+    // Old fields show_play_now/choices/choice_types/choice/animal_cursor/animals/
+    // items/item_cursor are all gone. Now uses mode/selected_u/selected_i/
+    // selected_pet/s_item/embark_profile/embark_confirmation/initial_selection.
+    // Needs full rewrite to match new embark preparation UI.
     ExpectedScreen<df::viewscreen_setupdwarfgamest> view(this);
 
-    if (view->embark_prompt)
+    if (view->embark_confirmation)
     {
         Key(interface_key::SELECT);
-
         return;
     }
 
-    if (view->show_play_now)
+    if (view->initial_selection)
     {
-        size_t choice = std::uniform_int_distribution<size_t>(0, view->choices.size() - 1)(ai.rng);
-
-        switch (view->choice_types.at(choice))
-        {
-        case df::viewscreen_setupdwarfgamest::PlayNow:
-            ai.debug(out, "choosing \"Play Now\"");
-            break;
-        case df::viewscreen_setupdwarfgamest::Prepare:
-            ai.debug(out, "choosing \"Prepare Carefully\"");
-            break;
-        case df::viewscreen_setupdwarfgamest::Profile:
-            ai.debug(out, "choosing embark profile: \"" + view->choices.at(choice)->name + "\"");
-            break;
-        }
-
-        while (view->choice != int32_t(choice))
-        {
-            Key(interface_key::STANDARDSCROLL_DOWN);
-        }
-
+        // initial_selection shows play now / prepare / profile choices
+        // For now, just pick the first option ("Play Now" equivalent)
+        ai.debug(out, "[STUB] ViewSetupDwarfGame: choosing first initial selection option");
         Key(interface_key::SELECT);
-
         return;
     }
 
-    // TODO: more interesting custom loadout generation
-
-    Key(interface_key::CHANGETAB);
-    Key(interface_key::STANDARDSCROLL_RIGHT);
-
-    auto add_animal = [&](const std::string& name, const std::string& caste_name, int32_t amount)
-    {
-        int32_t start = view->animal_cursor;
-        for (;;)
-        {
-            auto creature = df::creature_raw::find(view->animals.race.at(view->animal_cursor));
-            auto caste = creature->caste.at(view->animals.caste.at(view->animal_cursor));
-            if (creature->creature_id != name || caste->caste_id != caste_name || view->animals.profession.at(view->animal_cursor) != profession::STANDARD)
-            {
-                Key(interface_key::STANDARDSCROLL_UP);
-                if (view->animal_cursor == start)
-                {
-                    ai.debug(out, "[ERROR] Could not find creature " + name + ":" + caste_name + " on embark menu.");
-                    return;
-                }
-                continue;
-            }
-
-            for (int32_t i = 0; i < amount; i++)
-            {
-                Key(interface_key::SECONDSCROLL_DOWN);
-            }
-
-            return;
-        }
-    };
-
-    add_animal("CAT", "MALE", 1);
-    add_animal("CAT", "FEMALE", 2);
-    add_animal("DOG", "MALE", 1);
-    add_animal("DOG", "FEMALE", 2);
-    add_animal("BIRD_TURKEY", "MALE", 2);
-    add_animal("BIRD_TURKEY", "FEMALE", 3);
-    add_animal("PIG", "MALE", 1);
-    add_animal("PIG", "FEMALE", 2);
-
-    Key(interface_key::STANDARDSCROLL_LEFT);
-    for (size_t i = 0; i < view->items.size(); i++)
-    {
-        auto item = view->items.at(i);
-        if (item->getType() != item_type::WEAPON || item->getMeleeSkill() != job_skill::MINING)
-        {
-            continue;
-        }
-
-        while (view->item_cursor != int32_t(i))
-        {
-            Key(interface_key::STANDARDSCROLL_DOWN);
-        }
-
-        Key(interface_key::SECONDSCROLL_DOWN);
-        break;
-    }
-    for (size_t i = 0; i < view->items.size(); i++)
-    {
-        auto item = view->items.at(i);
-        if (item->getType() != item_type::BUCKET)
-        {
-            continue;
-        }
-
-        while (view->item_cursor != int32_t(i))
-        {
-            Key(interface_key::STANDARDSCROLL_DOWN);
-        }
-
-        Key(interface_key::SECONDSCROLL_DOWN);
-        Key(interface_key::SECONDSCROLL_DOWN);
-        break;
-    }
-
+    // If we're past the initial selection, just embark with defaults
+    ai.debug(out, "[STUB] ViewSetupDwarfGame: embarking with default loadout");
     Key(interface_key::SETUP_EMBARK);
 }
 

@@ -6,6 +6,7 @@
 #include "modules/Units.h"
 
 #include "df/entity_position_assignment.h"
+#include "df/unit.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
 #include "df/squad.h"

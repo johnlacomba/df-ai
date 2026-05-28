@@ -3,6 +3,7 @@
 #include "hooks.h"
 #include "debug.h"
 
+#include <random>
 #include <sstream>
 
 #include "modules/Gui.h"
@@ -75,19 +76,7 @@ command_result Camera::onupdate_register(color_ostream &)
 
 void Camera::check_record_status()
 {
-    if (config.record_movie && gview->supermovie_on == 0)
-    {
-        movie_started_in_lockstep = lockstep_hooked;
-        gview->supermovie_on = 1;
-        gview->currentblocksize = 0;
-        gview->nextfilepos = 0;
-        gview->supermovie_pos = 0;
-        gview->supermovie_delayrate = 0;
-        gview->first_movie_write = 1;
-        std::ostringstream filename;
-        filename << "data/movies/df-ai-" << std::time(nullptr) << ".cmv";
-        gview->movie_file = filename.str();
-    }
+    // Movie recording deferred (Steam DF removed supermovie fields from interfacest)
 }
 
 command_result Camera::onupdate_unregister(color_ostream &)
@@ -162,7 +151,6 @@ void Camera::update(color_ostream &)
         }
         else if (u->training_level != animal_training_level::Domesticated &&
             (u->flags1.bits.marauder ||
-            u->flags1.bits.skeleton ||
             u->flags1.bits.active_invader ||
             u->flags2.bits.underworld ||
             u->flags2.bits.visitor_uninvited ||
@@ -193,9 +181,8 @@ void Camera::update(color_ostream &)
             targets1.push_back(u);
         }
     }
-    auto rnd_shuffle = [this](size_t n) -> size_t { return std::uniform_int_distribution<size_t>(0, n - 1)(ai.rng); };
-    std::random_shuffle(targets0.begin(), targets0.end(), rnd_shuffle);
-    std::random_shuffle(targets1.begin(), targets1.end(), rnd_shuffle);
+    std::shuffle(targets0.begin(), targets0.end(), ai.rng);
+    std::shuffle(targets1.begin(), targets1.end(), ai.rng);
     std::vector<df::unit *> targets2;
     for (auto it = world->units.active.begin(); it != world->units.active.end(); it++)
     {
@@ -206,7 +193,7 @@ void Camera::update(color_ostream &)
             targets2.push_back(u);
         }
     }
-    std::random_shuffle(targets2.begin(), targets2.end(), rnd_shuffle);
+    std::shuffle(targets2.begin(), targets2.end(), ai.rng);
     auto score = [](df::unit *u) -> int
     {
         if (!u->job.current_job)

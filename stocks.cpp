@@ -8,6 +8,8 @@
 #include "df/building_farmplotst.h"
 #include "df/creature_raw.h"
 #include "df/inorganic_raw.h"
+#include "df/material.h"
+#include "df/plant_raw.h"
 #include "df/item_armorst.h"
 #include "df/item_slabst.h"
 #include "df/manager_order.h"
