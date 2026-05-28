@@ -47,7 +47,10 @@ void PlanSetup::Run(color_ostream & out)
     ExpectScreen<viewscreen_ai_plan_setupst>("dfhack/df-ai/plan/setup");
 
     Log("Reading blueprints...");
+    Log(stl_sprintf("Working directory: %s", Filesystem::getcwd().string().c_str()));
     blueprints_t blueprints(out);
+
+    Log(stl_sprintf("Blueprint load result: is_valid=%d", (int)blueprints.is_valid));
 
     if (build_from_blueprint(blueprints))
     {

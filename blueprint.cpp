@@ -1,6 +1,7 @@
 #include "blueprint.h"
 
 #include <filesystem>
+#include "Core.h"
 #include "modules/Filesystem.h"
 
 template<typename T>
@@ -38,11 +39,11 @@ static T *load_json(const std::string & filename, const std::string & type, cons
 }
 
 template<typename T>
-void load_objects(color_ostream & out, const std::string & subtype, std::function<void(const std::string & type, const std::string & name, T *t)> store)
+void load_objects(color_ostream & out, const std::string & base, const std::string & subtype, std::function<void(const std::string & type, const std::string & name, T *t)> store)
 {
     std::string error;
     std::vector<std::filesystem::path> types;
-    if (!Filesystem::listdir("df-ai-blueprints/rooms/" + subtype, types))
+    if (!Filesystem::listdir(base + "/rooms/" + subtype, types))
     {
         for (auto & type_path : types)
         {
@@ -53,7 +54,7 @@ void load_objects(color_ostream & out, const std::string & subtype, std::functio
             }
 
             std::vector<std::filesystem::path> names;
-            if (!Filesystem::listdir("df-ai-blueprints/rooms/" + subtype + "/" + type, names))
+            if (!Filesystem::listdir(base + "/rooms/" + subtype + "/" + type, names))
             {
                 for (auto & name_path : names)
                 {
@@ -64,7 +65,7 @@ void load_objects(color_ostream & out, const std::string & subtype, std::functio
                         continue;
                     }
 
-                    std::string path = "df-ai-blueprints/rooms/" + subtype + "/" + type + "/" + name;
+                    std::string path = base + "/rooms/" + subtype + "/" + type + "/" + name;
                     std::string base_name = name.substr(0, ext);
 
                     if (auto t = load_json<T>(path, type, base_name, error))
@@ -81,26 +82,41 @@ void load_objects(color_ostream & out, const std::string & subtype, std::functio
     }
 }
 
+static std::string find_blueprint_base()
+{
+    if (Filesystem::isdir("df-ai-blueprints"))
+        return "df-ai-blueprints";
+
+    auto hack_path = Core::getInstance().getHackPath();
+    auto parent = hack_path.parent_path();
+    auto alt = (parent / "df-ai-blueprints").string();
+    if (Filesystem::isdir(alt))
+        return alt;
+
+    return std::string();
+}
+
 blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
 {
-    out << "df-ai: loading blueprints from " << Filesystem::getcwd().string() << "/df-ai-blueprints/" << std::endl;
-
-    if (!Filesystem::isdir("df-ai-blueprints"))
+    std::string base = find_blueprint_base();
+    if (base.empty())
     {
         is_valid = false;
-        out << "[ERROR] df-ai: df-ai-blueprints folder is missing!" << std::endl;
-        out.printerr("The df-ai-blueprints folder is missing! Download it from https://github.com/BenLubar/df-ai/releases to use the new scriptable blueprint system.\n");
-        out.printerr("The df-ai-blueprints folder should be inside %s.\n", Filesystem::getcwd().string().c_str());
+        out << "df-ai: CWD=" << Filesystem::getcwd().string()
+            << " hackPath=" << Core::getInstance().getHackPath().string() << std::endl;
+        out.printerr("The df-ai-blueprints folder is missing!\n");
+        out.printerr("Looked in: %s/df-ai-blueprints/ and next to hack/ directory.\n", Filesystem::getcwd().string().c_str());
         return;
     }
+    out << "df-ai: using blueprint base: " << base << std::endl;
 
     std::map<std::string, std::pair<std::vector<std::pair<std::string, room_template *>>, std::vector<std::pair<std::string, room_instance *>>>> rooms;
 
-    load_objects<room_template>(out, "templates", [&rooms](const std::string & type, const std::string & name, room_template *tmpl)
+    load_objects<room_template>(out, base, "templates", [&rooms](const std::string & type, const std::string & name, room_template *tmpl)
     {
         rooms[type].first.push_back(std::make_pair(name, tmpl));
     });
-    load_objects<room_instance>(out, "instances", [&rooms](const std::string & type, const std::string & name, room_instance *inst)
+    load_objects<room_instance>(out, base, "instances", [&rooms](const std::string & type, const std::string & name, room_instance *inst)
     {
         rooms[type].second.push_back(std::make_pair(name, inst));
     });
@@ -155,7 +171,7 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
     }
 
     std::vector<std::filesystem::path> plan_names;
-    if (!Filesystem::listdir("df-ai-blueprints/plans", plan_names))
+    if (!Filesystem::listdir(base + "/plans", plan_names))
     {
         out << "df-ai: found " << plan_names.size() << " files in plans directory" << std::endl;
         for (auto & name_path : plan_names)
@@ -167,7 +183,7 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
                 continue;
             }
 
-            std::string path = "df-ai-blueprints/plans/" + name;
+            std::string path = base + "/plans/" + name;
 
             if (auto plan = load_json<blueprint_plan_template>(path, "plan", name.substr(0, ext), error))
             {
@@ -183,7 +199,7 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
     }
     else
     {
-        out << "[ERROR] df-ai: could not list df-ai-blueprints/plans directory" << std::endl;
+        out << "[ERROR] df-ai: could not list " << base << "/plans directory" << std::endl;
     }
 
     out << "df-ai: blueprint loading complete. " << plans.size() << " plans, " << blueprints.size() << " room types loaded." << std::endl;
