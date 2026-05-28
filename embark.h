@@ -9,6 +9,7 @@ class EmbarkExclusive : public ExclusiveCallback
 {
     AI & ai;
     std::string last_dump_key;
+    int32_t embark_confirm_attempt;
 
 public:
     EmbarkExclusive(AI & ai);

@@ -42,7 +42,8 @@ REQUIRE_GLOBAL(world);
 EmbarkExclusive::EmbarkExclusive(AI & ai) :
     ExclusiveCallback{ "embarking" },
     ai(ai),
-    last_dump_key()
+    last_dump_key(),
+    embark_confirm_attempt(0)
 {
 }
 
@@ -99,13 +100,20 @@ void EmbarkExclusive::DumpScreenInfo(color_ostream & out)
     }
     else if (auto *nr = strict_virtual_cast<df::viewscreen_new_regionst>(curview))
     {
-        ai.debug(out, stl_sprintf("[SCREEN]   new_regionst: raw_load=%d doing_mods=%d doing_simple_params=%d simple_world_size=%d",
-            (int)nr->raw_load, (int)nr->doing_mods, nr->doing_simple_params, nr->simple_world_size));
+        ai.debug(out, stl_sprintf("[SCREEN]   new_regionst: raw_load=%d doing_mods=%d doing_simple_params=%d "
+            "confirming_start_save=%d",
+            (int)nr->raw_load, (int)nr->doing_mods, nr->doing_simple_params,
+            nr->confirming_start_save));
+        ai.debug(out, stl_sprintf("[SCREEN]     size=%d history=%d civs=%d sites=%d beasts=%d savagery=%d minerals=%d",
+            nr->simple_world_size, nr->simple_history, nr->simple_civ_num,
+            nr->simple_site_cap, nr->simple_beast, nr->simple_savagery, nr->simple_minerals));
     }
     else if (auto *sd = strict_virtual_cast<df::viewscreen_setupdwarfgamest>(curview))
     {
-        ai.debug(out, stl_sprintf("[SCREEN]   setupdwarfgamest: embark_confirmation=%d initial_selection=%d",
-            (int)sd->embark_confirmation, (int)sd->initial_selection));
+        ai.debug(out, stl_sprintf("[SCREEN]   setupdwarfgamest: mode=%d initial_selection=%d embark_confirmation=%d "
+            "preparing_map_timer=%d selected_u=%d",
+            sd->mode, sd->initial_selection, (int)sd->embark_confirmation,
+            sd->preparing_map_timer, sd->selected_u));
     }
     else if (auto *dm = strict_virtual_cast<df::viewscreen_dwarfmodest>(curview))
     {
@@ -221,69 +229,76 @@ void EmbarkExclusive::SelectHorizontalMenuItem(int32_t *current, int32_t target)
 
 void EmbarkExclusive::ViewTitle(color_ostream & out)
 {
-    // TODO: viewscreen_titlest fields completely restructured in Steam DF.
-    // The old sel_subpage/sel_menu_line/start_savegames/submenu_line_id fields
-    // are gone. Now uses mode/selected/savegame_header/savegame_header_world.
-    // The save selection subpages (StartSelectWorld, StartSelectMode) no longer
-    // exist as nested enums. Needs full rewrite to match new title screen UI flow.
     ExpectedScreen<df::viewscreen_titlest> view(this);
 
     ai.camera.check_record_status();
 
     if (view->mode == title_mode_type::NONE || view->mode == title_mode_type::MAIN_MENU)
     {
-        // Main menu: try Continue > Start > NewWorld
+        int32_t target = -1;
+        std::string choice_name;
+
         auto continue_game = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), main_choice_type::Continue);
-
-        if (!config.random_embark_world.empty() && continue_game != view->menu_line_id.end() && std::ifstream("data/save/" + config.random_embark_world + "/world.sav").good())
+        if (!config.random_embark_world.empty() && continue_game != view->menu_line_id.end() &&
+            std::ifstream("data/save/" + config.random_embark_world + "/world.sav").good())
         {
-            ai.debug(out, "choosing \"Continue Game\"");
-            SelectVerticalMenuItem(&view->selected, int32_t(continue_game - view->menu_line_id.begin()));
-            return;
+            target = int32_t(continue_game - view->menu_line_id.begin());
+            choice_name = "Continue";
         }
 
-        auto start_game = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), main_choice_type::Start);
-
-        if (!config.random_embark_world.empty() && start_game != view->menu_line_id.end() && std::ifstream("data/save/" + config.random_embark_world + "/world.dat").good())
+        if (target == -1)
         {
-            ai.debug(out, "choosing \"Start Game\"");
-            SelectVerticalMenuItem(&view->selected, int32_t(start_game - view->menu_line_id.begin()));
-            return;
+            auto start_game = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), main_choice_type::Start);
+            if (!config.random_embark_world.empty() && start_game != view->menu_line_id.end() &&
+                std::ifstream("data/save/" + config.random_embark_world + "/world.dat").good())
+            {
+                target = int32_t(start_game - view->menu_line_id.begin());
+                choice_name = "Start";
+            }
         }
 
-        auto new_world = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), main_choice_type::NewWorld);
-
-        if (new_world == view->menu_line_id.end())
+        if (target == -1)
         {
-            ai.debug(out, "[ERROR] ViewTitle: \"New World\" not found in menu");
+            auto new_world = std::find(view->menu_line_id.begin(), view->menu_line_id.end(), main_choice_type::NewWorld);
+            if (new_world != view->menu_line_id.end())
+            {
+                target = int32_t(new_world - view->menu_line_id.begin());
+                choice_name = "NewWorld";
+            }
+        }
+
+        if (target == -1)
+        {
+            ai.debug(out, "[ERROR] ViewTitle: no suitable menu item found");
             Delay();
             return;
         }
 
-        ai.debug(out, stl_sprintf("choosing \"New World\" (index %d, selected=%d)",
-            int32_t(new_world - view->menu_line_id.begin()), view->selected));
-        SelectVerticalMenuItem(&view->selected, int32_t(new_world - view->menu_line_id.begin()));
+        ai.debug(out, stl_sprintf("[STEAM] selecting \"%s\" (index %d)", choice_name.c_str(), target));
+        view->selected = target;
+        view->game_start_proceed = 1;
+        ClearExpectedScreen();
+        Delay();
     }
     else if (view->mode == title_mode_type::CONTINUE_INACTIVE)
     {
-        // Save/world selection - replaces old StartSelectWorld
-        if (config.random_embark_world.empty())
+        if (config.random_embark_world.empty() && view->savegame_header_world.empty())
         {
-            ai.debug(out, "leaving \"Select World\" (no save name)");
+            ai.debug(out, "[STEAM] no worlds available, going back");
             Key(interface_key::LEAVESCREEN);
             return;
         }
 
-        // TODO: navigate savegame_header_world to find the correct save
-        // Old code searched start_savegames by save_dir, but that struct is gone.
-        // For now, just select the first entry.
-        ai.debug(out, "[STUB] selecting first available world save");
-        Key(interface_key::SELECT);
+        ai.debug(out, stl_sprintf("[STEAM] selecting world (available: %zu)", view->savegame_header_world.size()));
+        view->selected = 0;
+        view->game_start_proceed = 1;
+        ClearExpectedScreen();
+        Delay();
     }
     else
     {
-        // Unknown title mode, just wait
-        ai.debug(out, stl_sprintf("[STUB] ViewTitle: unhandled title mode %d", (int)view->mode));
+        ai.debug(out, stl_sprintf("[STEAM] ViewTitle: mode=%d selected=%d game_start_proceed=%d",
+            (int)view->mode, view->selected, (int)view->game_start_proceed));
         Delay();
     }
 }
@@ -326,48 +341,32 @@ void EmbarkExclusive::ViewNewRegion(color_ostream & out)
 
     while (!isFinished() && view->raw_load)
     {
-        // wait for screen to initialize (loading raw files)
         Delay();
     }
 
     if (view->doing_mods)
     {
-        // dismiss mod selection if shown (Steam DF replaces old welcome disclaimer)
-        ai.debug(out, "leaving mod selection");
-        Key(interface_key::LEAVESCREEN);
+        ai.debug(out, "[STEAM] dismissing mod selection");
+        view->doing_mods = false;
+        Delay();
         return;
     }
 
     if (view->doing_simple_params == 1)
     {
-        ai.debug(out, "choosing \"Generate World\"");
-
         int32_t want_size = std::min(std::max(config.world_size, 0), 4);
-
-        if (view->simple_world_size != want_size)
-        {
-            while (view->simple_sel != 0)
-            {
-                Key(interface_key::STANDARDSCROLL_UP);
-            }
-
-            SelectHorizontalMenuItem(&view->simple_world_size, want_size);
-        }
-
         int32_t want_minerals = 3;
 
-        if (view->simple_minerals != want_minerals)
-        {
-            while (view->simple_sel != 6)
-            {
-                Key(interface_key::STANDARDSCROLL_DOWN);
-            }
+        ai.debug(out, stl_sprintf("[STEAM] setting world params: size=%d minerals=%d (current: size=%d minerals=%d)",
+            want_size, want_minerals, view->simple_world_size, view->simple_minerals));
 
-            SelectHorizontalMenuItem(&view->simple_minerals, want_minerals);
-        }
+        view->simple_world_size = want_size;
+        view->simple_minerals = want_minerals;
 
-        Key(interface_key::MENU_CONFIRM);
-
+        ai.debug(out, "[STEAM] triggering world generation");
+        view->confirming_start_save = 1;
+        ClearExpectedScreen();
+        Delay();
         return;
     }
 
@@ -376,8 +375,8 @@ void EmbarkExclusive::ViewNewRegion(color_ostream & out)
         ai.debug(out, "world gen finished, save name is " + world->cur_savegame.save_dir);
         config.set(out, config.random_embark_world, world->cur_savegame.save_dir);
 
+        ClearExpectedScreen();
         Key(interface_key::SELECT);
-
         return;
     }
 
@@ -428,27 +427,65 @@ void EmbarkExclusive::ViewChooseStartSite(color_ostream & out)
         int32_t want_x = std::min(std::max(config.embark_options[embark_finder_option::DimensionX], 1), 16);
         int32_t want_y = std::min(std::max(config.embark_options[embark_finder_option::DimensionY], 1), 16);
 
-        ai.debug(out, stl_sprintf("[STEAM] entering embark placement (%dx%d) at region (%d,%d) embark (%d,%d)",
-            want_x, want_y,
-            view->location.region_pos.x, view->location.region_pos.y,
-            view->location.embark_pos_min.x, view->location.embark_pos_min.y));
+        int16_t region_x = view->location.region_pos.x;
+        int16_t region_y = view->location.region_pos.y;
+        int16_t center_ex = region_x * 16 + 8 - want_x / 2;
+        int16_t center_ey = region_y * 16 + 8 - want_y / 2;
+
+        ai.debug(out, stl_sprintf("[STEAM] entering embark placement (%dx%d) at region (%d,%d), "
+            "embark tiles (%d,%d)-(%d,%d)",
+            want_x, want_y, region_x, region_y,
+            center_ex, center_ey,
+            center_ex + want_x - 1, center_ey + want_y - 1));
 
         view->choosing_embark = true;
         view->embark_dx = want_x;
         view->embark_dy = want_y;
-        view->location.embark_pos_max.x = view->location.embark_pos_min.x + want_x - 1;
-        view->location.embark_pos_max.y = view->location.embark_pos_min.y + want_y - 1;
+        embark_confirm_attempt = 0;
+        view->location.embark_pos_min.x = center_ex;
+        view->location.embark_pos_min.y = center_ey;
+        view->location.embark_pos_max.x = center_ex + want_x - 1;
+        view->location.embark_pos_max.y = center_ey + want_y - 1;
 
         Delay();
         return;
     }
 
-    ai.debug(out, stl_sprintf("[STEAM] embark placement active, pos=(%d,%d)-(%d,%d), confirming",
-        view->location.embark_pos_min.x, view->location.embark_pos_min.y,
-        view->location.embark_pos_max.x, view->location.embark_pos_max.y));
+    // choosing_embark is active — try to confirm the embark
+    embark_confirm_attempt++;
 
-    ClearExpectedScreen();
-    Key(interface_key::SELECT);
+    if (embark_confirm_attempt <= 3)
+    {
+        ai.debug(out, stl_sprintf("[STEAM] embark confirm attempt %d: SELECT (pos=(%d,%d)-(%d,%d) warn=%d)",
+            embark_confirm_attempt,
+            view->location.embark_pos_min.x, view->location.embark_pos_min.y,
+            view->location.embark_pos_max.x, view->location.embark_pos_max.y,
+            (int)view->warn_flags.whole));
+        ClearExpectedScreen();
+        Key(interface_key::SELECT);
+    }
+    else if (embark_confirm_attempt <= 6)
+    {
+        ai.debug(out, stl_sprintf("[STEAM] embark confirm attempt %d: MENU_CONFIRM", embark_confirm_attempt));
+        ClearExpectedScreen();
+        Key(interface_key::MENU_CONFIRM);
+    }
+    else if (embark_confirm_attempt <= 9)
+    {
+        ai.debug(out, stl_sprintf("[STEAM] embark confirm attempt %d: SEC_SELECT", embark_confirm_attempt));
+        ClearExpectedScreen();
+        Key(interface_key::SEC_SELECT);
+    }
+    else
+    {
+        ai.debug(out, stl_sprintf("[STEAM] embark confirm failed after %d attempts. "
+            "page=%d choosing_embark=%d warn_flags=%d. "
+            "Try clicking \"Embark!\" manually — keyboard confirmation may not work in Steam DF.",
+            embark_confirm_attempt, (int)view->page, (int)view->choosing_embark,
+            (int)view->warn_flags.whole));
+        Delay(10 * 100);
+        embark_confirm_attempt = 0;
+    }
 }
 
 void EmbarkExclusive::DisplayEmbarkSite(color_ostream & out)
@@ -468,32 +505,38 @@ void EmbarkExclusive::DisplayEmbarkSite(color_ostream & out)
 
 void EmbarkExclusive::ViewSetupDwarfGame(color_ostream & out)
 {
-    // TODO: viewscreen_setupdwarfgamest completely restructured in Steam DF.
-    // Old fields show_play_now/choices/choice_types/choice/animal_cursor/animals/
-    // items/item_cursor are all gone. Now uses mode/selected_u/selected_i/
-    // selected_pet/s_item/embark_profile/embark_confirmation/initial_selection.
-    // Needs full rewrite to match new embark preparation UI.
     ExpectedScreen<df::viewscreen_setupdwarfgamest> view(this);
+
+    if (view->preparing_map_timer > 0)
+    {
+        ai.debug(out, stl_sprintf("[STEAM] preparing map (timer=%d)", view->preparing_map_timer));
+        Delay();
+        return;
+    }
 
     if (view->embark_confirmation)
     {
-        Key(interface_key::SELECT);
+        ai.debug(out, "[STEAM] confirming embark");
+        view->embark_confirmation = false;
+        ClearExpectedScreen();
+        Delay();
         return;
     }
 
     if (view->initial_selection)
     {
-        // initial_selection shows play now / prepare / profile choices
-        // For now, just pick the first option ("Play Now" equivalent)
-        ai.debug(out, "[STUB] ViewSetupDwarfGame: choosing first initial selection option");
-        Key(interface_key::SELECT);
+        ai.debug(out, stl_sprintf("[STEAM] initial selection screen (mode=%d), choosing Play Now",
+            view->mode));
+        view->initial_selection = 0;
+        ClearExpectedScreen();
+        Delay();
         return;
     }
 
-    // If we're past the initial selection, just embark with defaults
-    // TODO: interface_key::SETUP_EMBARK removed in Steam DF
-    ai.debug(out, "[STUB] ViewSetupDwarfGame: embarking with default loadout");
-    Key(interface_key::SELECT);
+    ai.debug(out, stl_sprintf("[STEAM] ViewSetupDwarfGame: mode=%d selected_u=%d, embarking with defaults",
+        view->mode, view->selected_u));
+    view->embark_confirmation = true;
+    Delay();
 }
 
 void EmbarkExclusive::ViewTextViewer(color_ostream &)
