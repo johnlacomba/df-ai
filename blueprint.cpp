@@ -74,7 +74,7 @@ void load_objects(color_ostream & out, const std::string & base, const std::stri
                     }
                     else
                     {
-                        out.printerr("%s\n", error.c_str());
+                        out.printerr("{}\n", error);
                     }
                 }
             }
@@ -105,7 +105,7 @@ blueprints_t::blueprints_t(color_ostream & out) : is_valid(true)
         out << "df-ai: CWD=" << Filesystem::getcwd().string()
             << " hackPath=" << Core::getInstance().getHackPath().string() << std::endl;
         out.printerr("The df-ai-blueprints folder is missing!\n");
-        out.printerr("Looked in: %s/df-ai-blueprints/ and next to hack/ directory.\n", Filesystem::getcwd().string().c_str());
+        out.printerr("Looked in: {}/df-ai-blueprints/ and next to hack/ directory.\n", Filesystem::getcwd().string());
         return;
     }
     out << "df-ai: using blueprint base: " << base << std::endl;

@@ -270,18 +270,19 @@ static bool df_ai_find_enum_item(T *var, const std::string & name, T count)
 #define END_DECLARE_ENUM(prefix, name) \
             _ ## prefix ## _ ## name ## _count \
         }; \
+        std::ostream & operator <<(std::ostream & stream, name _val ); \
     } \
-    std::ostream & operator <<(std::ostream & stream, prefix ## _ ## name :: name name ); \
     namespace DFHack \
     { \
         template<> inline bool find_enum_item< prefix ## _ ## name :: name >( prefix ## _ ## name :: name *var, const std::string & name) { return df_ai_find_enum_item(var, name, prefix ## _ ## name :: _ ## prefix ## _ ## name ## _count); } \
     }
 
 #define BEGIN_IMPLEMENT_ENUM(prefix, name) \
-    std::ostream & operator <<(std::ostream & stream, prefix ## _ ## name :: name name ) \
+    namespace prefix ## _ ## name { \
+    std::ostream & operator <<(std::ostream & stream, name _val ) \
     { \
-        using _enum = prefix ## _ ## name :: name ; \
-        switch ( name ) \
+        using _enum = name ; \
+        switch ( _val ) \
         {
 #define IMPLEMENT_ENUM_ITEM(item) \
             case _enum:: item : \
@@ -291,4 +292,5 @@ static bool df_ai_find_enum_item(T *var, const std::string & name, T count)
                 return stream << "???"; \
         } \
         return stream << "???"; \
+    } \
     }
