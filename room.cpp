@@ -270,7 +270,13 @@ bool room::is_dug(std::ostream & reason, df::tiletype_shape_basic want) const
             continue;
         }
 
-        auto tt = *Maps::getTileType(ft);
+        df::tiletype *tt_ptr = Maps::getTileType(ft);
+        if (!tt_ptr)
+        {
+            reason << "tile not loaded at (" << f->pos.x << ", " << f->pos.y << ", " << f->pos.z << ")";
+            return false;
+        }
+        auto tt = *tt_ptr;
         auto sb = ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, tt));
         switch (sb)
         {
@@ -304,7 +310,13 @@ bool room::is_dug(std::ostream & reason, df::tiletype_shape_basic want) const
                     continue;
                 }
 
-                auto tt = *Maps::getTileType(x, y, z);
+                df::tiletype *tt_ptr = Maps::getTileType(x, y, z);
+                if (!tt_ptr)
+                {
+                    reason << "tile not loaded at (" << (x - min.x) << ", " << (y - min.y) << ", " << (z - min.z) << ")";
+                    return false;
+                }
+                auto tt = *tt_ptr;
                 df::tiletype_shape s = ENUM_ATTR(tiletype, shape, tt);
                 if (s == tiletype_shape::WALL)
                 {
@@ -334,7 +346,13 @@ bool room::constructions_done(std::ostream & reason) const
 
         df::coord ft = min + f->pos;
 
-        auto tt = *Maps::getTileType(ft);
+        df::tiletype *tt_ptr = Maps::getTileType(ft);
+        if (!tt_ptr)
+        {
+            reason << "tile not loaded at (" << f->pos.x << ", " << f->pos.y << ", " << f->pos.z << ")";
+            return false;
+        }
+        auto tt = *tt_ptr;
         auto ts = ENUM_ATTR(tiletype, shape, tt);
 
         df::tiletype_shape want;

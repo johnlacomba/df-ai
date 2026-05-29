@@ -1255,7 +1255,12 @@ void Plan::fixup_open(color_ostream & out, room *r)
             for (int16_t z = r->min.z; z <= r->max.z; z++)
             {
                 df::coord t(x, y, z);
-                if (ENUM_ATTR(tiletype, shape, *Maps::getTileType(t)) == tiletype_shape::WALL)
+                df::tiletype *tt = Maps::getTileType(t);
+                if (!tt)
+                {
+                    continue;
+                }
+                if (ENUM_ATTR(tiletype, shape, *tt) == tiletype_shape::WALL)
                 {
                     continue;
                 }

@@ -45,13 +45,20 @@ static bool find_item(df::items_other_id idx, df::item *&item, bool fire_safe = 
     for (auto it = world->items.other[idx].begin(); it != world->items.other[idx].end(); it++)
     {
         df::item *i = *it;
-        if (Stocks::is_item_free(i) &&
-            (!fire_safe || i->isTemperatureSafe(1)) &&
-            (!non_economic || virtual_cast<df::item_boulderst>(i)->mat_type != 0 || !plotinfo->economic_stone[virtual_cast<df::item_boulderst>(i)->mat_index]))
+        if (!Stocks::is_item_free(i))
+            continue;
+        if (fire_safe && !i->isTemperatureSafe(1))
+            continue;
+        if (non_economic)
         {
-            item = i;
-            return true;
+            auto boulder = virtual_cast<df::item_boulderst>(i);
+            if (!boulder)
+                continue;
+            if (boulder->mat_type == 0 && plotinfo->economic_stone[boulder->mat_index])
+                continue;
         }
+        item = i;
+        return true;
     }
     return false;
 }
@@ -62,15 +69,22 @@ static bool find_items(df::items_other_id idx, std::vector<df::item *> & items, 
     for (auto it = world->items.other[idx].begin(); it != world->items.other[idx].end(); it++)
     {
         df::item *i = *it;
-        if (Stocks::is_item_free(i) &&
-            (!fire_safe || i->isTemperatureSafe(1)) &&
-            (!non_economic || virtual_cast<df::item_boulderst>(i)->mat_type != 0 || !plotinfo->economic_stone[virtual_cast<df::item_boulderst>(i)->mat_index]))
+        if (!Stocks::is_item_free(i))
+            continue;
+        if (fire_safe && !i->isTemperatureSafe(1))
+            continue;
+        if (non_economic)
         {
-            items.push_back(i);
-            j++;
-            if (j == n)
-                return true;
+            auto boulder = virtual_cast<df::item_boulderst>(i);
+            if (!boulder)
+                continue;
+            if (boulder->mat_type == 0 && plotinfo->economic_stone[boulder->mat_index])
+                continue;
         }
+        items.push_back(i);
+        j++;
+        if (j == n)
+            return true;
     }
     return false;
 }
@@ -270,7 +284,13 @@ bool Plan::try_furnish(color_ostream & out, room *r, furniture *f, std::ostream 
     df::coord tgtile = r->min + f->pos;
     DFAI_ASSERT_VALID_TILE(tgtile, " (furniture position for " << AI::describe_furniture(f) << " in room " << AI::describe_room(r) << ")");
 
-    df::tiletype tt = *Maps::getTileType(tgtile);
+    df::tiletype *tt_ptr = Maps::getTileType(tgtile);
+    if (!tt_ptr)
+    {
+        reason << "tile not loaded";
+        return false;
+    }
+    df::tiletype tt = *tt_ptr;
     if (f->construction != construction_type::NONE)
     {
         if (try_furnish_construction(out, f->construction, tgtile, reason))
@@ -348,8 +368,9 @@ bool Plan::try_furnish(color_ostream & out, room *r, furniture *f, std::ostream 
     {
         auto check_wall = [&](int16_t dx, int16_t dy) -> bool
         {
-            auto tt = *Maps::getTileType(tgtile.x + dx, tgtile.y + dy, tgtile.z);
-            return ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, tt)) == tiletype_shape_basic::Wall;
+            df::tiletype *ttp = Maps::getTileType(tgtile.x + dx, tgtile.y + dy, tgtile.z);
+            if (!ttp) return false;
+            return ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *ttp)) == tiletype_shape_basic::Wall;
         };
         if (!check_wall(-1, 0) && !check_wall(1, 0) && !check_wall(0, -1) && !check_wall(0, 1))
         {
@@ -628,7 +649,13 @@ bool Plan::try_furnish_archerytarget(color_ostream &, room *r, furniture *f, df:
 
 bool Plan::try_furnish_construction(color_ostream &, df::construction_type ctype, df::coord t, std::ostream & reason)
 {
-    df::tiletype tt = *Maps::getTileType(t);
+    df::tiletype *tt_ptr = Maps::getTileType(t);
+    if (!tt_ptr)
+    {
+        reason << "tile not loaded";
+        return false;
+    }
+    df::tiletype tt = *tt_ptr;
     if (ENUM_ATTR(tiletype, material, tt) == tiletype_material::TREE)
     {
         df::plant *tree = nullptr;
@@ -858,7 +885,13 @@ bool Plan::try_furnish_construction(color_ostream &, df::construction_type ctype
 bool Plan::try_construct_windmill(color_ostream &, room *r, std::ostream & reason)
 {
     df::coord t = r->pos();
-    auto sb = ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *Maps::getTileType(t)));
+    df::tiletype *wtt = Maps::getTileType(t);
+    if (!wtt)
+    {
+        reason << "tile not loaded";
+        return false;
+    }
+    auto sb = ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *wtt));
     if (sb != tiletype_shape_basic::Open)
     {
         reason << "need channel (tile is currently " << enum_item_key(sb) << ")";
@@ -947,9 +980,11 @@ bool Plan::try_construct_tradedepot(color_ostream &, room *r, std::ostream & rea
 
 bool Plan::try_construct_workshop(color_ostream & out, room *r, std::ostream & reason)
 {
+    ai.debug(out, "[try_construct_workshop] start: " + AI::describe_room(r));
     if (!r->constructions_done(reason))
         return false;
 
+    ai.debug(out, "[try_construct_workshop] constructions done, type=" + stl_sprintf("%d", (int)r->workshop_type));
     if (r->workshop_type == workshop_type::Dyers)
     {
         df::item *barrel = nullptr, *bucket = nullptr;
@@ -1478,13 +1513,18 @@ bool Plan::can_place_farm(color_ostream & out, room *r, bool cheat, std::ostream
         {
             for (int16_t z = r->min.z; z <= r->max.z; z++)
             {
-                if (farm_allowed_materials.set.count(ENUM_ATTR(tiletype, material, *Maps::getTileType(x, y, z))))
+                df::tiletype *ftt = Maps::getTileType(x, y, z);
+                if (!ftt)
+                    continue;
+                if (farm_allowed_materials.set.count(ENUM_ATTR(tiletype, material, *ftt)))
                 {
                     have++;
                     continue;
                 }
 
                 df::map_block *block = Maps::getTileBlock(x, y, z);
+                if (!block)
+                    continue;
                 auto e = std::find_if(block->block_events.begin(), block->block_events.end(), [](df::block_square_event *e) -> bool
                 {
                     df::block_square_event_material_spatterst *spatter = virtual_cast<df::block_square_event_material_spatterst>(e);
@@ -1687,7 +1727,8 @@ bool Plan::try_endfurnish(color_ostream & out, room *r, furniture *f, std::ostre
     {
         for (int16_t ry = r->min.y - 1; ry <= r->max.y + 1; ry++)
         {
-            if (ENUM_ATTR(tiletype, shape, *Maps::getTileType(rx, ry, r->min.z)) == tiletype_shape::WALL)
+            df::tiletype *ext_tt = Maps::getTileType(rx, ry, r->min.z);
+            if (!ext_tt || ENUM_ATTR(tiletype, shape, *ext_tt) == tiletype_shape::WALL)
             {
                 set_ext(rx, ry, building_extents_type::Wall);
             }

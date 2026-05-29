@@ -44,6 +44,21 @@ void Plan::update(color_ostream & out)
     for (auto it : task_iters)
     {
         task *t = *it;
+        if (!t)
+        {
+            ai.debug(out, "[plan_update] ERROR: null task pointer in tasks_generic");
+            tasks_generic.erase(it);
+            continue;
+        }
+        if (t->r)
+        {
+            ai.debug(out, stl_sprintf("[plan_update] task type=%d room=%s min=(%d,%d,%d)",
+                (int)t->type, AI::describe_room(t->r).c_str(), t->r->min.x, t->r->min.y, t->r->min.z));
+        }
+        else
+        {
+            ai.debug(out, stl_sprintf("[plan_update] task type=%d room=NULL", (int)t->type));
+        }
         std::ostringstream reason;
         bool del = false;
 
