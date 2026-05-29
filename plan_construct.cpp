@@ -1236,21 +1236,30 @@ public:
 protected:
     void Run(color_ostream & out)
     {
+        ai.debug(out, "[ConstructStockpile] start: " + AI::describe_room(r) +
+            stl_sprintf(" min=(%d,%d,%d) size=(%d,%d,%d)", r->min.x, r->min.y, r->min.z, r->size().x, r->size().y, r->size().z));
+
         df::building *bld_raw = Buildings::allocInstance(r->min, building_type::Stockpile);
         if (!bld_raw)
         {
-            ai.debug(out, "Failed to allocate stockpile: " + AI::describe_room(r));
+            ai.debug(out, "[ConstructStockpile] Failed to allocate: " + AI::describe_room(r));
             return;
         }
+        ai.debug(out, "[ConstructStockpile] allocInstance OK");
+
         Buildings::setSize(bld_raw, r->size());
+        ai.debug(out, "[ConstructStockpile] setSize OK");
+
         Buildings::constructWithItems(bld_raw, std::vector<df::item *>());
+        ai.debug(out, "[ConstructStockpile] constructWithItems OK");
 
         df::building_stockpilest *bld = virtual_cast<df::building_stockpilest>(bld_raw);
         if (!bld)
         {
-            ai.debug(out, "Failed to create stockpile: " + AI::describe_room(r));
+            ai.debug(out, "[ConstructStockpile] Failed to cast: " + AI::describe_room(r));
             return;
         }
+        ai.debug(out, "[ConstructStockpile] cast OK, setting flags");
 
         bld->settings.flags.whole = 0;
         switch (r->stockpile_type)
@@ -1278,9 +1287,11 @@ protected:
             break;
         default: break;
         }
+        ai.debug(out, "[ConstructStockpile] flags set, assigning bld_id");
 
         r->bld_id = bld->id;
         ai.plan.furnish_room(out, r);
+        ai.debug(out, "[ConstructStockpile] furnish_room done, linking");
 
         if (r->workshop && r->stockpile_type == stockpile_type::stone)
         {
@@ -1331,6 +1342,7 @@ protected:
             }
             return false;
         });
+        ai.debug(out, "[ConstructStockpile] complete: " + AI::describe_room(r));
     }
 };
 
