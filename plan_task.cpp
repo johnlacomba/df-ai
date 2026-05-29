@@ -53,6 +53,8 @@ void Plan::update(color_ostream & out_unused)
                 }
                 else
                 {
+                    ai.debug(out_unused, "[plan_update] not dug: " + AI::describe_room(t->r) + " reason: " + reason.str() +
+                        stl_sprintf(" min=(%d,%d,%d) max=(%d,%d,%d)", t->r->min.x, t->r->min.y, t->r->min.z, t->r->max.x, t->r->max.y, t->r->max.z));
                     t->r->dig();
                 }
             }
