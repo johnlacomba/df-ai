@@ -607,7 +607,7 @@ bool plan_priority_t::act(AI & ai, color_ostream & out, std::ostream & reason)
         return false;
     }
 
-    ai.debug(out, "[priority] '" + name + "' count check passed, action=" + enum_item_key(action));
+    { std::ostringstream dbg; dbg << "[priority] '" << name << "' count check passed, action=" << action; ai.debug(out, dbg.str()); }
 
     switch (action)
     {

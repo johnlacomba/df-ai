@@ -58,7 +58,7 @@ void Plan::update(color_ostream &)
             std::ostringstream reason;
             task & t = **bg_idx_generic;
 
-            ai.debug(out, stl_sprintf("[task] processing %s %s", enum_item_key(t.type).c_str(), t.r ? AI::describe_room(t.r).c_str() : "(no room)"));
+            { std::ostringstream dbg; dbg << "[task] processing " << t.type << " " << (t.r ? AI::describe_room(t.r) : "(no room)"); ai.debug(out, dbg.str()); }
 
             auto any_immediate = [this]() -> bool
             {
