@@ -18,13 +18,21 @@ REQUIRE_GLOBAL(cur_year_tick);
 
 static bool want_reupdate = false;
 
-void Plan::update(color_ostream &)
+void Plan::update(color_ostream & out_unused)
 {
     last_update_year = *cur_year;
     last_update_tick = *cur_year_tick;
+    ai.debug(out_unused, stl_sprintf("[plan_update] tasks_generic=%zu tasks_furniture=%zu priorities=%zu rooms=%zu", tasks_generic.size(), tasks_furniture.size(), priorities.size(), rooms_and_corridors.size()));
+
     if (bg_idx_generic == tasks_generic.end())
     {
-        bg_idx_generic = tasks_generic.begin();
+        // Safety-net: directly run priorities and want_dig→digroom transitions.
+        // This fires every Plan::update cycle (240 ticks) to guarantee progress
+        // even if the per-tick bg callback fails to process tasks.
+        {
+            std::ostringstream idle_reason;
+            checkidle(out_unused, idle_reason);
+        }
 
         nrdig.clear();
         for (auto it = tasks_generic.begin(); it != tasks_generic.end(); it++)
@@ -38,6 +46,43 @@ void Plan::update(color_ostream &)
             if (t->r->type != room_type::corridor && size.x * size.y * size.z >= 10)
                 nrdig[t->r->queue]++;
         }
+
+        {
+            bool has_immediate = false;
+            for (auto t : tasks_generic)
+            {
+                if (t->type == task_type::dig_room_immediate)
+                {
+                    has_immediate = true;
+                    break;
+                }
+            }
+
+            if (!has_immediate)
+            {
+                size_t wantdig_max = 2;
+                if (ai.stocks.count_total.count(stock_item::pick))
+                    wantdig_max = std::max(ai.stocks.count_total.at(stock_item::pick), (int32_t)2);
+
+                for (auto it = tasks_generic.begin(); it != tasks_generic.end(); )
+                {
+                    task *t = *it;
+                    if (t->type == task_type::want_dig && (t->r->is_dug() || nrdig[t->r->queue] < wantdig_max))
+                    {
+                        ai.debug(out_unused, "[plan_update] direct digroom: " + AI::describe_room(t->r));
+                        digroom(out_unused, t->r);
+                        delete t;
+                        it = tasks_generic.erase(it);
+                    }
+                    else
+                    {
+                        it++;
+                    }
+                }
+            }
+        }
+
+        bg_idx_generic = tasks_generic.begin();
 
         want_reupdate = false;
         events.onupdate_register_once("df-ai plan bg generic", [this](color_ostream & out) -> bool

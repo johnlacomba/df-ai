@@ -161,6 +161,10 @@ void room::dig(bool plan, bool channel)
                         {
                             Maps::getTileOccupancy(t)->bits.dig_marked = 1;
                         }
+                        else
+                        {
+                            Maps::getTileOccupancy(t)->bits.dig_marked = 0;
+                        }
                     }
                 }
             }
@@ -185,6 +189,7 @@ void room::dig(bool plan, bool channel)
                 if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *tt)) == tiletype_shape_basic::Wall || (f->dig == tile_dig_designation::Channel && ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *tt)) != tiletype_shape_basic::Open))
                 {
                     AI::dig_tile(t, f->dig);
+                    Maps::getTileOccupancy(t)->bits.dig_marked = 0;
                 }
             }
             else
@@ -193,6 +198,7 @@ void room::dig(bool plan, bool channel)
                 if ((dm == tile_dig_designation::DownStair && ENUM_ATTR(tiletype, shape, *tt) != tiletype_shape::STAIR_DOWN) || ENUM_ATTR(tiletype, shape, *tt) == tiletype_shape::WALL)
                 {
                     AI::dig_tile(t, dm);
+                    Maps::getTileOccupancy(t)->bits.dig_marked = 0;
                 }
             }
         }
