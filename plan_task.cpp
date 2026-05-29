@@ -31,6 +31,8 @@ void Plan::update(color_ostream & out)
         checkidle(out, idle_reason);
     }
 
+    ai.debug(out, "[plan_update] phase 1 done");
+
     // Phase 2: Process all generic tasks.
     // Snapshot iterators so tasks added during this cycle (by construct_room
     // etc.) are deferred to the next plan_update.
@@ -147,6 +149,8 @@ void Plan::update(color_ostream & out)
         }
     }
 
+    ai.debug(out, "[plan_update] phase 2 done");
+
     // Phase 3: Promote want_dig tasks to active dig.
     {
         bool has_immediate = false;
@@ -182,6 +186,8 @@ void Plan::update(color_ostream & out)
             }
         }
     }
+
+    ai.debug(out, "[plan_update] phase 3 done");
 
     // Keep iterators at end so they don't go stale.
     bg_idx_generic = tasks_generic.end();
@@ -220,6 +226,8 @@ void Plan::update(color_ostream & out)
             t->last_status = reason.str();
         }
     }
+
+    ai.debug(out, "[plan_update] phase 4 done");
 
     bg_idx_furniture = tasks_furniture.end();
 }
