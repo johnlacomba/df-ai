@@ -312,6 +312,7 @@ bool Plan::checkidle(color_ostream & out, std::ostream & reason)
         return false;
     }
 
+    ai.debug(out, "[checkidle] no priorities defined!");
     reason << "no priority list!";
     return false;
 }
@@ -429,8 +430,13 @@ bool Plan::wantdig(color_ostream & out, room *r, int32_t queue)
 bool Plan::digroom(color_ostream & out, room *r, bool immediate)
 {
     if (r->status != room_status::plan)
+    {
+        std::ostringstream dbg;
+        dbg << "[digroom] skip " << AI::describe_room(r) << " (status=" << r->status << ")";
+        ai.debug(out, dbg.str());
         return false;
-    ai.debug(out, "digroom " + AI::describe_room(r));
+    }
+    ai.debug(out, "[digroom] digging " + AI::describe_room(r) + " (immediate=" + (immediate ? "true" : "false") + " accesspath=" + std::to_string(r->accesspath.size()) + " layout=" + std::to_string(r->layout.size()) + ")");
     r->queue_dig = false;
     r->status = room_status::dig;
     fixup_open(out, r);

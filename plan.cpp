@@ -75,6 +75,7 @@ Plan::Plan(AI & ai) :
     last_update_tick(-1)
 {
     add_task(task_type::check_rooms);
+    add_task(task_type::check_idle);
 
     important_workshops.push_back(workshop_type::Butchers);
     important_workshops.push_back(workshop_type::Quern);
@@ -169,6 +170,9 @@ uint16_t Maps::getTileWalkable(df::coord t)
     return 0;
 }
 
+static size_t dig_tile_count = 0;
+static size_t dig_tile_skip_job = 0;
+
 void AI::dig_tile(df::coord t, df::tile_dig_designation dig)
 {
     DFAI_ASSERT_VALID_TILE(t, " (designation: " << enum_item_key(dig) << ")");
@@ -185,8 +189,7 @@ void AI::dig_tile(df::coord t, df::tile_dig_designation dig)
         {
             if ((ENUM_ATTR(job_type, type, job->job_type) == job_type_class::Digging || ENUM_ATTR(job_type, type, job->job_type) == job_type_class::Gathering) && job->pos == t)
             {
-                // someone already enroute to dig here, avoid 'Inappropriate
-                // dig square' spam
+                dig_tile_skip_job++;
                 return;
             }
         }
@@ -199,6 +202,21 @@ void AI::dig_tile(df::coord t, df::tile_dig_designation dig)
         auto block = Maps::getTileBlock(t);
         block->flags.bits.designated = true;
         block->dsgn_check_cooldown = 0;
+        dig_tile_count++;
+    }
+}
+
+void AI::log_dig_tile_stats(color_ostream & out)
+{
+    if (dig_tile_count > 0 || dig_tile_skip_job > 0)
+    {
+        extern std::unique_ptr<AI> dwarfAI;
+        if (dwarfAI)
+        {
+            dwarfAI->debug(out, stl_sprintf("[dig_tile] designated=%zu skipped_job=%zu", dig_tile_count, dig_tile_skip_job));
+        }
+        dig_tile_count = 0;
+        dig_tile_skip_job = 0;
     }
 }
 

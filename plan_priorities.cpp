@@ -788,12 +788,16 @@ bool plan_priority_t::act(AI & ai, color_ostream & out, std::ostream & reason)
 
 bool plan_priority_t::do_dig(AI & ai, color_ostream & out, room *r)
 {
-    return ai.plan.wantdig(out, r, r->outdoor ? 1 : 0);
+    bool result = ai.plan.wantdig(out, r, r->outdoor ? 1 : 0);
+    AI::log_dig_tile_stats(out);
+    return result;
 }
 
 bool plan_priority_t::do_dig_immediate(AI & ai, color_ostream & out, room *r)
 {
-    return ai.plan.digroom(out, r, true);
+    bool result = ai.plan.digroom(out, r, true);
+    AI::log_dig_tile_stats(out);
+    return result;
 }
 
 bool plan_priority_t::do_unignore_furniture(AI & ai, color_ostream & out, room *r)

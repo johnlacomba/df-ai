@@ -124,6 +124,7 @@ public:
     static std::string describe_furniture(furniture *f, bool html = false);
 
     static void dig_tile(df::coord t, df::tile_dig_designation dig = tile_dig_designation::Default);
+    static void log_dig_tile_stats(color_ostream & out);
 
     df::coord fort_entrance_pos();
     room *find_room(room_type::type type);
