@@ -34,6 +34,31 @@ void Plan::update(color_ostream & out_unused)
             checkidle(out_unused, idle_reason);
         }
 
+        // Check dig_room/dig_room_immediate tasks for completion (room fully mined).
+        for (auto it = tasks_generic.begin(); it != tasks_generic.end(); )
+        {
+            task *t = *it;
+            if (t->type == task_type::dig_room || t->type == task_type::dig_room_immediate)
+            {
+                fixup_open(out_unused, t->r);
+                std::ostringstream reason;
+                if (t->r->is_dug(reason))
+                {
+                    ai.debug(out_unused, "[plan_update] room dug: " + AI::describe_room(t->r));
+                    t->r->status = room_status::dug;
+                    construct_room(out_unused, t->r);
+                    delete t;
+                    it = tasks_generic.erase(it);
+                    continue;
+                }
+                else
+                {
+                    t->r->dig();
+                }
+            }
+            ++it;
+        }
+
         nrdig.clear();
         for (auto it = tasks_generic.begin(); it != tasks_generic.end(); it++)
         {
