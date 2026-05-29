@@ -58,6 +58,8 @@ void Plan::update(color_ostream &)
             std::ostringstream reason;
             task & t = **bg_idx_generic;
 
+            ai.debug(out, stl_sprintf("[task] processing %s %s", enum_item_key(t.type).c_str(), t.r ? AI::describe_room(t.r).c_str() : "(no room)"));
+
             auto any_immediate = [this]() -> bool
             {
                 for (auto t : tasks_generic)
@@ -78,15 +80,18 @@ void Plan::update(color_ostream &)
                 size_t wantdig_max = ai.stocks.count_total.count(stock_item::pick) ? std::max(ai.stocks.count_total.at(stock_item::pick), 2) : 2;
                 if (any_immediate())
                 {
+                    ai.debug(out, "[want_dig] blocked by immediate task");
                     reason << "waiting for more important room to be dug";
                 }
                 else if (t.r->is_dug() || nrdig[t.r->queue] < wantdig_max)
                 {
+                    ai.debug(out, "[want_dig] transitioning to digroom: " + AI::describe_room(t.r));
                     digroom(out, t.r);
                     del = true;
                 }
                 else
                 {
+                    ai.debug(out, stl_sprintf("[want_dig] queue full: queue=%d nrdig=%zu max=%zu", t.r->queue, nrdig[t.r->queue], wantdig_max));
                     reason << "dig queue " << t.r->queue << " has " << nrdig[t.r->queue] << " of " << wantdig_max << " slots already filled";
                 }
                 break;
@@ -259,10 +264,13 @@ bool Plan::checkidle(color_ostream & out, std::ostream & reason)
     {
         if ((t->type == task_type::want_dig || t->type == task_type::dig_room_immediate) && t->r->type != room_type::corridor && t->r->queue == 0)
         {
+            ai.debug(out, "[checkidle] blocked by queued room (queue=0): " + AI::describe_room(t->r));
             reason << "already have queued room: " << AI::describe_room(t->r);
             return false;
         }
     }
+
+    ai.debug(out, stl_sprintf("[checkidle] priorities: %zu, rooms: %zu", priorities.size(), rooms_and_corridors.size()));
 
     if (!priorities.empty())
     {

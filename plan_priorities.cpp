@@ -603,8 +603,11 @@ bool plan_priority_t::act(AI & ai, color_ostream & out, std::ostream & reason)
 
     if (!check_count())
     {
+        ai.debug(out, "[priority] '" + name + "' count check failed");
         return false;
     }
+
+    ai.debug(out, "[priority] '" + name + "' count check passed, action=" + enum_item_key(action));
 
     switch (action)
     {
@@ -612,10 +615,13 @@ bool plan_priority_t::act(AI & ai, color_ostream & out, std::ostream & reason)
         case plan_priority_action::dig_immediate:
         case plan_priority_action::unignore_furniture:
         case plan_priority_action::finish:
+        {
+            size_t skip_status = 0, skip_filter = 0, matched = 0;
             for (room *r : ai.plan.rooms_and_corridors)
             {
                 if ((action == plan_priority_action::dig || action == plan_priority_action::dig_immediate) && r->status >= room_status::dug)
                 {
+                    skip_status++;
                     continue;
                 }
                 if (action == plan_priority_action::unignore_furniture)
@@ -675,9 +681,11 @@ bool plan_priority_t::act(AI & ai, color_ostream & out, std::ostream & reason)
                 }
                 if (!any_match)
                 {
+                    skip_filter++;
                     continue;
                 }
 
+                matched++;
                 working = true;
 
                 switch (action)
@@ -733,6 +741,11 @@ bool plan_priority_t::act(AI & ai, color_ostream & out, std::ostream & reason)
                     case plan_priority_action::_plan_priority_action_count:
                         break;
                 }
+            }
+            if (!working)
+            {
+                ai.debug(out, "[priority] '" + name + "' no rooms matched (total=" + std::to_string(ai.plan.rooms_and_corridors.size()) + " skip_status=" + std::to_string(skip_status) + " skip_filter=" + std::to_string(skip_filter) + " matched=" + std::to_string(matched) + ")");
+            }
             }
             break;
         case plan_priority_action::start_ore_search:
