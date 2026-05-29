@@ -16,291 +16,204 @@
 REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(cur_year_tick);
 
-static bool want_reupdate = false;
-
-void Plan::update(color_ostream & out_unused)
+void Plan::update(color_ostream & out)
 {
     last_update_year = *cur_year;
     last_update_tick = *cur_year_tick;
-    ai.debug(out_unused, stl_sprintf("[plan_update] tasks_generic=%zu tasks_furniture=%zu priorities=%zu rooms=%zu", tasks_generic.size(), tasks_furniture.size(), priorities.size(), rooms_and_corridors.size()));
+    ai.debug(out, stl_sprintf("[plan_update] tasks_generic=%zu tasks_furniture=%zu priorities=%zu rooms=%zu", tasks_generic.size(), tasks_furniture.size(), priorities.size(), rooms_and_corridors.size()));
 
-    if (bg_idx_generic == tasks_generic.end())
+    // Steam DF: bg per-tick callbacks never fire, so process everything
+    // inline every plan_update cycle (240 ticks).
+
+    // Phase 1: Run priorities / checkidle to create new tasks.
     {
-        // Safety-net: directly run priorities and want_dig→digroom transitions.
-        // This fires every Plan::update cycle (240 ticks) to guarantee progress
-        // even if the per-tick bg callback fails to process tasks.
-        {
-            std::ostringstream idle_reason;
-            checkidle(out_unused, idle_reason);
-        }
+        std::ostringstream idle_reason;
+        checkidle(out, idle_reason);
+    }
 
-        // Check dig_room/dig_room_immediate tasks for completion (room fully mined).
-        for (auto it = tasks_generic.begin(); it != tasks_generic.end(); )
+    // Phase 2: Process all generic tasks.
+    nrdig.clear();
+    for (auto it = tasks_generic.begin(); it != tasks_generic.end(); )
+    {
+        task *t = *it;
+        std::ostringstream reason;
+        bool del = false;
+
+        switch (t->type)
         {
-            task *t = *it;
-            if (t->type == task_type::dig_room || t->type == task_type::dig_room_immediate)
+        case task_type::want_dig:
+            // Handled in Phase 3 after nrdig recount.
+            break;
+        case task_type::dig_room:
+        case task_type::dig_room_immediate:
+        {
+            fixup_open(out, t->r);
+            if (t->r->is_dug(reason))
             {
-                fixup_open(out_unused, t->r);
-                std::ostringstream reason;
-                if (t->r->is_dug(reason))
+                ai.debug(out, "[plan_update] room dug: " + AI::describe_room(t->r));
+                t->r->status = room_status::dug;
+                construct_room(out, t->r);
+                del = true;
+            }
+            else
+            {
+                ai.debug(out, "[plan_update] not dug: " + AI::describe_room(t->r) + " reason: " + reason.str() +
+                    stl_sprintf(" min=(%d,%d,%d) max=(%d,%d,%d)", t->r->min.x, t->r->min.y, t->r->min.z, t->r->max.x, t->r->max.y, t->r->max.z));
+                t->r->dig();
+            }
+            if (!del)
+            {
+                if ((t->r->type != room_type::corridor || t->r->corridor_type != corridor_type::veinshaft) &&
+                    (t->r->type != room_type::corridor || t->r->corridor_type != corridor_type::outpost))
                 {
-                    ai.debug(out_unused, "[plan_update] room dug: " + AI::describe_room(t->r));
-                    t->r->status = room_status::dug;
-                    construct_room(out_unused, t->r);
-                    delete t;
-                    it = tasks_generic.erase(it);
-                    continue;
-                }
-                else
-                {
-                    ai.debug(out_unused, "[plan_update] not dug: " + AI::describe_room(t->r) + " reason: " + reason.str() +
-                        stl_sprintf(" min=(%d,%d,%d) max=(%d,%d,%d)", t->r->min.x, t->r->min.y, t->r->min.z, t->r->max.x, t->r->max.y, t->r->max.z));
-                    t->r->dig();
+                    df::coord size = t->r->size();
+                    if (t->r->type != room_type::corridor || size.z > 1)
+                        nrdig[t->r->queue]++;
+                    if (t->r->type != room_type::corridor && size.x * size.y * size.z >= 10)
+                        nrdig[t->r->queue]++;
                 }
             }
+            break;
+        }
+        case task_type::construct_tradedepot:
+            del = try_construct_tradedepot(out, t->r, reason);
+            break;
+        case task_type::construct_workshop:
+            del = try_construct_workshop(out, t->r, reason);
+            break;
+        case task_type::construct_farmplot:
+            del = try_construct_farmplot(out, t->r, reason);
+            break;
+        case task_type::construct_furnace:
+            del = try_construct_furnace(out, t->r, reason);
+            break;
+        case task_type::construct_stockpile:
+            del = try_construct_stockpile(out, t->r, reason);
+            break;
+        case task_type::construct_activityzone:
+            del = try_construct_activityzone(out, t->r, reason);
+            break;
+        case task_type::construct_windmill:
+            del = try_construct_windmill(out, t->r, reason);
+            break;
+        case task_type::monitor_farm_irrigation:
+            del = monitor_farm_irrigation(out, t->r, reason);
+            break;
+        case task_type::setup_farmplot:
+            del = try_setup_farmplot(out, t->r, reason);
+            break;
+        case task_type::check_construct:
+            del = try_endconstruct(out, t->r, reason);
+            break;
+        case task_type::dig_cistern:
+            del = try_digcistern(out, t->r);
+            break;
+        case task_type::dig_garbage:
+            del = true;
+            break;
+        case task_type::check_idle:
+            del = checkidle(out, reason);
+            break;
+        case task_type::check_rooms:
+            checkrooms(out);
+            break;
+        case task_type::monitor_cistern:
+            monitor_cistern(out, reason);
+            break;
+        case task_type::monitor_room_value:
+            del = monitor_room_value(out, t->r, reason);
+            break;
+        case task_type::rescue_caged:
+            del = rescue_caged(out, t->r, t->f, t->item_id, reason);
+            break;
+        default:
+            break;
+        }
+
+        if (del)
+        {
+            delete t;
+            it = tasks_generic.erase(it);
+        }
+        else
+        {
+            t->last_status = reason.str();
             ++it;
         }
-
-        nrdig.clear();
-        for (auto it = tasks_generic.begin(); it != tasks_generic.end(); it++)
-        {
-            task *t = *it;
-            if ((t->type != task_type::dig_room && t->type != task_type::dig_room_immediate) || (t->r->type == room_type::corridor && (t->r->corridor_type == corridor_type::veinshaft || t->r->corridor_type == corridor_type::outpost)))
-                continue;
-            df::coord size = t->r->size();
-            if (t->r->type != room_type::corridor || size.z > 1)
-                nrdig[t->r->queue]++;
-            if (t->r->type != room_type::corridor && size.x * size.y * size.z >= 10)
-                nrdig[t->r->queue]++;
-        }
-
-        {
-            bool has_immediate = false;
-            for (auto t : tasks_generic)
-            {
-                if (t->type == task_type::dig_room_immediate)
-                {
-                    has_immediate = true;
-                    break;
-                }
-            }
-
-            if (!has_immediate)
-            {
-                size_t wantdig_max = 2;
-                if (ai.stocks.count_total.count(stock_item::pick))
-                    wantdig_max = std::max(ai.stocks.count_total.at(stock_item::pick), (int32_t)2);
-
-                for (auto it = tasks_generic.begin(); it != tasks_generic.end(); )
-                {
-                    task *t = *it;
-                    if (t->type == task_type::want_dig && (t->r->is_dug() || nrdig[t->r->queue] < wantdig_max))
-                    {
-                        ai.debug(out_unused, "[plan_update] direct digroom: " + AI::describe_room(t->r));
-                        digroom(out_unused, t->r);
-                        delete t;
-                        it = tasks_generic.erase(it);
-                    }
-                    else
-                    {
-                        it++;
-                    }
-                }
-            }
-        }
-
-        bg_idx_generic = tasks_generic.begin();
-
-        want_reupdate = false;
-        events.onupdate_register_once("df-ai plan bg generic", [this](color_ostream & out) -> bool
-        {
-            if (!Core::getInstance().isMapLoaded())
-            {
-                return true;
-            }
-
-            if (bg_idx_generic == tasks_generic.end())
-            {
-                if (want_reupdate)
-                {
-                    update(out);
-                }
-                return true;
-            }
-            std::ostringstream reason;
-            task & t = **bg_idx_generic;
-
-            { std::ostringstream dbg; dbg << "[task] processing " << t.type << " " << (t.r ? AI::describe_room(t.r) : "(no room)"); ai.debug(out, dbg.str()); }
-
-            auto any_immediate = [this]() -> bool
-            {
-                for (auto t : tasks_generic)
-                {
-                    if (t->type == task_type::dig_room_immediate)
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            };
-
-            bool del = false;
-            switch (t.type)
-            {
-            case task_type::want_dig:
-            {
-                size_t wantdig_max = ai.stocks.count_total.count(stock_item::pick) ? std::max(ai.stocks.count_total.at(stock_item::pick), 2) : 2;
-                if (any_immediate())
-                {
-                    ai.debug(out, "[want_dig] blocked by immediate task");
-                    reason << "waiting for more important room to be dug";
-                }
-                else if (t.r->is_dug() || nrdig[t.r->queue] < wantdig_max)
-                {
-                    ai.debug(out, "[want_dig] transitioning to digroom: " + AI::describe_room(t.r));
-                    digroom(out, t.r);
-                    del = true;
-                }
-                else
-                {
-                    ai.debug(out, stl_sprintf("[want_dig] queue full: queue=%d nrdig=%zu max=%zu", t.r->queue, nrdig[t.r->queue], wantdig_max));
-                    reason << "dig queue " << t.r->queue << " has " << nrdig[t.r->queue] << " of " << wantdig_max << " slots already filled";
-                }
-                break;
-            }
-            case task_type::dig_room:
-            case task_type::dig_room_immediate:
-                fixup_open(out, t.r);
-                if (t.r->is_dug(reason))
-                {
-                    t.r->status = room_status::dug;
-                    construct_room(out, t.r);
-                    want_reupdate = true; // wantdig asap
-                    del = true;
-                }
-                else
-                {
-                    t.r->dig();
-                }
-                break;
-            case task_type::construct_tradedepot:
-                del = try_construct_tradedepot(out, t.r, reason);
-                break;
-            case task_type::construct_workshop:
-                del = try_construct_workshop(out, t.r, reason);
-                break;
-            case task_type::construct_farmplot:
-                del = try_construct_farmplot(out, t.r, reason);
-                break;
-            case task_type::construct_furnace:
-                del = try_construct_furnace(out, t.r, reason);
-                break;
-            case task_type::construct_stockpile:
-                del = try_construct_stockpile(out, t.r, reason);
-                break;
-            case task_type::construct_activityzone:
-                del = try_construct_activityzone(out, t.r, reason);
-                break;
-            case task_type::construct_windmill:
-                del = try_construct_windmill(out, t.r, reason);
-                break;
-            case task_type::monitor_farm_irrigation:
-                del = monitor_farm_irrigation(out, t.r, reason);
-                break;
-            case task_type::setup_farmplot:
-                del = try_setup_farmplot(out, t.r, reason);
-                break;
-            case task_type::furnish:
-                break;
-            case task_type::check_furnish:
-                break;
-            case task_type::check_construct:
-                del = try_endconstruct(out, t.r, reason);
-                break;
-            case task_type::dig_cistern:
-                del = try_digcistern(out, t.r);
-                break;
-            case task_type::dig_garbage:
-                del = true;
-                break;
-            case task_type::check_idle:
-                del = checkidle(out, reason);
-                break;
-            case task_type::check_rooms:
-                checkrooms(out);
-                break;
-            case task_type::monitor_cistern:
-                monitor_cistern(out, reason);
-                break;
-            case task_type::monitor_room_value:
-                del = monitor_room_value(out, t.r, reason);
-                break;
-            case task_type::rescue_caged:
-                del = rescue_caged(out, t.r, t.f, t.item_id, reason);
-                break;
-            case task_type::_task_type_count:
-                break;
-            }
-
-            if (del)
-            {
-                delete *bg_idx_generic;
-                tasks_generic.erase(bg_idx_generic++);
-            }
-            else
-            {
-                t.last_status = reason.str();
-                bg_idx_generic++;
-            }
-            return false;
-        });
     }
-    if (bg_idx_furniture == tasks_furniture.end())
+
+    // Phase 3: Promote want_dig tasks to active dig.
     {
-        bg_idx_furniture = tasks_furniture.begin();
-
-        cache_nofurnish.clear();
-
-        events.onupdate_register_once("df-ai plan bg furniture", [this](color_ostream & out) -> bool
+        bool has_immediate = false;
+        for (auto t : tasks_generic)
         {
-            if (!Core::getInstance().isMapLoaded())
+            if (t->type == task_type::dig_room_immediate)
             {
-                return true;
-            }
-
-            if (bg_idx_furniture == tasks_furniture.end())
-            {
-                return true;
-            }
-            std::ostringstream reason;
-            task & t = **bg_idx_furniture;
-
-            bool del = false;
-            switch (t.type)
-            {
-            case task_type::furnish:
-                del = try_furnish(out, t.r, t.f, reason);
-                break;
-            case task_type::check_furnish:
-                del = try_endfurnish(out, t.r, t.f, reason);
-                break;
-            default:
+                has_immediate = true;
                 break;
             }
+        }
 
-            if (del)
+        if (!has_immediate)
+        {
+            size_t wantdig_max = 2;
+            if (ai.stocks.count_total.count(stock_item::pick))
+                wantdig_max = std::max(ai.stocks.count_total.at(stock_item::pick), (int32_t)2);
+
+            for (auto it = tasks_generic.begin(); it != tasks_generic.end(); )
             {
-                delete *bg_idx_furniture;
-                tasks_furniture.erase(bg_idx_furniture++);
+                task *t = *it;
+                if (t->type == task_type::want_dig && (t->r->is_dug() || nrdig[t->r->queue] < wantdig_max))
+                {
+                    ai.debug(out, "[plan_update] direct digroom: " + AI::describe_room(t->r));
+                    digroom(out, t->r);
+                    delete t;
+                    it = tasks_generic.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
             }
-            else
-            {
-                t.last_status = reason.str();
-                bg_idx_furniture++;
-            }
-            return false;
-        });
+        }
     }
+
+    // Keep iterators at end so they don't go stale.
+    bg_idx_generic = tasks_generic.end();
+
+    // Phase 4: Process all furniture tasks.
+    cache_nofurnish.clear();
+    for (auto it = tasks_furniture.begin(); it != tasks_furniture.end(); )
+    {
+        task *t = *it;
+        std::ostringstream reason;
+        bool del = false;
+
+        switch (t->type)
+        {
+        case task_type::furnish:
+            del = try_furnish(out, t->r, t->f, reason);
+            break;
+        case task_type::check_furnish:
+            del = try_endfurnish(out, t->r, t->f, reason);
+            break;
+        default:
+            break;
+        }
+
+        if (del)
+        {
+            delete t;
+            it = tasks_furniture.erase(it);
+        }
+        else
+        {
+            t->last_status = reason.str();
+            ++it;
+        }
+    }
+
+    bg_idx_furniture = tasks_furniture.end();
 }
 
 task *Plan::is_digging()
