@@ -32,8 +32,14 @@ void Plan::update(color_ostream & out)
     }
 
     // Phase 2: Process all generic tasks.
+    // Snapshot iterators so tasks added during this cycle (by construct_room
+    // etc.) are deferred to the next plan_update.
     nrdig.clear();
-    for (auto it = tasks_generic.begin(); it != tasks_generic.end(); )
+    std::vector<std::list<task *>::iterator> task_iters;
+    for (auto it = tasks_generic.begin(); it != tasks_generic.end(); ++it)
+        task_iters.push_back(it);
+
+    for (auto it : task_iters)
     {
         task *t = *it;
         std::ostringstream reason;
@@ -133,12 +139,11 @@ void Plan::update(color_ostream & out)
         if (del)
         {
             delete t;
-            it = tasks_generic.erase(it);
+            tasks_generic.erase(it);
         }
         else
         {
             t->last_status = reason.str();
-            ++it;
         }
     }
 
@@ -181,9 +186,13 @@ void Plan::update(color_ostream & out)
     // Keep iterators at end so they don't go stale.
     bg_idx_generic = tasks_generic.end();
 
-    // Phase 4: Process all furniture tasks.
+    // Phase 4: Process furniture tasks that existed before this cycle.
     cache_nofurnish.clear();
-    for (auto it = tasks_furniture.begin(); it != tasks_furniture.end(); )
+    std::vector<std::list<task *>::iterator> furn_iters;
+    for (auto it = tasks_furniture.begin(); it != tasks_furniture.end(); ++it)
+        furn_iters.push_back(it);
+
+    for (auto it : furn_iters)
     {
         task *t = *it;
         std::ostringstream reason;
@@ -204,12 +213,11 @@ void Plan::update(color_ostream & out)
         if (del)
         {
             delete t;
-            it = tasks_furniture.erase(it);
+            tasks_furniture.erase(it);
         }
         else
         {
             t->last_status = reason.str();
-            ++it;
         }
     }
 
