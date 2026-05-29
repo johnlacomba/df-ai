@@ -103,7 +103,7 @@ bool room_base::room_t::apply(Json::Value data, std::string & error, bool allow_
         return false;
     }
 
-    if (!min.isValid())
+    if (min.x == -30000)
     {
         if (data.isMember("min"))
         {

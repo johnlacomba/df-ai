@@ -726,11 +726,11 @@ void room_blueprint::write_layout(std::ostream & f)
     {
         for (df::coord c : coords)
         {
-            if (!min.isValid())
+            if (min.x == -30000)
             {
                 min = c;
             }
-            if (!max.isValid())
+            if (max.x == -30000)
             {
                 max = c;
             }
