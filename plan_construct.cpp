@@ -1250,8 +1250,8 @@ protected:
         Buildings::setSize(bld_raw, r->size());
         ai.debug(out, "[ConstructStockpile] setSize OK");
 
-        Buildings::constructWithItems(bld_raw, std::vector<df::item *>());
-        ai.debug(out, "[ConstructStockpile] constructWithItems OK");
+        Buildings::constructAbstract(bld_raw);
+        ai.debug(out, "[ConstructStockpile] constructAbstract OK");
 
         df::building_stockpilest *bld = virtual_cast<df::building_stockpilest>(bld_raw);
         if (!bld)
@@ -1385,7 +1385,7 @@ protected:
             return;
         }
         Buildings::setSize(bld, r->size());
-        Buildings::constructWithItems(bld, std::vector<df::item *>());
+        Buildings::constructAbstract(bld);
 
         r->bld_id = bld->id;
         bld->spec_sub_flag.bits.active = 1;
@@ -1551,7 +1551,7 @@ bool Plan::try_construct_farmplot(color_ostream & out, room *r, std::ostream & r
 
     df::building *bld = Buildings::allocInstance(r->min, building_type::FarmPlot);
     Buildings::setSize(bld, r->size());
-    Buildings::constructWithItems(bld, std::vector<df::item *>());
+    Buildings::constructAbstract(bld);
     r->bld_id = bld->id;
     furnish_room(out, r);
     if (room *st = ai.find_room(room_type::stockpile, [r](room *o) -> bool { return o->workshop == r; }))
