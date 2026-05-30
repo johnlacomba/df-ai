@@ -30,11 +30,16 @@
 #include "df/job.h"
 #include "df/job_item.h"
 #include "df/map_block.h"
+#include "df/abstract_building_guildhallst.h"
+#include "df/abstract_building_inn_tavernst.h"
+#include "df/abstract_building_libraryst.h"
+#include "df/abstract_building_templest.h"
 #include "df/plant.h"
 #include "df/plant_raw.h"
 #include "df/plotinfost.h"
 #include "df/viewscreen_dwarfmodest.h"
 #include "df/world.h"
+#include "df/world_site.h"
 
 REQUIRE_GLOBAL(cursor);
 REQUIRE_GLOBAL(plotinfo);
@@ -1430,6 +1435,7 @@ protected:
         try
         {
             ai.debug(out, "[ConstructActivityZone] start: " + AI::describe_room(r) + stl_sprintf(" type=%d", (int)r->type));
+
             if (r->dfbuilding())
             {
                 ai.debug(out, "[ConstructActivityZone] already has building, skipping");
@@ -1481,10 +1487,57 @@ protected:
             }
             else if (r->type == room_type::location)
             {
-                // MeetingHall type crashes Steam DF — likely requires location
-                // association that the old UI-navigation code provided.
-                // Leave as default zone type for now; location functionality deferred.
-                ai.debug(out, "Location zone deferred (MeetingHall crashes Steam DF): " + AI::describe_room(r));
+                bld->type = civzone_type::MeetingHall;
+
+                auto site = plotinfo->main.fortress_site;
+                if (!site)
+                {
+                    ai.debug(out, "[ConstructActivityZone] ERROR: no fortress site for location zone");
+                    return;
+                }
+
+                df::abstract_building *ab = nullptr;
+                switch (r->location_type)
+                {
+                    case location_type::tavern:
+                        ab = (df::abstract_building *)df::abstract_building_inn_tavernst::_identity.instantiate();
+                        break;
+                    case location_type::library:
+                        ab = (df::abstract_building *)df::abstract_building_libraryst::_identity.instantiate();
+                        break;
+                    case location_type::temple:
+                        ab = (df::abstract_building *)df::abstract_building_templest::_identity.instantiate();
+                        break;
+                    case location_type::guildhall:
+                        ab = (df::abstract_building *)df::abstract_building_guildhallst::_identity.instantiate();
+                        break;
+                    default:
+                        ai.debug(out, "[ConstructActivityZone] ERROR: unknown location_type");
+                        return;
+                }
+
+                if (!ab)
+                {
+                    ai.debug(out, "[ConstructActivityZone] ERROR: failed to allocate abstract_building");
+                    return;
+                }
+
+                ab->id = site->next_building_id++;
+                ab->site_id = site->id;
+                ab->site_owner_id = plotinfo->group_id;
+                insert_into_vector(site->buildings, &df::abstract_building::id, ab);
+
+                bld->site_id = site->id;
+                bld->location_id = ab->id;
+
+                auto contents = ab->getContents();
+                if (contents)
+                {
+                    insert_into_vector(contents->building_ids, bld->id);
+                }
+
+                ai.debug(out, stl_sprintf("[ConstructActivityZone] created location ab_id=%d for zone bld_id=%d type=%d",
+                    ab->id, bld->id, (int)r->location_type));
             }
             ai.debug(out, "[ConstructActivityZone] complete: " + AI::describe_room(r));
         }
@@ -1505,12 +1558,6 @@ bool Plan::try_construct_activityzone(color_ostream &, room *r, std::ostream & r
     if (r->type == room_type::pond && r->workshop && !r->workshop->is_dug())
     {
         reason << "waiting for pond target to be dug";
-        return false;
-    }
-
-    if (r->type == room_type::location && r->location_type == location_type::guildhall && r->data1 == profession::NONE)
-    {
-        reason << "no profession assigned";
         return false;
     }
 
