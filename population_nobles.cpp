@@ -150,7 +150,7 @@ public:
             auto hf = df::historical_figure::find(candidate->hist_figure_id);
             if (hf)
             {
-                auto link = new df::histfig_entity_link_positionst();
+                auto link = (df::histfig_entity_link_positionst *)df::histfig_entity_link_positionst::_identity.instantiate();
                 link->entity_id = entity->id;
                 link->assignment_id = asn->id;
                 link->start_year = *cur_year;
