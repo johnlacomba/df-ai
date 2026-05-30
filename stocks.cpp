@@ -58,7 +58,7 @@ void Watch::reset()
     Needed[stock_item::barrel] = 4;
     Needed[stock_item::bed] = 4;
     Needed[stock_item::bin] = 4;
-    Needed[stock_item::block] = 6;
+    Needed[stock_item::block] = 20;
     Needed[stock_item::bone] = 2;
     Needed[stock_item::book_binding] = 1;
     Needed[stock_item::bookcase] = 2;

@@ -971,10 +971,13 @@ static void init_managed_workshop(color_ostream &, room *, df::building *bld)
 bool Plan::try_construct_tradedepot(color_ostream & out, room *r, std::ostream & reason)
 {
     ai.debug(out, "[try_construct_tradedepot] start: " + AI::describe_room(r));
-    std::vector<df::item *> blocks;
-    if (find_items(items_other_id::BLOCKS, blocks, 3))
+    std::vector<df::item *> mats;
+    bool found = find_items(items_other_id::BLOCKS, mats, 3);
+    if (!found) { mats.clear(); found = find_items(items_other_id::BOULDER, mats, 3, false, true); }
+    if (!found) { mats.clear(); found = find_items(items_other_id::WOOD, mats, 3); }
+    if (found)
     {
-        ai.debug(out, stl_sprintf("[try_construct_tradedepot] found %zu blocks, allocating", blocks.size()));
+        ai.debug(out, stl_sprintf("[try_construct_tradedepot] found %zu materials, allocating", mats.size()));
         df::building *bld = Buildings::allocInstance(r->min, building_type::TradeDepot);
         if (!bld)
         {
@@ -982,16 +985,13 @@ bool Plan::try_construct_tradedepot(color_ostream & out, room *r, std::ostream &
             reason << "failed to allocate building";
             return false;
         }
-        ai.debug(out, "[try_construct_tradedepot] allocInstance OK, setSize");
         Buildings::setSize(bld, r->size());
-        ai.debug(out, "[try_construct_tradedepot] setSize OK, constructWithItems");
-        Buildings::constructWithItems(bld, blocks);
-        ai.debug(out, "[try_construct_tradedepot] constructWithItems OK");
+        Buildings::constructWithItems(bld, mats);
         r->bld_id = bld->id;
         add_task(task_type::check_construct, r);
         return true;
     }
-    reason << "have " << blocks.size() << "/3 blocks";
+    reason << "could not find 3 building materials (blocks, boulders, or logs)";
     return false;
 }
 

@@ -221,6 +221,18 @@ void Stocks::update(color_ostream & out)
                 job->flags.bits.do_now = true;
                 continue;
             }
+
+            if (need_more(stock_item::block) && job->job_type == job_type::ConstructBlocks)
+            {
+                job->flags.bits.do_now = true;
+                continue;
+            }
+
+            if (need_more(stock_item::quern) && job->job_type == job_type::ConstructQuern)
+            {
+                job->flags.bits.do_now = true;
+                continue;
+            }
         }
         if (ai.eventsJson.is_open())
         {
