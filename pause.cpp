@@ -36,6 +36,16 @@ void AI::unpause()
         game->main_interface.announcement_alert.viewing_alert = nullptr;
     }
 
+    if (game && game->main_interface.diplomacy.open)
+    {
+        game->main_interface.diplomacy.open = false;
+    }
+
+    if (game && game->main_interface.petitions.open)
+    {
+        game->main_interface.petitions.open = false;
+    }
+
     if (*pause_state)
     {
         Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);

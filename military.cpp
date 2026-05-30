@@ -21,10 +21,19 @@ REQUIRE_GLOBAL(world);
 
 bool AI::tag_enemies(color_ostream & out)
 {
+    debug(out, "[tag_enemies] start");
     bool found = false;
+    if (!plotinfo->main.fortress_entity)
+    {
+        return false;
+    }
     for (auto id : plotinfo->main.fortress_entity->squads)
     {
         auto squad = df::squad::find(id);
+        if (!squad)
+        {
+            continue;
+        }
         for (auto order : squad->orders)
         {
             if (auto kill = virtual_cast<df::squad_order_kill_listst>(order))

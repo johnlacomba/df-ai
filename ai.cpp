@@ -227,7 +227,11 @@ command_result AI::onupdate_register(color_ostream & out)
 
             return false;
         });
-        tag_enemies_onupdate = events.onupdate_register("df-ai tag_enemies", 1200, 1200, [this](color_ostream & out) { tag_enemies(out); });
+        tag_enemies_onupdate = events.onupdate_register("df-ai tag_enemies", 1200, 1200, [this](color_ostream & out) {
+            try { tag_enemies(out); }
+            catch (std::exception &e) { debug(out, stl_sprintf("[tag_enemies] EXCEPTION: %s", e.what())); }
+            catch (...) { debug(out, "[tag_enemies] UNKNOWN EXCEPTION"); }
+        });
         announcements_onupdate = events.onupdate_register("df-ai announcement watcher", 1, 1, [this](color_ostream &) { watch_announcements(); });
         events.onstatechange_register_once("world unload watcher", [this](color_ostream & out, state_change_event st) -> bool
         {
