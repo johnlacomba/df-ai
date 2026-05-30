@@ -6,6 +6,7 @@
 #include "modules/Units.h"
 
 #include "df/entity_position_assignment.h"
+#include "df/histfig_entity_link_positionst.h"
 #include "df/unit.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
@@ -16,6 +17,7 @@
 #include "df/unit_soul.h"
 #include "df/world.h"
 
+REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(cur_year_tick);
 REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
@@ -60,6 +62,7 @@ public:
     void Run(color_ostream & out)
     {
         bool bookkeeper = responsibility == entity_position_responsibility::ACCOUNTING;
+        auto entity = plotinfo->main.fortress_entity;
 
         std::vector<df::unit *> candidates;
         for (auto u : world->units.active)
@@ -82,34 +85,87 @@ public:
             return ai.pop.unit_totalxp(a) > ai.pop.unit_totalxp(b);
         });
 
-        for (auto asn : plotinfo->main.fortress_entity->positions.assignments)
+        // find a position definition with this responsibility
+        df::entity_position *target_pos = nullptr;
+        for (auto pos : entity->positions.own)
         {
-            if (!asn)
-                continue;
-
-            auto position = binsearch_in_vector(plotinfo->main.fortress_entity->positions.own, asn->position_id);
-            if (!position || !position->responsibilities[responsibility])
-                continue;
-
-            auto hf = df::historical_figure::find(asn->histfig);
-            if (hf && hf->died_year == -1)
-                continue;
-
-            for (auto candidate : candidates)
+            if (pos && pos->responsibilities[responsibility])
             {
-                if (candidate->hist_figure_id == -1)
-                    continue;
-
-                ai.debug(out, "Appointing " + AI::describe_unit(candidate) + " as " + position->name[0]);
-                asn->histfig = candidate->hist_figure_id;
-
-                if (bookkeeper)
-                    plotinfo->nobles.bookkeeper_settings = static_cast<df::record_precision_level_type>(4);
-
-                return;
+                target_pos = pos;
+                break;
             }
         }
-        ai.debug(out, "Could not find position for " + enum_item_key(responsibility));
+        if (!target_pos)
+        {
+            ai.debug(out, "No position definition with responsibility " + enum_item_key(responsibility));
+            return;
+        }
+
+        // find an existing vacant assignment for this position, or create one
+        df::entity_position_assignment *asn = nullptr;
+        for (auto a : entity->positions.assignments)
+        {
+            if (!a)
+                continue;
+            if (a->position_id != target_pos->id)
+                continue;
+            auto hf = df::historical_figure::find(a->histfig);
+            if (hf && hf->died_year == -1)
+            {
+                // position held by a living person — already filled
+                ai.debug(out, enum_item_key(responsibility) + " position already held by " + AI::describe_unit(df::unit::find(hf->unit_id)));
+                return;
+            }
+            asn = a;
+            break;
+        }
+
+        if (!asn)
+        {
+            // no assignment slot exists — create one
+            asn = new df::entity_position_assignment();
+            int32_t max_id = 0;
+            for (auto a : entity->positions.assignments)
+            {
+                if (a && a->id >= max_id)
+                    max_id = a->id + 1;
+            }
+            asn->id = max_id;
+            asn->position_id = target_pos->id;
+            asn->histfig = -1;
+            asn->histfig2 = -1;
+            entity->positions.assignments.push_back(asn);
+            ai.debug(out, "Created assignment slot for " + target_pos->name[0]);
+        }
+
+        for (auto candidate : candidates)
+        {
+            if (candidate->hist_figure_id == -1)
+                continue;
+
+            ai.debug(out, "Appointing " + AI::describe_unit(candidate) + " as " + target_pos->name[0]);
+            asn->histfig = candidate->hist_figure_id;
+
+            // link the historical figure to this position
+            auto hf = df::historical_figure::find(candidate->hist_figure_id);
+            if (hf)
+            {
+                auto link = new df::histfig_entity_link_positionst();
+                link->entity_id = entity->id;
+                link->assignment_id = asn->id;
+                link->start_year = *cur_year;
+                hf->entity_links.push_back(link);
+            }
+
+            // update assignments_by_type cache
+            entity->assignments_by_type[responsibility].push_back(asn);
+
+            if (bookkeeper)
+                plotinfo->nobles.bookkeeper_settings = static_cast<df::record_precision_level_type>(4);
+
+            return;
+        }
+        ai.debug(out, "Could not find eligible candidate for " + enum_item_key(responsibility));
     }
 };
 
@@ -165,6 +221,8 @@ void Population::check_noble_apartments(color_ostream & out)
     for (auto asn : plotinfo->main.fortress_entity->positions.assignments)
     {
         df::entity_position *pos = binsearch_in_vector(plotinfo->main.fortress_entity->positions.own, asn->position_id);
+        if (!pos)
+            continue;
         if (pos->required_office > 0 || pos->required_dining > 0 || pos->required_tomb > 0)
         {
             if (df::historical_figure *hf = df::historical_figure::find(asn->histfig))
