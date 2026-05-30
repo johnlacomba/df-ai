@@ -219,10 +219,10 @@ command_result AI::onupdate_register(color_ostream & out)
 
             time_paused++;
 
-            if (time_paused == enabler->fps * 10)
+            if (time_paused == enabler->fps * 2)
             {
-                timeout_sameview(10, [this](color_ostream &) { unpause(); });
-                time_paused = -enabler->fps;
+                unpause();
+                time_paused = 0;
             }
 
             return false;

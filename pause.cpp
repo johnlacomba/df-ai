@@ -7,21 +7,35 @@
 #include "modules/Screen.h"
 
 #include "df/d_init.h"
+#include "df/gamest.h"
+#include "df/popup_message.h"
 #include "df/report.h"
 #include "df/world.h"
 
 REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(cur_year_tick);
 REQUIRE_GLOBAL(d_init);
+REQUIRE_GLOBAL(game);
 REQUIRE_GLOBAL(pause_state);
 REQUIRE_GLOBAL(world);
 
 void AI::unpause()
 {
-    while (!world->status.popups.empty())
+    if (!world->status.popups.empty())
     {
-        Gui::getCurViewscreen(true)->feed_key(interface_key::CLOSE_MEGA_ANNOUNCEMENT);
+        for (auto popup : world->status.popups)
+        {
+            delete popup;
+        }
+        world->status.popups.clear();
     }
+
+    if (game && game->main_interface.announcement_alert.open)
+    {
+        game->main_interface.announcement_alert.open = false;
+        game->main_interface.announcement_alert.viewing_alert = nullptr;
+    }
+
     if (*pause_state)
     {
         Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
@@ -83,7 +97,14 @@ void AI::handle_pause_event(color_ostream & out, df::report *announce)
     case announcement_type::DIPLOMAT_ARRIVAL:
     case announcement_type::LIAISON_ARRIVAL:
     case announcement_type::CARAVAN_ARRIVAL:
+    case announcement_type::FIRST_CARAVAN_ARRIVAL:
     case announcement_type::TRADE_DIPLOMAT_ARRIVAL:
+    case announcement_type::DIPLOMAT_LEFT_UNHAPPY:
+    case announcement_type::MONARCH_ARRIVAL:
+    case announcement_type::HASTY_MONARCH:
+    case announcement_type::SATISFIED_MONARCH:
+    case announcement_type::MOUNTAINHOME:
+    case announcement_type::FOOD_WARNING:
     case announcement_type::STRANGE_MOOD:
     case announcement_type::MOOD_BUILDING_CLAIMED:
     case announcement_type::ARTIFACT_BEGUN:
@@ -92,6 +113,8 @@ void AI::handle_pause_event(color_ostream & out, df::report *announce)
     case announcement_type::STRUCK_DEEP_METAL:
     case announcement_type::TRAINING_FULL_REVERSION:
     case announcement_type::NAMED_ARTIFACT:
+    case announcement_type::DEITY_PRONOUNCEMENT:
+    case announcement_type::EMBARK_MESSAGE:
         break;
     default:
     {
@@ -149,11 +172,8 @@ void AI::statechanged(color_ostream & out, state_change_event st)
             }
         }
 
-        if (!config.allow_pause)
-        {
-            unpause();
-        }
         debug(out, "pause without an event");
+        unpause();
     }
     else if (st == SC_VIEWSCREEN_CHANGED)
     {
