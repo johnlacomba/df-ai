@@ -104,6 +104,7 @@ END_ENUM(outpost, type) \
 \
 BEGIN_ENUM(location, type) \
     ENUM_ITEM(guildhall) \
+    ENUM_ITEM(hospital) \
     ENUM_ITEM(library) \
     ENUM_ITEM(tavern) \
     ENUM_ITEM(temple) \

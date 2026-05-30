@@ -31,6 +31,7 @@
 #include "df/job_item.h"
 #include "df/map_block.h"
 #include "df/abstract_building_guildhallst.h"
+#include "df/abstract_building_hospitalst.h"
 #include "df/abstract_building_inn_tavernst.h"
 #include "df/abstract_building_libraryst.h"
 #include "df/abstract_building_templest.h"
@@ -1461,7 +1462,38 @@ protected:
 
             if (r->type == room_type::infirmary)
             {
-                ai.debug(out, "Infirmary zone deferred (Steam DF hospital zones not yet implemented)");
+                bld->type = civzone_type::MeetingHall;
+
+                auto site = plotinfo->main.fortress_site;
+                if (!site)
+                {
+                    ai.debug(out, "[ConstructActivityZone] ERROR: no fortress site for infirmary zone");
+                    return;
+                }
+
+                auto ab = (df::abstract_building *)df::abstract_building_hospitalst::_identity.instantiate();
+                if (!ab)
+                {
+                    ai.debug(out, "[ConstructActivityZone] ERROR: failed to allocate abstract_building_hospitalst");
+                    return;
+                }
+
+                ab->id = site->next_building_id++;
+                ab->site_id = site->id;
+                ab->site_owner_id = plotinfo->group_id;
+                insert_into_vector(site->buildings, &df::abstract_building::id, ab);
+
+                bld->site_id = site->id;
+                bld->location_id = ab->id;
+
+                auto contents = ab->getContents();
+                if (contents)
+                {
+                    insert_into_vector(contents->building_ids, bld->id);
+                }
+
+                ai.debug(out, stl_sprintf("[ConstructActivityZone] created hospital location ab_id=%d for infirmary zone bld_id=%d",
+                    ab->id, bld->id));
             }
             else if (r->type == room_type::garbagedump)
             {
@@ -1510,6 +1542,9 @@ protected:
                         break;
                     case location_type::guildhall:
                         ab = (df::abstract_building *)df::abstract_building_guildhallst::_identity.instantiate();
+                        break;
+                    case location_type::hospital:
+                        ab = (df::abstract_building *)df::abstract_building_hospitalst::_identity.instantiate();
                         break;
                     default:
                         ai.debug(out, "[ConstructActivityZone] ERROR: unknown location_type");
