@@ -74,6 +74,7 @@
 		"generic01_location": {
 			"guildhall": [0, 5],
 			"library": [1, 3],
+			"museum": [0, 1],
 			"tavern": [0, 2],
 			"temple": [1, 8]
 		},

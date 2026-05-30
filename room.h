@@ -106,6 +106,7 @@ BEGIN_ENUM(location, type) \
     ENUM_ITEM(guildhall) \
     ENUM_ITEM(hospital) \
     ENUM_ITEM(library) \
+    ENUM_ITEM(museum) \
     ENUM_ITEM(tavern) \
     ENUM_ITEM(temple) \
 END_ENUM(location, type) \

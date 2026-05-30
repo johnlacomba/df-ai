@@ -5,6 +5,7 @@
 #include "df/entity_position.h"
 #include "df/entity_position_responsibility.h"
 #include "df/job_type.h"
+#include "df/mood_type.h"
 #include "df/occupation_type.h"
 #include "df/unit_labor.h"
 
@@ -51,6 +52,8 @@ private:
     size_t seen_death;
     OnupdateCallback *deathwatch_handle;
     std::set<int32_t> medic;
+    std::map<int32_t, df::mood_type> moody;
+    std::set<int32_t> artifacts;
     std::vector<int32_t> workers;
     std::set<df::job_type> seen_badwork;
     int32_t last_checked_crime_year, last_checked_crime_tick;
@@ -113,6 +116,10 @@ public:
 
     void update_nobles(color_ostream & out);
     void check_noble_apartments(color_ostream & out);
+
+    void update_moods(color_ostream & out);
+    void update_artifacts(color_ostream & out);
+    void unforbid_mood_materials(color_ostream & out);
 
     void update_pets(color_ostream & out);
 

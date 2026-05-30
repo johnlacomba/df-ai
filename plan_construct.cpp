@@ -1546,33 +1546,44 @@ protected:
                     case location_type::hospital:
                         ab = (df::abstract_building *)df::abstract_building_hospitalst::_identity.instantiate();
                         break;
+                    case location_type::museum:
+                        // Museums use a MeetingHall zone with pedestals for artifact display.
+                        // No dedicated abstract_building type confirmed in DFHack 53.14-r2 yet.
+                        // The zone still works as a display area without one.
+                        break;
                     default:
                         ai.debug(out, "[ConstructActivityZone] ERROR: unknown location_type");
                         return;
                 }
 
-                if (!ab)
+                if (ab)
+                {
+                    ab->id = site->next_building_id++;
+                    ab->site_id = site->id;
+                    ab->site_owner_id = plotinfo->group_id;
+                    insert_into_vector(site->buildings, &df::abstract_building::id, ab);
+
+                    bld->site_id = site->id;
+                    bld->location_id = ab->id;
+
+                    auto contents = ab->getContents();
+                    if (contents)
+                    {
+                        insert_into_vector(contents->building_ids, bld->id);
+                    }
+
+                    ai.debug(out, stl_sprintf("[ConstructActivityZone] created location ab_id=%d for zone bld_id=%d type=%d",
+                        ab->id, bld->id, (int)r->location_type));
+                }
+                else if (r->location_type == location_type::museum)
+                {
+                    ai.debug(out, stl_sprintf("[ConstructActivityZone] created museum zone bld_id=%d (no abstract_building)", bld->id));
+                }
+                else
                 {
                     ai.debug(out, "[ConstructActivityZone] ERROR: failed to allocate abstract_building");
                     return;
                 }
-
-                ab->id = site->next_building_id++;
-                ab->site_id = site->id;
-                ab->site_owner_id = plotinfo->group_id;
-                insert_into_vector(site->buildings, &df::abstract_building::id, ab);
-
-                bld->site_id = site->id;
-                bld->location_id = ab->id;
-
-                auto contents = ab->getContents();
-                if (contents)
-                {
-                    insert_into_vector(contents->building_ids, bld->id);
-                }
-
-                ai.debug(out, stl_sprintf("[ConstructActivityZone] created location ab_id=%d for zone bld_id=%d type=%d",
-                    ab->id, bld->id, (int)r->location_type));
             }
             ai.debug(out, "[ConstructActivityZone] complete: " + AI::describe_room(r));
         }

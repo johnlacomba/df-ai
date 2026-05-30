@@ -97,7 +97,9 @@
 		"id": "#location_type",
 		"enum": [
 			"guildhall",
+			"hospital",
 			"library",
+			"museum",
 			"tavern",
 			"temple"
 		]

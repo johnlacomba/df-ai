@@ -61,6 +61,8 @@ Population::Population(AI & ai) :
     seen_death(0),
     deathwatch_handle(nullptr),
     medic(),
+    moody(),
+    artifacts(),
     workers(),
     seen_badwork(),
     last_checked_crime_year(-1),
@@ -132,6 +134,8 @@ void Population::update(color_ostream & out)
         update_locations(out);
         break;
     case 9:
+        update_moods(out);
+        update_artifacts(out);
         if (ai.eventsJson.is_open())
         {
             Json::Value payload(Json::objectValue);

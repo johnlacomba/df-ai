@@ -39,6 +39,7 @@ SET(PROJECT_SRCS
     population_death.cpp
     population_justice.cpp
     population_military.cpp
+    population_moods.cpp
     population_nobles.cpp
     population_occupations.cpp
     population_pets.cpp

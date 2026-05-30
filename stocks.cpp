@@ -59,7 +59,7 @@ void Watch::reset()
     Needed[stock_item::bed] = 4;
     Needed[stock_item::bin] = 4;
     Needed[stock_item::block] = 20;
-    Needed[stock_item::bone] = 2;
+    Needed[stock_item::bone] = 5;
     Needed[stock_item::book_binding] = 1;
     Needed[stock_item::bookcase] = 2;
     Needed[stock_item::bucket] = 2;
@@ -90,6 +90,7 @@ void Watch::reset()
     Needed[stock_item::hatch_cover] = 2;
     Needed[stock_item::hive] = 1;
     Needed[stock_item::jug] = 1;
+    Needed[stock_item::leather] = 5;
     Needed[stock_item::lye] = 1;
     Needed[stock_item::meal] = 20;
     Needed[stock_item::mechanism] = 4;
@@ -97,7 +98,7 @@ void Watch::reset()
     Needed[stock_item::nest_box] = 1;
     Needed[stock_item::offering_place] = 1;
     Needed[stock_item::paper] = 5;
-    Needed[stock_item::pedestal] = 1;
+    Needed[stock_item::pedestal] = 3;
     Needed[stock_item::pick] = 2;
     Needed[stock_item::pipe_section] = 1;
     Needed[stock_item::plaster_powder] = 5;
@@ -107,7 +108,9 @@ void Watch::reset()
     Needed[stock_item::quiver] = 2;
     Needed[stock_item::raw_coke] = 1;
     Needed[stock_item::rope] = 1;
+    Needed[stock_item::rough_gem] = 5;
     Needed[stock_item::screw] = 1;
+    Needed[stock_item::shell] = 3;
     Needed[stock_item::slab] = 1;
     Needed[stock_item::slurry] = 5;
     Needed[stock_item::soap] = 5;
