@@ -14,8 +14,7 @@ REQUIRE_GLOBAL(world);
 static bool is_mood_failure(df::mood_type mood)
 {
     return mood == mood_type::Berserk ||
-           mood == mood_type::Melancholy ||
-           mood == mood_type::Insane;
+           mood == mood_type::Melancholy;
 }
 
 void Population::update_moods(color_ostream & out)
@@ -58,11 +57,6 @@ void Population::update_moods(color_ostream & out)
 
         moody[u->id] = u->mood;
         ai.debug(out, "[moods] " + AI::describe_unit(u) + " entered " + enum_item_key(u->mood) + " mood");
-
-        if (u->job.workshop_id != -1)
-        {
-            ai.debug(out, stl_sprintf("[moods]   claimed workshop id=%d", u->job.workshop_id));
-        }
 
         unforbid_mood_materials(out);
     }
