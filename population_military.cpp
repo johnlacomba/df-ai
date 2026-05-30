@@ -9,8 +9,10 @@
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
 #include "df/item_type.h"
+#include "df/military_routinest.h"
 #include "df/plotinfost.h"
 #include "df/squad.h"
+#include "df/squad_month_positionst.h"
 #include "df/squad_order_kill_listst.h"
 #include "df/squad_order_trainst.h"
 #include "df/squad_position.h"
@@ -22,18 +24,17 @@
 #include "df/unit.h"
 #include "df/world.h"
 
+REQUIRE_GLOBAL(cur_year);
+REQUIRE_GLOBAL(cur_year_tick);
 REQUIRE_GLOBAL(plotinfo);
+REQUIRE_GLOBAL(squad_next_id);
 REQUIRE_GLOBAL(world);
 
-static int32_t next_squad_id()
+static int32_t alloc_squad_id()
 {
-    int32_t max_id = -1;
-    for (auto sq : world->squads.all)
-    {
-        if (sq->id > max_id)
-            max_id = sq->id;
-    }
-    return max_id + 1;
+    int32_t id = *squad_next_id;
+    (*squad_next_id)++;
+    return id;
 }
 
 static df::squad_uniform_spec *make_uniform_spec(df::item_type itype, df::entity_material_category mat_class, df::uniform_indiv_choice indiv = df::uniform_indiv_choice())
@@ -92,27 +93,110 @@ static void setup_squad_equipment(df::squad *squad, bool ranged)
 
 static void setup_squad_schedule(df::squad *squad)
 {
-    auto routine = df::allocate<df::squad_routine_schedulest>();
-    if (!routine)
-        return;
+    int32_t squad_size = (int32_t)squad->positions.size();
+    auto & routines = plotinfo->alerts.routines;
 
-    for (int month = 0; month < 12; month++)
+    if (routines.empty())
     {
-        auto & entry = routine->month[month];
-        entry.sleep_mode = squad_sleep_option_type::InBarracksAtWill;
-        entry.uniform_mode = squad_civilian_uniform_type::None;
-
-        auto sched_order = df::allocate<df::squad_schedule_order>();
-        if (sched_order)
+        auto routine = new df::squad_routine_schedulest();
+        for (int month = 0; month < 12; month++)
         {
-            sched_order->order = df::allocate<df::squad_order_trainst>();
-            sched_order->min_count = std::max(1, (int)squad->positions.size() / 2);
-            entry.orders.push_back(sched_order);
+            new (&routine->month[month]) df::squad_schedule_entry;
+            for (int j = 0; j < squad_size; j++)
+            {
+                auto oa = new df::squad_month_positionst();
+                oa->assigned_order_idx = -1;
+                routine->month[month].order_assignments.push_back(oa);
+            }
+
+            auto order = new df::squad_schedule_order();
+            order->min_count = squad_size;
+            order->positions.resize(squad_size);
+            auto train = df::allocate<df::squad_order_trainst>();
+            train->year = *cur_year;
+            train->year_tick = *cur_year_tick;
+            order->order = train;
+            routine->month[month].orders.push_back(order);
+            routine->month[month].sleep_mode = squad_sleep_option_type::AnywhereAtWill;
+            routine->month[month].uniform_mode = squad_civilian_uniform_type::Regular;
         }
+        squad->schedule.routine.push_back(routine);
+        squad->cur_routine_idx = 0;
+        return;
     }
 
-    squad->schedule.routine.push_back(routine);
-    squad->cur_routine_idx = 0;
+    for (size_t ri = 0; ri < routines.size(); ri++)
+    {
+        auto routine = new df::squad_routine_schedulest();
+        auto & asched = routine->month;
+
+        for (int month = 0; month < 12; month++)
+        {
+            new (&asched[month]) df::squad_schedule_entry;
+
+            for (int j = 0; j < squad_size; j++)
+            {
+                auto oa = new df::squad_month_positionst();
+                oa->assigned_order_idx = -1;
+                asched[month].order_assignments.push_back(oa);
+            }
+        }
+
+        if (routines[ri]->name == "Staggered training" || routines[ri]->name == "Constant training")
+        {
+            int start = 0;
+            int count = 12;
+            if (routines[ri]->name == "Staggered training")
+            {
+                start = (squad->id & 1) ? 0 : 6;
+                count = 6;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                int month = (start + i) % 12;
+                auto order = new df::squad_schedule_order();
+                order->min_count = squad_size;
+                order->positions.resize(squad_size);
+
+                auto train = df::allocate<df::squad_order_trainst>();
+                train->year = *cur_year;
+                train->year_tick = *cur_year_tick;
+                order->order = train;
+
+                asched[month].orders.push_back(order);
+                asched[month].sleep_mode = squad_sleep_option_type::AnywhereAtWill;
+                asched[month].uniform_mode = squad_civilian_uniform_type::Regular;
+            }
+        }
+        else if (routines[ri]->name == "Off duty")
+        {
+            for (int i = 0; i < 12; i++)
+            {
+                asched[i].sleep_mode = squad_sleep_option_type::AnywhereAtWill;
+                asched[i].uniform_mode = squad_civilian_uniform_type::Civilian;
+            }
+        }
+        else if (routines[ri]->name == "Ready")
+        {
+            for (int i = 0; i < 12; i++)
+            {
+                asched[i].sleep_mode = squad_sleep_option_type::InBarracksAtNeed;
+                asched[i].uniform_mode = squad_civilian_uniform_type::Regular;
+            }
+        }
+
+        squad->schedule.routine.push_back(routine);
+    }
+
+    for (size_t ri = 0; ri < routines.size(); ri++)
+    {
+        if (routines[ri]->name == "Staggered training")
+        {
+            squad->cur_routine_idx = (int32_t)ri;
+            break;
+        }
+    }
 }
 
 static df::squad *create_squad(color_ostream & out, AI & ai)
@@ -128,12 +212,15 @@ static df::squad *create_squad(color_ostream & out, AI & ai)
         return nullptr;
     }
 
-    squad->id = next_squad_id();
+    squad->id = alloc_squad_id();
     squad->entity_id = entity->id;
     squad->leader_position = -1;
     squad->leader_assignment = -1;
     squad->assigned_army_controller_id = -1;
     squad->cur_routine_idx = 0;
+    squad->uniform_priority = squad->id + 1;
+    squad->supplies.carry_food = 2;
+    squad->supplies.carry_water = squad_water_level_type::Water;
 
     for (int i = 0; i < 10; i++)
     {
@@ -162,19 +249,7 @@ static df::squad *create_squad(color_ostream & out, AI & ai)
 static bool is_noble_excluded(df::unit *u)
 {
     std::vector<Units::NoblePosition> positions;
-    if (!Units::getNoblePositions(&positions, u))
-        return false;
-
-    for (auto & pos : positions)
-    {
-        if (pos.position->responsibilities[entity_position_responsibility::ACCOUNTING] ||
-            pos.position->responsibilities[entity_position_responsibility::MANAGE_PRODUCTION] ||
-            pos.position->responsibilities[entity_position_responsibility::TRADE])
-        {
-            return true;
-        }
-    }
-    return false;
+    return Units::getNoblePositions(&positions, u);
 }
 
 static df::squad *find_squad_with_vacancy(int32_t max_positions)
@@ -203,7 +278,7 @@ static df::squad *find_squad_with_vacancy(int32_t max_positions)
 
 static bool draft_unit(color_ostream & out, AI & ai, df::unit *u, df::squad *squad)
 {
-    if (!u || !squad)
+    if (!u || !squad || u->hist_figure_id == -1)
         return false;
 
     for (size_t i = 0; i < squad->positions.size(); i++)

@@ -6,6 +6,7 @@
 
 #include "df/building.h"
 #include "df/building_civzonest.h"
+#include "df/building_squad_infost.h"
 #include "df/caste_raw.h"
 #include "df/creature_raw.h"
 #include "df/general_ref.h"
@@ -307,6 +308,21 @@ void Plan::assign_barrack_squad(color_ostream & out, df::building *bld, int32_t 
     info->mode.bits.indiv_eq = 1;
     info->mode.bits.squad_eq = 1;
     squad->rooms.push_back(info);
+
+    auto zone = virtual_cast<df::building_civzonest>(bld);
+    if (zone)
+    {
+        auto bld_info = df::allocate<df::building_squad_infost>();
+        if (bld_info)
+        {
+            bld_info->squad_id = squad_id;
+            bld_info->mode.bits.sleep = 1;
+            bld_info->mode.bits.train = 1;
+            bld_info->mode.bits.indiv_eq = 1;
+            bld_info->mode.bits.squad_eq = 1;
+            zone->squad_room_info.push_back(bld_info);
+        }
+    }
 
     ai.debug(out, stl_sprintf("[military] assigned barracks bld_id=%d to squad %d", bld->id, squad_id));
 }
