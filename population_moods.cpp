@@ -15,7 +15,7 @@ static bool is_mood_failure(df::mood_type mood)
 {
     return mood == mood_type::Berserk ||
            mood == mood_type::Melancholy ||
-           mood == mood_type::Catatonic;
+           mood == mood_type::Insane;
 }
 
 void Population::update_moods(color_ostream & out)
@@ -61,7 +61,7 @@ void Population::update_moods(color_ostream & out)
 
         if (u->job.workshop_id != -1)
         {
-            ai.debug(out, "[moods]   claimed workshop id=" + std::to_string(u->job.workshop_id));
+            ai.debug(out, stl_sprintf("[moods]   claimed workshop id=%d", u->job.workshop_id));
         }
 
         unforbid_mood_materials(out);
@@ -120,20 +120,22 @@ void Population::unforbid_mood_materials(color_ostream & out)
         case item_type::SKIN_TANNED:
         case item_type::CLOTH:
         case item_type::THREAD:
-        case item_type::BONE:
-        case item_type::SHELL:
-        case item_type::SKULL:
-        case item_type::HORN:
             item->flags.bits.forbid = 0;
             count++;
             break;
         default:
             break;
         }
+
+        if (item->getType() == item_type::CORPSEPIECE)
+        {
+            item->flags.bits.forbid = 0;
+            count++;
+        }
     }
 
     if (count > 0)
     {
-        ai.debug(out, "[moods] unforbade " + std::to_string(count) + " items for mood materials");
+        ai.debug(out, stl_sprintf("[moods] unforbade %d items for mood materials", count));
     }
 }
