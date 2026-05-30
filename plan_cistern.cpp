@@ -94,7 +94,8 @@ void Plan::smooth_cistern_access(color_ostream & out, room *r)
             {
                 if (x < r->min.x || r->max.x < x || y < r->min.y || r->max.y < y)
                 {
-                    if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *Maps::getTileType(x, y, z))) != tiletype_shape_basic::Wall)
+                    auto *_tt97 = Maps::getTileType(x, y, z);
+                    if (!_tt97 || ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *_tt97)) != tiletype_shape_basic::Wall)
                     {
                         continue;
                     }
@@ -139,9 +140,12 @@ bool Plan::try_digcistern(color_ostream & out, room *r)
             bool stop = false;
             for (int16_t y = r->min.y; y <= r->max.y; y++)
             {
+                auto *_tt144 = Maps::getTileType(x, y, z);
+                if (!_tt144)
+                    continue;
                 switch (ENUM_ATTR(tiletype_shape, basic_shape,
                     ENUM_ATTR(tiletype, shape,
-                        *Maps::getTileType(x, y, z))))
+                        *_tt144)))
                 {
                 case tiletype_shape_basic::Floor:
                     stop = true;
@@ -151,9 +155,10 @@ bool Plan::try_digcistern(color_ostream & out, room *r)
                     {
                         continue;
                     }
-                    if (ENUM_ATTR(tiletype_shape, basic_shape,
+                    auto *_tt156 = Maps::getTileType(x - 1, y, z);
+                    if (_tt156 && ENUM_ATTR(tiletype_shape, basic_shape,
                         ENUM_ATTR(tiletype, shape,
-                            *Maps::getTileType(x - 1, y, z))) ==
+                            *_tt156)) ==
                         tiletype_shape_basic::Floor)
                     {
                         dig_channel(df::coord(x, y, z));
@@ -310,9 +315,10 @@ void Plan::monitor_cistern(color_ostream & out, std::ostream & reason)
         construct_cistern(out, m_c_reserve);
 
         df::coord gate = m_c_reserve->channel_enable;
-        if (ENUM_ATTR(tiletype_shape, basic_shape,
+        auto *_tt318 = Maps::getTileType(gate);
+        if (_tt318 && ENUM_ATTR(tiletype_shape, basic_shape,
             ENUM_ATTR(tiletype, shape,
-                *Maps::getTileType(gate))) ==
+                *_tt318)) ==
             tiletype_shape_basic::Wall)
         {
             ai.debug(out, "cistern: test channel");
@@ -335,9 +341,13 @@ void Plan::monitor_cistern(color_ostream & out, std::ostream & reason)
                         for (int16_t z = r->min.z; z <= r->max.z; z++)
                         {
                             df::coord t(x, y, z);
-                            if (!is_smooth(t) && Maps::getTileDesignation(t)->bits.flow_size < 3 && (r->type != room_type::corridor || (r->min.x <= x && x <= r->max.x && r->min.y <= y && y <= r->max.y) || ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *Maps::getTileType(t))) == tiletype_shape_basic::Wall))
+                            auto *_td343 = Maps::getTileDesignation(t);
+                            auto *_tt343 = Maps::getTileType(t);
+                            if (!_td343 || !_tt343)
+                                continue;
+                            if (!is_smooth(t) && _td343->bits.flow_size < 3 && (r->type != room_type::corridor || (r->min.x <= x && x <= r->max.x && r->min.y <= y && y <= r->max.y) || ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *_tt343)) == tiletype_shape_basic::Wall))
                             {
-                                std::string msg = stl_sprintf("unsmoothed %s (%d, %d, %d) %s", enum_item_key_str(*Maps::getTileType(t)), x, y, z, AI::describe_room(r).c_str());
+                                std::string msg = stl_sprintf("unsmoothed %s (%d, %d, %d) %s", enum_item_key_str(*_tt343), x, y, z, AI::describe_room(r).c_str());
                                 ai.debug(out, "cistern: " + msg);
                                 reason << msg << "\n";
                                 empty = false;
@@ -407,7 +417,8 @@ void Plan::monitor_cistern(color_ostream & out, std::ostream & reason)
             else
             {
                 room *well = m_c_cistern->workshop;
-                if (Maps::getTileDesignation(well->min + df::coord(-2, well->size().y / 2, 0))->bits.flow_size == 7)
+                auto *_td420 = Maps::getTileDesignation(well->min + df::coord(-2, well->size().y / 2, 0));
+                if (_td420 && _td420->bits.flow_size == 7)
                 {
                     // something went not as planned, but we have a water source
                     m_c_testgate_delay = -1;
@@ -436,7 +447,10 @@ void Plan::monitor_cistern(color_ostream & out, std::ostream & reason)
             {
                 for (int16_t y = -1; y <= 1; y++)
                 {
-                    df::tiletype tt = *Maps::getTileType(gate + df::coord(x, y, 0));
+                    auto *_tt449 = Maps::getTileType(gate + df::coord(x, y, 0));
+                    if (!_tt449)
+                        continue;
+                    df::tiletype tt = *_tt449;
                     if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, tt)) != tiletype_shape_basic::Wall)
                         continue;
                     df::tiletype_material tm = ENUM_ATTR(tiletype, material, tt);
@@ -462,11 +476,15 @@ void Plan::monitor_cistern(color_ostream & out, std::ostream & reason)
     // cistlvl = water level for the top floor
     // if it is flooded, reserve output tile is probably > 4 and prevents
     // buildingdestroyers from messing with the floodgates
-    uint32_t cistlvl = Maps::getTileDesignation(m_c_cistern->pos() + df::coord(0, 0, 1))->bits.flow_size;
-    uint32_t resvlvl = Maps::getTileDesignation(m_c_reserve->pos())->bits.flow_size;
+    auto *_td478 = Maps::getTileDesignation(m_c_cistern->pos() + df::coord(0, 0, 1));
+    uint32_t cistlvl = _td478 ? _td478->bits.flow_size : 0;
+    auto *_td479 = Maps::getTileDesignation(m_c_reserve->pos());
+    uint32_t resvlvl = _td479 ? _td479->bits.flow_size : 0;
 
     df::coord river = AI::spiral_search(m_c_reserve->channel_enable, 0, 2, [](df::coord t) -> bool { df::tile_designation *td = Maps::getTileDesignation(t); return td && td->bits.feature_local; });
-    bool river_is_frozen_or_dry = river.isValid() && (ENUM_ATTR(tiletype, material, *Maps::getTileType(river)) == tiletype_material::FROZEN_LIQUID || Maps::getTileDesignation(river)->bits.flow_size == 0);
+    auto *_tt482 = river.isValid() ? Maps::getTileType(river) : nullptr;
+    auto *_td482 = river.isValid() ? Maps::getTileDesignation(river) : nullptr;
+    bool river_is_frozen_or_dry = river.isValid() && ((_tt482 && ENUM_ATTR(tiletype, material, *_tt482) == tiletype_material::FROZEN_LIQUID) || (_td482 && _td482->bits.flow_size == 0));
 
     if (resvlvl <= 1)
     {

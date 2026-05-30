@@ -49,7 +49,10 @@ void Stocks::farmplot(color_ostream & out, room *r, bool initial)
     if (!bld)
         return;
 
-    bool subterranean = Maps::getTileDesignation(r->pos())->bits.subterranean;
+    auto *_td52 = Maps::getTileDesignation(r->pos());
+    if (!_td52)
+        return;
+    bool subterranean = _td52->bits.subterranean;
     df::coord2d region(Maps::getTileBiomeRgn(r->pos()));
     df::biome_type biome = subterranean ? biome_type::SUBTERRANEAN_WATER : Maps::getBiomeTypeWithRef(region.x, region.y, region.y);
     df::plant_raw_flags plant_biome;
@@ -222,7 +225,8 @@ df::coord Stocks::cuttrees(color_ostream &, int32_t amount, std::ostream & reaso
 
     for (auto tree : list)
     {
-        if (ENUM_ATTR(tiletype, material, *Maps::getTileType(tree)) != tiletype_material::TREE)
+        auto *_tt225 = Maps::getTileType(tree);
+        if (!_tt225 || ENUM_ATTR(tiletype, material, *_tt225) != tiletype_material::TREE)
         {
             continue;
         }
@@ -271,10 +275,14 @@ std::set<df::coord, std::function<bool(df::coord, df::coord)>> Stocks::tree_list
         for (auto it = trees.begin(); it != trees.end(); it++)
         {
             df::plant *p = *it;
-            df::tiletype tt = *Maps::getTileType(p->pos);
+            auto *_tt274 = Maps::getTileType(p->pos);
+            if (!_tt274)
+                continue;
+            df::tiletype tt = *_tt274;
+            auto *_td277 = Maps::getTileDesignation(p->pos);
             if (ENUM_ATTR(tiletype, material, tt) == tiletype_material::TREE &&
                 ENUM_ATTR(tiletype, shape, tt) == tiletype_shape::WALL &&
-                !Maps::getTileDesignation(p->pos)->bits.hidden &&
+                _td277 && !_td277->bits.hidden &&
                 !AI::spiral_search(p->pos, 1, [](df::coord t) -> bool
             {
                 df::tile_designation *td = Maps::getTileDesignation(t);

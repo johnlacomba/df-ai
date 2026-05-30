@@ -176,7 +176,8 @@ static size_t dig_tile_skip_job = 0;
 void AI::dig_tile(df::coord t, df::tile_dig_designation dig)
 {
     DFAI_ASSERT_VALID_TILE(t, " (designation: " << enum_item_key(dig) << ")");
-    if (DFAI_UNLIKELY(ENUM_ATTR(tiletype, material, *Maps::getTileType(t)) == tiletype_material::TREE && dig != tile_dig_designation::No))
+    auto *_tt179 = Maps::getTileType(t);
+    if (DFAI_UNLIKELY(_tt179 && ENUM_ATTR(tiletype, material, *_tt179) == tiletype_material::TREE && dig != tile_dig_designation::No))
     {
         dig = tile_dig_designation::Default;
         t = Plan::find_tree_base(t);
@@ -196,7 +197,9 @@ void AI::dig_tile(df::coord t, df::tile_dig_designation dig)
     }
 
     des->bits.dig = dig;
-    Maps::getTileOccupancy(t)->bits.dig_marked = 0;
+    auto *_occ200 = Maps::getTileOccupancy(t);
+    if (_occ200)
+        _occ200->bits.dig_marked = 0;
     if (dig != tile_dig_designation::No)
     {
         auto block = Maps::getTileBlock(t);
@@ -282,7 +285,8 @@ command_result Plan::make_map_walkable(color_ostream &)
         if (!river.isValid())
             return true;
         df::coord surface = surface_tile_at(river.x, river.y);
-        if (surface.isValid() && ENUM_ATTR(tiletype, material, *Maps::getTileType(surface)) == tiletype_material::BROOK)
+        auto *_tt285 = surface.isValid() ? Maps::getTileType(surface) : nullptr;
+        if (_tt285 && ENUM_ATTR(tiletype, material, *_tt285) == tiletype_material::BROOK)
             return true;
 
         Plan *plan = this;
@@ -694,7 +698,10 @@ int32_t Plan::do_dig_vein(color_ostream & out, int32_t mat, df::coord b, bool pl
                 continue;
             }
 
-            if (Maps::getTileDesignation(t)->bits.dig == tile_dig_designation::No)
+            auto *_td701 = Maps::getTileDesignation(t);
+            if (!_td701)
+                continue;
+            if (_td701->bits.dig == tile_dig_designation::No)
             {
                 bool ok = true;
                 bool ns = need_shaft;
@@ -703,9 +710,13 @@ int32_t Plan::do_dig_vein(color_ostream & out, int32_t mat, df::coord b, bool pl
                     for (int16_t ddy = -1; ddy <= 1; ddy++)
                     {
                         df::coord tt = t + df::coord(ddx, ddy, 0);
-                        if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *Maps::getTileType(tt))) != tiletype_shape_basic::Wall)
+                        auto *_tt706 = Maps::getTileType(tt);
+                        if (!_tt706)
+                            continue;
+                        auto *_td706 = Maps::getTileDesignation(tt);
+                        if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *_tt706)) != tiletype_shape_basic::Wall)
                         {
-                            if (Maps::getTileDesignation(tt)->bits.hidden)
+                            if (_td706 && _td706->bits.hidden)
                             {
                                 ok = false;
                             }
@@ -714,7 +725,7 @@ int32_t Plan::do_dig_vein(color_ostream & out, int32_t mat, df::coord b, bool pl
                                 ns = false;
                             }
                         }
-                        else if (Maps::getTileDesignation(tt)->bits.dig != tile_dig_designation::No)
+                        else if (_td706 && _td706->bits.dig != tile_dig_designation::No)
                         {
                             ns = false;
                         }
@@ -724,7 +735,8 @@ int32_t Plan::do_dig_vein(color_ostream & out, int32_t mat, df::coord b, bool pl
                 if (ok)
                 {
                     todo.push_back(std::make_pair(t, tile_dig_designation::Default));
-                    if (ENUM_ATTR(tiletype, material, *Maps::getTileType(t)) == tiletype_material::MINERAL && mat_index_vein(block, t) == mat)
+                    auto *_tt727 = Maps::getTileType(t);
+                    if (_tt727 && ENUM_ATTR(tiletype, material, *_tt727) == tiletype_material::MINERAL && mat_index_vein(block, t) == mat)
                     {
                         count++;
                     }
@@ -806,12 +818,16 @@ bool Plan::map_tile_nocavern(df::coord tile)
             {
                 if (td->bits.flow_size >= 4)
                     return false;
-                if (!allow_ice && ENUM_ATTR(tiletype, material, *Maps::getTileType(t)) == tiletype_material::FROZEN_LIQUID)
+                auto *_tt809 = Maps::getTileType(t);
+                if (!allow_ice && _tt809 && ENUM_ATTR(tiletype, material, *_tt809) == tiletype_material::FROZEN_LIQUID)
                     return false;
                 continue;
             }
 
-            df::tiletype tt = *Maps::getTileType(t);
+            auto *_tt814 = Maps::getTileType(t);
+            if (!_tt814)
+                return false;
+            df::tiletype tt = *_tt814;
 
             if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, tt)) != tiletype_shape_basic::Wall)
             {
@@ -838,7 +854,10 @@ bool Plan::map_tile_cavernfloor(df::coord t)
         return false;
     if (td->bits.flow_size != 0)
         return false;
-    df::tiletype tt = *Maps::getTileType(t);
+    auto *_tt841 = Maps::getTileType(t);
+    if (!_tt841)
+        return false;
+    df::tiletype tt = *_tt841;
     df::tiletype_material tm = ENUM_ATTR(tiletype, material, tt);
     if (tm != tiletype_material::STONE && tm != tiletype_material::MINERAL && tm != tiletype_material::SOIL && tm != tiletype_material::ROOT && tm != tiletype_material::GRASS_LIGHT && tm != tiletype_material::GRASS_DARK && tm != tiletype_material::PLANT && tm != tiletype_material::SOIL)
         return false;
@@ -1558,10 +1577,16 @@ std::vector<room *> Plan::find_corridor_tosurface(color_ostream & out, corridor_
             cor->max.z++;
         }
 
-        df::tiletype tt = *Maps::getTileType(cor->max);
+        auto *_tt1561 = Maps::getTileType(cor->max);
+        if (!_tt1561)
+            break;
+        df::tiletype tt = *_tt1561;
         df::tiletype_shape_basic sb = ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, tt));
         df::tiletype_material tm = ENUM_ATTR(tiletype, material, tt);
-        df::tile_designation td = *Maps::getTileDesignation(cor->max);
+        auto *_td1564 = Maps::getTileDesignation(cor->max);
+        if (!_td1564)
+            break;
+        df::tile_designation td = *_td1564;
         if ((sb == tiletype_shape_basic::Ramp ||
             sb == tiletype_shape_basic::Floor) &&
             tm != tiletype_material::TREE &&
@@ -1598,7 +1623,8 @@ std::vector<room *> Plan::find_corridor_tosurface(color_ostream & out, corridor_
             break;
         }
 
-        if (Maps::getTileDesignation(cor->max)->bits.flow_size > 0)
+        auto *_td1622 = Maps::getTileDesignation(cor->max);
+        if (_td1622 && _td1622->bits.flow_size > 0)
         {
             // damp stone located
             cor->max.z--;

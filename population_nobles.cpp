@@ -125,9 +125,12 @@ void Population::update_nobles(color_ostream & out)
     for (auto & asn : plotinfo->main.fortress_entity->assignments_by_type[entity_position_responsibility::HEALTH_MANAGEMENT])
     {
         auto hf = df::historical_figure::find(asn->histfig);
+        if (!hf)
+            continue;
         auto doctor = df::unit::find(hf->unit_id);
+        if (!doctor)
+            continue;
 
-        // Enable healthcare labors on chief medical officer.
         doctor->status.labors[unit_labor::DIAGNOSE] = true;
         doctor->status.labors[unit_labor::SURGERY] = true;
         doctor->status.labors[unit_labor::BONE_SETTING] = true;

@@ -389,7 +389,9 @@ void Stocks::update_slabs(color_ostream & out)
                 {
                     for (int16_t y = r->min.y; y <= r->max.y; y++)
                     {
-                        if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *Maps::getTileType(x, y, r->min.z))) == tiletype_shape_basic::Floor && Maps::getTileOccupancy(x, y, r->min.z)->bits.building == tile_building_occ::None)
+                        auto *_tt392 = Maps::getTileType(x, y, r->min.z);
+                        auto *_occ392 = Maps::getTileOccupancy(x, y, r->min.z);
+                        if (_tt392 && _occ392 && ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *_tt392)) == tiletype_shape_basic::Floor && _occ392->bits.building == tile_building_occ::None)
                         {
                             df::coord t(x, y, r->min.z);
                             bool any = false;

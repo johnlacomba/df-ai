@@ -644,13 +644,17 @@ bool Plan::rescue_caged(color_ostream & out, room *r, furniture *f, int32_t item
             {
                 df::coord c(x, y, r->min.z);
 
-                auto tt = *Maps::getTileType(c);
+                auto tt_ptr = Maps::getTileType(c);
+                if (!tt_ptr)
+                    continue;
+                auto tt = *tt_ptr;
                 if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, tt)) != tiletype_shape_basic::Floor)
                 {
                     continue;
                 }
 
-                if (Maps::getTileOccupancy(c)->bits.building != tile_building_occ::None)
+                auto occ = Maps::getTileOccupancy(c);
+                if (!occ || occ->bits.building != tile_building_occ::None)
                 {
                     continue;
                 }

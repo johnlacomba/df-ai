@@ -1466,7 +1466,8 @@ void Population::report(std::ostream & out, bool html)
         if (ENUM_ATTR(job_type, type, j->item->job_type) == job_type_class::Digging)
         {
             out << (html ? "<br/>" : "  ");
-            out << enum_item_key(*Maps::getTileType(j->item->pos));
+            auto *_tt1469 = Maps::getTileType(j->item->pos);
+            out << (_tt1469 ? enum_item_key(*_tt1469) : "?");
             if (auto r = ai.find_room_at(j->item->pos))
             {
                 out << " in " << AI::describe_room(r, html);

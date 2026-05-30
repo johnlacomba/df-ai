@@ -1282,6 +1282,8 @@ public:
 protected:
     void Run(color_ostream & out)
     {
+      try
+      {
         ai.debug(out, "[ConstructStockpile] start: " + AI::describe_room(r) +
             stl_sprintf(" min=(%d,%d,%d) size=(%d,%d,%d)", r->min.x, r->min.y, r->min.z, r->size().x, r->size().y, r->size().z));
 
@@ -1389,6 +1391,11 @@ protected:
             return false;
         });
         ai.debug(out, "[ConstructStockpile] complete: " + AI::describe_room(r));
+      }
+      catch (std::exception &e)
+      {
+        ai.debug(out, std::string("[ConstructStockpile] EXCEPTION: ") + e.what());
+      }
     }
 };
 
@@ -1420,52 +1427,70 @@ public:
 protected:
     void Run(color_ostream & out)
     {
-        if (r->dfbuilding())
-            return;
-
-        auto bld = virtual_cast<df::building_civzonest>(
-            Buildings::allocInstance(r->min, building_type::Civzone));
-        if (!bld)
+        try
         {
-            ai.debug(out, "Failed to allocate activity zone: " + AI::describe_room(r));
-            return;
-        }
-        Buildings::setSize(bld, r->size());
-        Buildings::constructAbstract(bld);
-
-        r->bld_id = bld->id;
-        bld->spec_sub_flag.bits.active = 1;
-
-        if (r->type == room_type::infirmary)
-        {
-            ai.debug(out, "Infirmary zone deferred (Steam DF hospital zones not yet implemented)");
-        }
-        else if (r->type == room_type::garbagedump)
-        {
-            bld->type = civzone_type::Dump;
-        }
-        else if (r->type == room_type::pasture)
-        {
-            bld->type = civzone_type::Pen;
-        }
-        else if (r->type == room_type::pitcage)
-        {
-            bld->type = civzone_type::Pond;
-            bld->zone_settings.pond.flag.bits.keep_filled = 0;
-        }
-        else if (r->type == room_type::pond)
-        {
-            bld->type = civzone_type::Pond;
-            bld->zone_settings.pond.flag.bits.keep_filled = 1;
-            if (r->temporary && r->workshop && r->workshop->type == room_type::farmplot)
+            ai.debug(out, "[ConstructActivityZone] start: " + AI::describe_room(r) + stl_sprintf(" type=%d", (int)r->type));
+            if (r->dfbuilding())
             {
-                ai.plan.add_task(task_type::monitor_farm_irrigation, r);
+                ai.debug(out, "[ConstructActivityZone] already has building, skipping");
+                return;
             }
+
+            ai.debug(out, "[ConstructActivityZone] allocating civzone");
+            auto bld = virtual_cast<df::building_civzonest>(
+                Buildings::allocInstance(r->min, building_type::Civzone));
+            if (!bld)
+            {
+                ai.debug(out, "Failed to allocate activity zone: " + AI::describe_room(r));
+                return;
+            }
+            ai.debug(out, "[ConstructActivityZone] setSize");
+            Buildings::setSize(bld, r->size());
+            ai.debug(out, "[ConstructActivityZone] constructAbstract");
+            Buildings::constructAbstract(bld);
+            ai.debug(out, "[ConstructActivityZone] constructAbstract OK");
+
+            r->bld_id = bld->id;
+            bld->spec_sub_flag.bits.active = 1;
+
+            if (r->type == room_type::infirmary)
+            {
+                ai.debug(out, "Infirmary zone deferred (Steam DF hospital zones not yet implemented)");
+            }
+            else if (r->type == room_type::garbagedump)
+            {
+                bld->type = civzone_type::Dump;
+            }
+            else if (r->type == room_type::pasture)
+            {
+                bld->type = civzone_type::Pen;
+            }
+            else if (r->type == room_type::pitcage)
+            {
+                bld->type = civzone_type::Pond;
+                bld->zone_settings.pond.flag.bits.keep_filled = 0;
+            }
+            else if (r->type == room_type::pond)
+            {
+                bld->type = civzone_type::Pond;
+                bld->zone_settings.pond.flag.bits.keep_filled = 1;
+                if (r->temporary && r->workshop && r->workshop->type == room_type::farmplot)
+                {
+                    ai.plan.add_task(task_type::monitor_farm_irrigation, r);
+                }
+            }
+            else if (r->type == room_type::location)
+            {
+                // MeetingHall type crashes Steam DF — likely requires location
+                // association that the old UI-navigation code provided.
+                // Leave as default zone type for now; location functionality deferred.
+                ai.debug(out, "Location zone deferred (MeetingHall crashes Steam DF): " + AI::describe_room(r));
+            }
+            ai.debug(out, "[ConstructActivityZone] complete: " + AI::describe_room(r));
         }
-        else if (r->type == room_type::location)
+        catch (std::exception &e)
         {
-            bld->type = civzone_type::MeetingHall;
-            ai.debug(out, "Activity zone created for location " + AI::describe_room(r) + " (location assignment deferred)");
+            ai.debug(out, std::string("[ConstructActivityZone] EXCEPTION: ") + e.what());
         }
     }
 };

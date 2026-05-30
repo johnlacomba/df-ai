@@ -291,7 +291,8 @@ df::coord Plan::scan_river(color_ostream &)
                 for (int16_t dy = 0; dy < 48; dy++)
                 {
                     df::coord t(x + dx, y + dy, z);
-                    if (Maps::getTileDesignation(t)->bits.feature_local)
+                    auto *_td294 = Maps::getTileDesignation(t);
+                    if (_td294 && _td294->bits.feature_local)
                     {
                         return t;
                     }

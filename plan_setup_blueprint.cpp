@@ -423,7 +423,10 @@ bool PlanSetup::can_add_room(const room_blueprint & rb, df::coord pos)
                 {
                     for (t.z = min.z; t.z <= max.z; t.z++)
                     {
-                        df::tiletype tt = *Maps::getTileType(t);
+                        auto *_tt426 = Maps::getTileType(t);
+                        if (!_tt426)
+                            return false;
+                        df::tiletype tt = *_tt426;
                         if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, tt)) == tiletype_shape_basic::Wall && ENUM_ATTR(tiletype, material, tt) != tiletype_material::TREE)
                         {
                             DFAI_DEBUG(blueprint, 4, "Error placing " << DBG_ROOM(rb) << " at " << DBG_COORD(pos) << ": " << DBG_COORD(t) << " is underground");
@@ -436,7 +439,10 @@ bool PlanSetup::can_add_room(const room_blueprint & rb, df::coord pos)
                             return false;
                         }
 
-                        auto building = Maps::getTileOccupancy(t)->bits.building;
+                        auto *_occ439 = Maps::getTileOccupancy(t);
+                        if (!_occ439)
+                            return false;
+                        auto building = _occ439->bits.building;
                         if (building != tile_building_occ::None)
                         {
                             DFAI_DEBUG(blueprint, 4, "Error placing " << DBG_ROOM(rb) << " at " << DBG_COORD(pos) << ": " << DBG_COORD(t) << " contains building " << enum_item_key_str(building));
@@ -512,7 +518,10 @@ bool PlanSetup::can_add_room(const room_blueprint & rb, df::coord pos)
                     {
                         for (int16_t dy = -1; dy <= 1; dy++)
                         {
-                            df::tiletype tt = *Maps::getTileType(t + df::coord(dx, dy, -1));
+                            auto *_tt515 = Maps::getTileType(t + df::coord(dx, dy, -1));
+                            if (!_tt515)
+                                return false;
+                            df::tiletype tt = *_tt515;
                             if (ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, tt)) != tiletype_shape_basic::Wall || ENUM_ATTR(tiletype, material, tt) == tiletype_material::TREE)
                             {
                                 DFAI_DEBUG(blueprint, 4, "Error placing " << DBG_ROOM(rb) << " at " << DBG_COORD(pos) << ": " << enum_item_key_str(f->dig) << " is directly above a cavern");
@@ -529,8 +538,14 @@ bool PlanSetup::can_add_room(const room_blueprint & rb, df::coord pos)
                 {
                     for (t.z = min.z; t.z <= max.z + 1; t.z++)
                     {
-                        df::tiletype tt = *Maps::getTileType(t);
-                        auto des = *Maps::getTileDesignation(t);
+                        auto *_tt532 = Maps::getTileType(t);
+                        if (!_tt532)
+                            return false;
+                        df::tiletype tt = *_tt532;
+                        auto *_td533 = Maps::getTileDesignation(t);
+                        if (!_td533)
+                            return false;
+                        auto des = *_td533;
                         if (des.bits.flow_size > 0 || ENUM_ATTR(tiletype, material, tt) == tiletype_material::POOL || ENUM_ATTR(tiletype, material, tt) == tiletype_material::RIVER || ENUM_ATTR(tiletype, material, tt) == tiletype_material::BROOK)
                         {
                             DFAI_DEBUG(blueprint, 4, "Error placing " << DBG_ROOM(rb) << " at " << DBG_COORD(pos) << ": " << DBG_COORD(t) << " has water");
@@ -548,7 +563,10 @@ bool PlanSetup::can_add_room(const room_blueprint & rb, df::coord pos)
                             return false;
                         }
 
-                        auto building = Maps::getTileOccupancy(t)->bits.building;
+                        auto *_occ566 = Maps::getTileOccupancy(t);
+                        if (!_occ566)
+                            return false;
+                        auto building = _occ566->bits.building;
                         if (building != tile_building_occ::None)
                         {
                             DFAI_DEBUG(blueprint, 4, "Error placing " << DBG_ROOM(rb) << " at " << DBG_COORD(pos) << ": " << DBG_COORD(t) << " contains building (" << enum_item_key_str(building) << ")");
@@ -575,7 +593,8 @@ bool PlanSetup::can_add_room(const room_blueprint & rb, df::coord pos)
             {
                 for (t.y = min.y; t.y <= max.y; t.y++)
                 {
-                    if (ENUM_ATTR(tiletype, material, *Maps::getTileType(t)) == tiletype_material::FROZEN_LIQUID)
+                    auto *_tt578 = Maps::getTileType(t);
+                    if (_tt578 && ENUM_ATTR(tiletype, material, *_tt578) == tiletype_material::FROZEN_LIQUID)
                     {
                         DFAI_DEBUG(blueprint, 4, "Error placing " << DBG_ROOM(rb) << " at " << DBG_COORD(pos) << ": " << DBG_COORD(t) << " is ice");
                         return false;
@@ -1139,7 +1158,8 @@ void PlanSetup::handle_special_exits()
                         df::coord prev = source_tile.count(cur) ? source_tile.at(cur) : cur;
 
                         df::coord adjacent_river;
-                        if (Maps::getTileDesignation(cur.x, cur.y, cur.z + 1)->bits.light)
+                        auto *_td1161 = Maps::getTileDesignation(cur.x, cur.y, cur.z + 1);
+                        if (_td1161 && _td1161->bits.light)
                         {
                             if (check_river(cur + df::coord(-2, 0, 0)))
                             {

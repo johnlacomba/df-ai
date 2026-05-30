@@ -88,7 +88,13 @@ bool Plan::smooth(std::set<df::coord> tiles, bool engrave)
     for (auto it = tiles.begin(); it != tiles.end(); )
     {
         // not a smoothable material
-        df::tiletype tt = *Maps::getTileType(*it);
+        auto *_tt91 = Maps::getTileType(*it);
+        if (!_tt91)
+        {
+            tiles.erase(it++);
+            continue;
+        }
+        df::tiletype tt = *_tt91;
         df::tiletype_material mat = ENUM_ATTR(tiletype, material, tt);
         if (mat != tiletype_material::STONE &&
             mat != tiletype_material::MINERAL)
@@ -98,7 +104,13 @@ bool Plan::smooth(std::set<df::coord> tiles, bool engrave)
         }
 
         // already designated for something
-        df::tile_designation des = *Maps::getTileDesignation(*it);
+        auto *_td107 = Maps::getTileDesignation(*it);
+        if (!_td107)
+        {
+            tiles.erase(it++);
+            continue;
+        }
+        df::tile_designation des = *_td107;
         if (des.bits.dig != tile_dig_designation::No ||
             des.bits.smooth != 0 ||
             des.bits.hidden)
@@ -142,8 +154,12 @@ bool Plan::smooth(std::set<df::coord> tiles, bool engrave)
     // mark the tiles to be smoothed!
     for (auto t : tiles)
     {
-        Maps::getTileDesignation(t)->bits.smooth = engrave ? 2 : 1;
-        Maps::getTileOccupancy(t)->bits.dig_marked = 0;
+        auto *_td151 = Maps::getTileDesignation(t);
+        auto *_occ152 = Maps::getTileOccupancy(t);
+        if (!_td151 || !_occ152)
+            continue;
+        _td151->bits.smooth = engrave ? 2 : 1;
+        _occ152->bits.dig_marked = 0;
         auto block = Maps::getTileBlock(t);
         block->flags.bits.designated = true;
         block->dsgn_check_cooldown = 0;
@@ -154,12 +170,18 @@ bool Plan::smooth(std::set<df::coord> tiles, bool engrave)
 
 bool Plan::is_smooth(df::coord t, bool engrave)
 {
-    df::tiletype tt = *Maps::getTileType(t);
+    auto *_tt157 = Maps::getTileType(t);
+    if (!_tt157)
+        return false;
+    df::tiletype tt = *_tt157;
     df::tiletype_material mat = ENUM_ATTR(tiletype, material, tt);
     df::tiletype_shape s = ENUM_ATTR(tiletype, shape, tt);
     df::tiletype_shape_basic sb = ENUM_ATTR(tiletype_shape, basic_shape, s);
     df::tiletype_special sp = ENUM_ATTR(tiletype, special, tt);
-    df::tile_occupancy occ = *Maps::getTileOccupancy(t);
+    auto *_occ162 = Maps::getTileOccupancy(t);
+    if (!_occ162)
+        return false;
+    df::tile_occupancy occ = *_occ162;
     df::tile_building_occ bld = occ.bits.building;
     return mat == tiletype_material::SOIL ||
         mat == tiletype_material::GRASS_LIGHT ||

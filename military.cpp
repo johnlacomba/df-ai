@@ -44,9 +44,10 @@ bool AI::tag_enemies(color_ostream & out)
     {
         df::unit *u = *it;
         df::creature_raw *race = df::creature_raw::find(u->race);
+        auto *_td49 = Units::getPosition(u).isValid() ? Maps::getTileDesignation(Units::getPosition(u)) : nullptr;
         if (!Units::isDead(u) && Units::getPosition(u).isValid() &&
             !Units::isOwnCiv(u) && Units::getContainer(u) == nullptr &&
-            !Maps::getTileDesignation(Units::getPosition(u))->bits.hidden)
+            _td49 && !_td49->bits.hidden)
         {
             if (race && race->flags.is_set(creature_raw_flags::HAS_ANY_MEGABEAST))
             {

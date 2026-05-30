@@ -49,14 +49,27 @@ void ExclusiveCallback::worker_main()
             return;
     }
 
-    out_proxy.set(*current_out);
-    Run(out_proxy);
-    out_proxy.clear();
-
-    if (!feed_keys.empty())
+    try
     {
-        wait_multiplier = 1;
-        Delay();
+        out_proxy.set(*current_out);
+        Run(out_proxy);
+        out_proxy.clear();
+
+        if (!feed_keys.empty())
+        {
+            wait_multiplier = 1;
+            Delay();
+        }
+    }
+    catch (std::exception &e)
+    {
+        DFAI_DEBUG(tick, 1, "[ExclusiveCallback] EXCEPTION in " << description << ": " << e.what());
+        out_proxy.clear();
+    }
+    catch (...)
+    {
+        DFAI_DEBUG(tick, 1, "[ExclusiveCallback] UNKNOWN EXCEPTION in " << description);
+        out_proxy.clear();
     }
 
     {
