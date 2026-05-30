@@ -10,6 +10,7 @@
 #include "df/creature_raw.h"
 #include "df/general_ref.h"
 #include "df/squad.h"
+#include "df/squad_barracks_infost.h"
 #include "df/unit.h"
 
 void Plan::new_citizen(color_ostream & out, int32_t uid)
@@ -284,10 +285,30 @@ void Plan::getsoldierbarrack(color_ostream & out, int32_t id)
     }
 }
 
-void Plan::assign_barrack_squad(color_ostream &, df::building * /*bld*/, int32_t /*squad_id*/)
+void Plan::assign_barrack_squad(color_ostream & out, df::building *bld, int32_t squad_id)
 {
-    // building_squad_use and getSquads() removed in Steam DF
-    // Barrack squad assignment deferred (Steam DF not yet implemented)
+    auto squad = df::squad::find(squad_id);
+    if (!squad || !bld)
+        return;
+
+    for (auto info : squad->rooms)
+    {
+        if (info->building_id == bld->id)
+            return;
+    }
+
+    auto info = df::allocate<df::squad_barracks_infost>();
+    if (!info)
+        return;
+
+    info->building_id = bld->id;
+    info->mode.bits.sleep = 1;
+    info->mode.bits.train = 1;
+    info->mode.bits.indiv_eq = 1;
+    info->mode.bits.squad_eq = 1;
+    squad->rooms.push_back(info);
+
+    ai.debug(out, stl_sprintf("[military] assigned barracks bld_id=%d to squad %d", bld->id, squad_id));
 }
 
 void Plan::getcoffin(color_ostream & out)
