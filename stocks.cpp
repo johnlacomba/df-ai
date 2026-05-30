@@ -90,7 +90,6 @@ void Watch::reset()
     Needed[stock_item::hatch_cover] = 2;
     Needed[stock_item::hive] = 1;
     Needed[stock_item::jug] = 1;
-    Needed[stock_item::leather] = 5;
     Needed[stock_item::lye] = 1;
     Needed[stock_item::meal] = 20;
     Needed[stock_item::mechanism] = 4;
@@ -108,9 +107,7 @@ void Watch::reset()
     Needed[stock_item::quiver] = 2;
     Needed[stock_item::raw_coke] = 1;
     Needed[stock_item::rope] = 1;
-    Needed[stock_item::rough_gem] = 5;
     Needed[stock_item::screw] = 1;
-    Needed[stock_item::shell] = 3;
     Needed[stock_item::slab] = 1;
     Needed[stock_item::slurry] = 5;
     Needed[stock_item::soap] = 5;
