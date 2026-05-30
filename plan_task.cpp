@@ -62,6 +62,7 @@ void Plan::update(color_ostream & out)
         std::ostringstream reason;
         bool del = false;
 
+        try {
         switch (t->type)
         {
         case task_type::want_dig:
@@ -151,6 +152,10 @@ void Plan::update(color_ostream & out)
             break;
         default:
             break;
+        }
+        } catch (std::exception &e) {
+            ai.debug(out, stl_sprintf("[plan_update] EXCEPTION in task type=%d: %s", (int)t->type, e.what()));
+            del = false;
         }
 
         if (del)

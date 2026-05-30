@@ -962,14 +962,25 @@ static void init_managed_workshop(color_ostream &, room *, df::building *bld)
     }
 }
 
-bool Plan::try_construct_tradedepot(color_ostream &, room *r, std::ostream & reason)
+bool Plan::try_construct_tradedepot(color_ostream & out, room *r, std::ostream & reason)
 {
+    ai.debug(out, "[try_construct_tradedepot] start: " + AI::describe_room(r));
     std::vector<df::item *> blocks;
     if (find_items(items_other_id::BLOCKS, blocks, 3))
     {
+        ai.debug(out, stl_sprintf("[try_construct_tradedepot] found %zu blocks, allocating", blocks.size()));
         df::building *bld = Buildings::allocInstance(r->min, building_type::TradeDepot);
+        if (!bld)
+        {
+            ai.debug(out, "[try_construct_tradedepot] allocInstance returned null!");
+            reason << "failed to allocate building";
+            return false;
+        }
+        ai.debug(out, "[try_construct_tradedepot] allocInstance OK, setSize");
         Buildings::setSize(bld, r->size());
+        ai.debug(out, "[try_construct_tradedepot] setSize OK, constructWithItems");
         Buildings::constructWithItems(bld, blocks);
+        ai.debug(out, "[try_construct_tradedepot] constructWithItems OK");
         r->bld_id = bld->id;
         add_task(task_type::check_construct, r);
         return true;
@@ -1580,6 +1591,7 @@ bool Plan::can_place_farm(color_ostream & out, room *r, bool cheat, std::ostream
 
 bool Plan::try_construct_farmplot(color_ostream & out, room *r, std::ostream & reason)
 {
+    ai.debug(out, "[try_construct_farmplot] start: " + AI::describe_room(r));
     auto pond = ai.find_room(room_type::pond, [r](room *p) -> bool
     {
         return p->temporary && p->workshop == r;
@@ -1589,9 +1601,19 @@ bool Plan::try_construct_farmplot(color_ostream & out, room *r, std::ostream & r
         return false;
     }
 
+    ai.debug(out, "[try_construct_farmplot] can_place_farm OK, allocating");
     df::building *bld = Buildings::allocInstance(r->min, building_type::FarmPlot);
+    if (!bld)
+    {
+        ai.debug(out, "[try_construct_farmplot] allocInstance returned null!");
+        reason << "failed to allocate building";
+        return false;
+    }
+    ai.debug(out, "[try_construct_farmplot] allocInstance OK, setSize");
     Buildings::setSize(bld, r->size());
-    Buildings::constructAbstract(bld);
+    ai.debug(out, "[try_construct_farmplot] setSize OK, constructWithItems (empty)");
+    Buildings::constructWithItems(bld, std::vector<df::item *>());
+    ai.debug(out, "[try_construct_farmplot] constructWithItems OK");
     r->bld_id = bld->id;
     furnish_room(out, r);
     if (room *st = ai.find_room(room_type::stockpile, [r](room *o) -> bool { return o->workshop == r; }))
