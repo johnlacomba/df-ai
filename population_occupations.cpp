@@ -29,159 +29,80 @@ const static int32_t wanted_library_scribe_min = 0;
 const static int32_t wanted_temple_performer = 4;
 const static int32_t wanted_temple_performer_min = 0;
 
-class AssignOccupationExclusive : public ExclusiveCallback
+static bool occupation_warned = false;
+static bool petition_warned = false;
+
+void Population::update_locations(color_ostream & out)
 {
-    AI & ai;
-    int32_t location_id;
-    df::occupation_type occupation;
-
-    static df::abstract_building *get_location(int32_t location_id)
+    if (!plotinfo->petitions.empty() && !petition_warned)
     {
-        auto site = plotinfo->main.fortress_site;
-        if (!site)
-            return nullptr;
-
-        return binsearch_in_vector(site->buildings, location_id);
-    }
-    static std::string get_location_name(int32_t location_id)
-    {
-        auto location = get_location(location_id);
-        if (!location)
-            return "(unknown location)";
-
-        auto name = location->getName();
-        if (!name)
-            return "(unnamed " + enum_item_key(location->getType()) + ")";
-
-        return AI::describe_name(*name, true);
+        ai.debug(out, stl_sprintf("petition handling deferred (Steam DF not yet implemented): %zu pending", plotinfo->petitions.size()));
+        petition_warned = true;
     }
 
-public:
-    AssignOccupationExclusive(AI & ai, int32_t location_id, df::occupation_type occupation) :
-        ExclusiveCallback("assign new " + enum_item_key(occupation) + " at " + get_location_name(location_id)),
-        ai(ai),
-        location_id(location_id),
-        occupation(occupation)
+    // occupation assignment deferred — just count needs for future implementation
+    // (previously spawned ExclusiveCallback threads that did nothing)
+    if (!occupation_warned)
     {
-    }
-
-    void Run(color_ostream & out)
-    {
-        ai.debug(out, "occupation assignment deferred (Steam DF UI not yet implemented): " + enum_item_key(occupation) + " at " + get_location_name(location_id));
-    }
-};
-
-class CheckPetitionsExclusive : public ExclusiveCallback
-{
-    AI & ai;
-
-public:
-    CheckPetitionsExclusive(AI & ai) :
-        ExclusiveCallback("check petitions"),
-        ai(ai)
-    {
-    }
-
-    void Run(color_ostream & out)
-    {
-        ai.debug(out, "petition handling deferred (Steam DF UI not yet implemented)");
-    }
-};
-
-void Population::update_locations(color_ostream &)
-{
-    if (!plotinfo->petitions.empty())
-    {
-        events.queue_exclusive(std::make_unique<CheckPetitionsExclusive>(ai));
-    }
-
 #define INIT_NEED(name) int32_t need_##name = std::max(wanted_##name * int32_t(citizen.size()) / 200, wanted_##name##_min)
-    INIT_NEED(tavern_keeper);
-    INIT_NEED(tavern_performer);
-    INIT_NEED(library_scholar);
-    INIT_NEED(library_scribe);
-    INIT_NEED(temple_performer);
+        INIT_NEED(tavern_keeper);
+        INIT_NEED(tavern_performer);
+        INIT_NEED(library_scholar);
+        INIT_NEED(library_scribe);
+        INIT_NEED(temple_performer);
 #undef INIT_NEED
 
-    if (room *tavern = ai.find_room(room_type::location, [](room *r) -> bool { return r->location_type == location_type::tavern && r->dfbuilding(); }))
-    {
-        df::building *bld = tavern->dfbuilding();
-        if (auto loc = virtual_cast<df::abstract_building_inn_tavernst>(binsearch_in_vector(df::world_site::find(bld->site_id)->buildings, bld->location_id)))
+        auto check_location_occupations = [&](room_type::type rtype, location_type::type ltype, auto cast_fn, auto count_fn)
         {
-            for (auto occ : loc->occupations)
+            if (room *r = ai.find_room(rtype, [ltype](room *r) -> bool { return r->location_type == ltype && r->dfbuilding(); }))
             {
-                if (occ->unit_id != -1)
+                df::building *bld = r->dfbuilding();
+                auto site = df::world_site::find(bld->site_id);
+                if (site)
                 {
-                    if (occ->type == occupation_type::TAVERN_KEEPER)
+                    if (auto loc = cast_fn(binsearch_in_vector(site->buildings, bld->location_id)))
                     {
-                        need_tavern_keeper--;
-                    }
-                    else if (occ->type == occupation_type::PERFORMER)
-                    {
-                        need_tavern_performer--;
+                        for (auto occ : loc->occupations)
+                        {
+                            if (occ->unit_id != -1)
+                            {
+                                count_fn(occ);
+                            }
+                        }
                     }
                 }
             }
-            if (need_tavern_keeper > 0)
-            {
-                events.queue_exclusive(std::make_unique<AssignOccupationExclusive>(ai, loc->id, occupation_type::TAVERN_KEEPER));
-            }
-            if (need_tavern_performer > 0)
-            {
-                events.queue_exclusive(std::make_unique<AssignOccupationExclusive>(ai, loc->id, occupation_type::PERFORMER));
-            }
-        }
-    }
+        };
 
-    if (room *library = ai.find_room(room_type::location, [](room *r) -> bool { return r->location_type == location_type::library && r->dfbuilding(); }))
-    {
-        df::building *bld = library->dfbuilding();
-        if (auto loc = virtual_cast<df::abstract_building_libraryst>(binsearch_in_vector(df::world_site::find(bld->site_id)->buildings, bld->location_id)))
-        {
-            for (auto occ : loc->occupations)
+        check_location_occupations(room_type::location, location_type::tavern,
+            [](df::abstract_building *b) { return virtual_cast<df::abstract_building_inn_tavernst>(b); },
+            [&](df::occupation *occ)
             {
-                if (occ->unit_id != -1)
-                {
-                    if (occ->type == occupation_type::SCHOLAR)
-                    {
-                        need_library_scholar--;
-                    }
-                    else if (occ->type == occupation_type::SCRIBE)
-                    {
-                        need_library_scribe--;
-                    }
-                }
-            }
-            if (need_library_scholar > 0)
-            {
-                events.queue_exclusive(std::make_unique<AssignOccupationExclusive>(ai, loc->id, occupation_type::SCHOLAR));
-            }
-            if (need_library_scribe > 0)
-            {
-                events.queue_exclusive(std::make_unique<AssignOccupationExclusive>(ai, loc->id, occupation_type::SCRIBE));
-            }
-        }
-    }
+                if (occ->type == occupation_type::TAVERN_KEEPER) need_tavern_keeper--;
+                else if (occ->type == occupation_type::PERFORMER) need_tavern_performer--;
+            });
 
-    if (room *temple = ai.find_room(room_type::location, [](room *r) -> bool { return r->location_type == location_type::temple && r->dfbuilding(); }))
-    {
-        df::building *bld = temple->dfbuilding();
-        if (auto loc = virtual_cast<df::abstract_building_templest>(binsearch_in_vector(df::world_site::find(bld->site_id)->buildings, bld->location_id)))
+        check_location_occupations(room_type::location, location_type::library,
+            [](df::abstract_building *b) { return virtual_cast<df::abstract_building_libraryst>(b); },
+            [&](df::occupation *occ)
+            {
+                if (occ->type == occupation_type::SCHOLAR) need_library_scholar--;
+                else if (occ->type == occupation_type::SCRIBE) need_library_scribe--;
+            });
+
+        check_location_occupations(room_type::location, location_type::temple,
+            [](df::abstract_building *b) { return virtual_cast<df::abstract_building_templest>(b); },
+            [&](df::occupation *occ)
+            {
+                if (occ->type == occupation_type::PERFORMER) need_temple_performer--;
+            });
+
+        bool any_needed = need_tavern_keeper > 0 || need_tavern_performer > 0 ||
+            need_library_scholar > 0 || need_library_scribe > 0 || need_temple_performer > 0;
+        if (any_needed)
         {
-            for (auto occ : loc->occupations)
-            {
-                if (occ->unit_id != -1)
-                {
-                    if (occ->type == occupation_type::PERFORMER)
-                    {
-                        need_temple_performer--;
-                    }
-                }
-            }
-            if (need_temple_performer > 0)
-            {
-                events.queue_exclusive(std::make_unique<AssignOccupationExclusive>(ai, loc->id, occupation_type::PERFORMER));
-            }
+            ai.debug(out, "occupation assignment deferred (Steam DF not yet implemented)");
+            occupation_warned = true;
         }
     }
 }
