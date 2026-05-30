@@ -148,6 +148,7 @@ bool Plan::try_digcistern(color_ostream & out, room *r)
                         *_tt144)))
                 {
                 case tiletype_shape_basic::Floor:
+                {
                     stop = true;
                     if (!is_smooth(df::coord(x + 1, y - 1, z)) ||
                         !is_smooth(df::coord(x + 1, y, z)) ||
@@ -178,6 +179,7 @@ bool Plan::try_digcistern(color_ostream & out, room *r)
                         }
                     }
                     break;
+                }
                 case tiletype_shape_basic::Open:
                     if (r->min.x <= x && x <= r->max.x &&
                         r->min.y <= y && y <= r->max.y)
