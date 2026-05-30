@@ -76,7 +76,7 @@ void Watch::reset()
     Needed[stock_item::coal] = 12;
     Needed[stock_item::coffin] = 2;
     Needed[stock_item::crafts] = 50;
-    Needed[stock_item::crutch] = 1;
+    Needed[stock_item::crutch] = 5;
     Needed[stock_item::die] = 3;
     Needed[stock_item::door] = 4;
     Needed[stock_item::drink] = 50;
@@ -100,7 +100,7 @@ void Watch::reset()
     Needed[stock_item::pedestal] = 1;
     Needed[stock_item::pick] = 2;
     Needed[stock_item::pipe_section] = 1;
-    Needed[stock_item::plaster_powder] = 1;
+    Needed[stock_item::plaster_powder] = 5;
     Needed[stock_item::potash] = 5;
     Needed[stock_item::quern] = 3;
     Needed[stock_item::quire] = 5;
@@ -110,8 +110,8 @@ void Watch::reset()
     Needed[stock_item::screw] = 1;
     Needed[stock_item::slab] = 1;
     Needed[stock_item::slurry] = 5;
-    Needed[stock_item::soap] = 1;
-    Needed[stock_item::splint] = 1;
+    Needed[stock_item::soap] = 5;
+    Needed[stock_item::splint] = 5;
     Needed[stock_item::stepladder] = 2;
     Needed[stock_item::table] = 3;
     Needed[stock_item::thread_seeds] = 10;

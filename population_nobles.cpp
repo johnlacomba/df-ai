@@ -194,6 +194,53 @@ void Population::update_nobles(color_ostream & out)
         doctor->status.labors[unit_labor::DRESSING_WOUNDS] = true;
     }
 
+    if (ai.find_room(room_type::infirmary, [](room *r) -> bool { return r->status != room_status::plan; }))
+    {
+        int32_t target_doctors = std::max(2, (int32_t)citizen.size() / 10);
+        medic.clear();
+
+        for (auto id : citizen)
+        {
+            auto u = df::unit::find(id);
+            if (!u || !Units::isSane(u))
+                continue;
+            if (u->status.labors[unit_labor::DIAGNOSE] ||
+                u->status.labors[unit_labor::SURGERY] ||
+                u->status.labors[unit_labor::BONE_SETTING] ||
+                u->status.labors[unit_labor::SUTURING] ||
+                u->status.labors[unit_labor::DRESSING_WOUNDS])
+            {
+                medic.insert(id);
+            }
+        }
+
+        if ((int32_t)medic.size() < target_doctors)
+        {
+            for (auto id : citizen)
+            {
+                if ((int32_t)medic.size() >= target_doctors)
+                    break;
+                if (medic.count(id))
+                    continue;
+                auto u = df::unit::find(id);
+                if (!u || !Units::isSane(u))
+                    continue;
+                if (u->military.squad_id != -1)
+                    continue;
+                if (unit_hasmilitaryduty(u))
+                    continue;
+
+                u->status.labors[unit_labor::DIAGNOSE] = true;
+                u->status.labors[unit_labor::SURGERY] = true;
+                u->status.labors[unit_labor::BONE_SETTING] = true;
+                u->status.labors[unit_labor::SUTURING] = true;
+                u->status.labors[unit_labor::DRESSING_WOUNDS] = true;
+                medic.insert(id);
+                ai.debug(out, "assigned doctoring labors to " + AI::describe_unit(u));
+            }
+        }
+    }
+
 #define WANT_POS(pos) \
     if (plotinfo->main.fortress_entity->assignments_by_type[entity_position_responsibility::pos].empty()) \
     { \
