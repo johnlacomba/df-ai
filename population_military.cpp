@@ -249,7 +249,19 @@ static df::squad *create_squad(color_ostream & out, AI & ai)
 static bool is_noble_excluded(df::unit *u)
 {
     std::vector<Units::NoblePosition> positions;
-    return Units::getNoblePositions(&positions, u);
+    if (!Units::getNoblePositions(&positions, u))
+        return false;
+
+    for (auto & pos : positions)
+    {
+        if (pos.position->responsibilities[entity_position_responsibility::ACCOUNTING] ||
+            pos.position->responsibilities[entity_position_responsibility::MANAGE_PRODUCTION] ||
+            pos.position->responsibilities[entity_position_responsibility::TRADE])
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 static df::squad *find_squad_with_vacancy(int32_t max_positions)
@@ -361,8 +373,6 @@ void Population::update_military(color_ostream & out)
         if (u->mood != mood_type::None)
             continue;
         if (is_noble_excluded(u))
-            continue;
-        if (u->status.labors[unit_labor::MINE] || u->status.labors[unit_labor::CUTWOOD] || u->status.labors[unit_labor::HUNT])
             continue;
 
         draft_pool.push_back(u);
