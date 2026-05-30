@@ -4,13 +4,21 @@
 
 #include "modules/Units.h"
 
+#include "df/entity_material_category.h"
 #include "df/entity_position_responsibility.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
+#include "df/item_type.h"
 #include "df/plotinfost.h"
 #include "df/squad.h"
 #include "df/squad_order_kill_listst.h"
+#include "df/squad_order_trainst.h"
 #include "df/squad_position.h"
+#include "df/squad_routine_schedulest.h"
+#include "df/squad_schedule_entry.h"
+#include "df/squad_schedule_order.h"
+#include "df/squad_uniform_spec.h"
+#include "df/uniform_category.h"
 #include "df/unit.h"
 #include "df/world.h"
 
@@ -26,6 +34,85 @@ static int32_t next_squad_id()
             max_id = sq->id;
     }
     return max_id + 1;
+}
+
+static df::squad_uniform_spec *make_uniform_spec(df::item_type itype, df::entity_material_category mat_class, df::uniform_indiv_choice indiv = df::uniform_indiv_choice())
+{
+    auto spec = df::allocate<df::squad_uniform_spec>();
+    if (!spec)
+        return nullptr;
+    spec->item = -1;
+    spec->item_type = itype;
+    spec->item_subtype = -1;
+    spec->material_class = mat_class;
+    spec->mattype = -1;
+    spec->matindex = -1;
+    spec->color = -1;
+    spec->indiv_choice = indiv;
+    return spec;
+}
+
+static void setup_squad_equipment(df::squad *squad, bool ranged)
+{
+    df::uniform_indiv_choice weapon_choice;
+    if (ranged)
+        weapon_choice.bits.ranged = 1;
+    else
+        weapon_choice.bits.melee = 1;
+
+    for (auto pos : squad->positions)
+    {
+        if (!pos)
+            continue;
+
+        pos->equipment.flags.bits.exact_matches = 1;
+
+        auto body = make_uniform_spec(item_type::ARMOR, entity_material_category::Armor);
+        if (body) pos->equipment.uniform[uniform_category::body].push_back(body);
+
+        auto head = make_uniform_spec(item_type::HELM, entity_material_category::Armor);
+        if (head) pos->equipment.uniform[uniform_category::head].push_back(head);
+
+        auto pants = make_uniform_spec(item_type::PANTS, entity_material_category::Armor);
+        if (pants) pos->equipment.uniform[uniform_category::pants].push_back(pants);
+
+        auto gloves = make_uniform_spec(item_type::GLOVES, entity_material_category::Armor);
+        if (gloves) pos->equipment.uniform[uniform_category::gloves].push_back(gloves);
+
+        auto shoes = make_uniform_spec(item_type::SHOES, entity_material_category::Armor);
+        if (shoes) pos->equipment.uniform[uniform_category::shoes].push_back(shoes);
+
+        auto shield = make_uniform_spec(item_type::SHIELD, entity_material_category::Armor);
+        if (shield) pos->equipment.uniform[uniform_category::shield].push_back(shield);
+
+        auto weapon = make_uniform_spec(item_type::WEAPON, entity_material_category::None, weapon_choice);
+        if (weapon) pos->equipment.uniform[uniform_category::weapon].push_back(weapon);
+    }
+}
+
+static void setup_squad_schedule(df::squad *squad)
+{
+    auto routine = df::allocate<df::squad_routine_schedulest>();
+    if (!routine)
+        return;
+
+    for (int month = 0; month < 12; month++)
+    {
+        auto & entry = routine->month[month];
+        entry.sleep_mode = squad_sleep_option_type::InBarracksAtWill;
+        entry.uniform_mode = squad_civilian_uniform_type::None;
+
+        auto sched_order = df::allocate<df::squad_schedule_order>();
+        if (sched_order)
+        {
+            sched_order->order = df::allocate<df::squad_order_trainst>();
+            sched_order->min_count = std::max(1, (int)squad->positions.size() / 2);
+            entry.orders.push_back(sched_order);
+        }
+    }
+
+    squad->schedule.routine.push_back(routine);
+    squad->cur_routine_idx = 0;
 }
 
 static df::squad *create_squad(color_ostream & out, AI & ai)
@@ -64,7 +151,11 @@ static df::squad *create_squad(color_ostream & out, AI & ai)
     world->squads.all.push_back(squad);
     entity->squads.push_back(squad->id);
 
-    ai.debug(out, stl_sprintf("[military] created squad id=%d", squad->id));
+    bool ranged = (entity->squads.size() % 3 == 1);
+    setup_squad_equipment(squad, ranged);
+    setup_squad_schedule(squad);
+
+    ai.debug(out, stl_sprintf("[military] created %s squad id=%d", ranged ? "ranged" : "melee", squad->id));
     return squad;
 }
 
