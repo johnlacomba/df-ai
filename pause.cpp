@@ -30,11 +30,20 @@ void AI::unpause()
         world->status.popups.clear();
     }
 
-    if (game && (game->main_interface.announcement_alert.open ||
-                 game->main_interface.diplomacy.open ||
-                 game->main_interface.petitions.open))
+    if (game && game->main_interface.announcement_alert.open)
     {
-        Gui::getCurViewscreen(true)->feed_key(interface_key::LEAVESCREEN);
+        game->main_interface.announcement_alert.open = false;
+        game->main_interface.announcement_alert.viewing_alert = nullptr;
+    }
+
+    if (game && game->main_interface.diplomacy.open)
+    {
+        game->main_interface.diplomacy.open = false;
+    }
+
+    if (game && game->main_interface.petitions.open)
+    {
+        game->main_interface.petitions.open = false;
     }
 
     if (*pause_state)
