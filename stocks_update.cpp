@@ -433,7 +433,13 @@ void Stocks::update_slabs(color_ostream & out)
                 std::vector<df::item *> item;
                 item.push_back(i);
                 Buildings::constructWithItems(bld, item);
-                ai.debug(out, "slabbing " + AI::describe_unit(df::unit::find(df::historical_figure::find(slab->topic)->unit_id)) + ": " + slab->description);
+                std::string slab_desc = "unknown";
+                if (auto *hf = df::historical_figure::find(slab->topic))
+                {
+                    if (auto *u = df::unit::find(hf->unit_id))
+                        slab_desc = AI::describe_unit(u);
+                }
+                ai.debug(out, "slabbing " + slab_desc + ": " + slab->description);
             }
         }
     }

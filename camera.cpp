@@ -347,7 +347,10 @@ std::string Camera::status()
     }
     else if (following != -1)
     {
-        s << "following " << AI::describe_unit(df::unit::find(following));
+        if (auto *u = df::unit::find(following))
+            s << "following " << AI::describe_unit(u);
+        else
+            s << "following (unit " << following << " gone)";
     }
     else
     {
@@ -362,7 +365,10 @@ std::string Camera::status()
     {
         if (!fp.empty())
             fp += "; ";
-        fp += AI::describe_unit(df::unit::find(*it));
+        if (auto *u = df::unit::find(*it))
+            fp += AI::describe_unit(u);
+        else
+            fp += "(gone)";
     }
     if (!fp.empty())
         s << " (prev: " << fp << ")";

@@ -467,7 +467,10 @@ df::building *Plan::getpasture(color_ostream & out, int32_t pet_id)
         }
     }
 
-    size_t limit = 1000 - (11 * 11 * 1000 / df::creature_raw::find(pet->race)->caste[pet->caste]->misc.grazer); // 1000 = arbitrary, based on dfwiki?pasture
+    auto *pet_raw = df::creature_raw::find(pet->race);
+    if (!pet_raw || pet->caste < 0 || pet->caste >= static_cast<int32_t>(pet_raw->caste.size()) || pet_raw->caste[pet->caste]->misc.grazer == 0)
+        return nullptr;
+    size_t limit = 1000 - (11 * 11 * 1000 / pet_raw->caste[pet->caste]->misc.grazer);
     if (room *r = ai.find_room(room_type::pasture, [limit](room *r_) -> bool
     {
         if (r_->low_grass())
@@ -478,8 +481,12 @@ df::building *Plan::getpasture(color_ostream & out, int32_t pet_id)
         for (auto it = r_->users.begin(); it != r_->users.end(); it++)
         {
             df::unit *u = df::unit::find(*it);
-            // 11*11 == pasture dimensions
-            sum += 11 * 11 * 1000 / df::creature_raw::find(u->race)->caste[u->caste]->misc.grazer;
+            if (!u)
+                continue;
+            auto *raw = df::creature_raw::find(u->race);
+            if (!raw || u->caste < 0 || u->caste >= static_cast<int32_t>(raw->caste.size()) || raw->caste[u->caste]->misc.grazer == 0)
+                continue;
+            sum += 11 * 11 * 1000 / raw->caste[u->caste]->misc.grazer;
         }
         return sum < limit;
     }))

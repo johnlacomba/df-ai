@@ -37,6 +37,8 @@ bool Population::unit_hasmilitaryduty(df::unit *u)
 int32_t Population::unit_totalxp(const df::unit *u)
 {
     int32_t t = 0;
+    if (!u->status.current_soul)
+        return t;
     for (auto sk : u->status.current_soul->skills)
     {
         int32_t rat = sk->rating;

@@ -92,7 +92,9 @@ void ManagerOrderExclusive::Run(color_ostream & out)
         if (template_equals(*it, &tmpl) && (*it)->amount_left == (*it)->amount_total)
         {
             amount += (*it)->amount_left;
+            auto *old_order = *it;
             world->manager_orders.all.erase(it);
+            delete old_order;
             break;
         }
     }
