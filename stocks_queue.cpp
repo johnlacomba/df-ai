@@ -271,9 +271,21 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
                     return bld && bld->getBuildStage() == bld->getMaxBuildStage();
                 }))
             {
-                reason << "queuing chair order via manager (no office, but using direct API)";
-                tmpl.job_type = job_type::ConstructThrone;
-                add_manager_order(out, tmpl, amount, reason);
+                reason << "creating chair order directly (manager has no office)";
+                int32_t qty = std::min(amount, 30);
+                auto order = new df::manager_order();
+                order->id = world->manager_orders.manager_order_next_id++;
+                order->job_type = job_type::ConstructThrone;
+                order->item_type = tmpl.item_type;
+                order->item_subtype = tmpl.item_subtype;
+                order->mat_type = 0;
+                order->mat_index = -1;
+                order->material_category = tmpl.material_category;
+                order->amount_left = qty;
+                order->amount_total = qty;
+                order->status.bits.validated = true;
+                world->manager_orders.all.push_back(order);
+                ai.debug(out, "add_manager_order(" + stl_sprintf("%d", qty) + ") ConstructThrone [direct, no office]");
                 return;
             }
 
