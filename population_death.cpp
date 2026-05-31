@@ -50,6 +50,11 @@ void Population::update_deads(color_ostream & out)
     {
         if (u->flags3.bits.ghostly)
         {
+            if (!seen_ghosts.count(u->id))
+            {
+                seen_ghosts.insert(u->id);
+                ai.camera.queue_event(CAMERA_TIER_FORT, Units::getPosition(u), "ghost risen: " + AI::describe_unit(u));
+            }
             ai.stocks.queue_slab(out, u->hist_figure_id);
         }
         else if (Units::isCitizen(u) && Units::isDead(u) && std::find_if(u->owned_buildings.begin(), u->owned_buildings.end(),
