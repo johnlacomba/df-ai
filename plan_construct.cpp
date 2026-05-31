@@ -176,6 +176,11 @@ bool Plan::construct_room(color_ostream & out, room *r)
 {
     ai.debug(out, "construct " + AI::describe_room(r));
 
+    if (r->type != room_type::corridor)
+    {
+        ai.camera.queue_event(CAMERA_TIER_FORT, r->pos(), "constructing: " + AI::describe_room(r));
+    }
+
     if (r->required_value > 0)
     {
         add_task(task_type::monitor_room_value, r);

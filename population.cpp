@@ -182,6 +182,7 @@ void Population::update_citizenlist(color_ostream & out)
             else
             {
                 new_citizen(out, u->id);
+                ai.camera.queue_event(CAMERA_TIER_FORT, Units::getPosition(u), "new citizen: " + AI::describe_unit(u));
 
                 if (ai.eventsJson.is_open())
                 {

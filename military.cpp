@@ -58,6 +58,7 @@ bool AI::tag_enemies(color_ostream & out)
             !Units::isOwnCiv(u) && Units::getContainer(u) == nullptr &&
             _td49 && !_td49->bits.hidden)
         {
+            camera.queue_event(CAMERA_TIER_COMBAT, Units::getPosition(u), "combat: " + AI::describe_unit(u));
             if (race && race->flags.is_set(creature_raw_flags::HAS_ANY_MEGABEAST))
             {
                 found = pop.military_all_squads_attack_unit(out, u, "primary antagonist: megabeast") || found;
