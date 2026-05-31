@@ -14,6 +14,8 @@ const int CAMERA_TIER_CITIZEN = 2;
 const int CAMERA_NUM_TIERS = 3;
 const int CAMERA_ON_SCREEN_RADIUS = 15;
 const int CAMERA_TIER_CAP = 20;
+const int CAMERA_DWELL_EVENT = 2;
+const int CAMERA_DWELL_CITIZEN = 4;
 
 struct CameraEvent
 {
@@ -30,8 +32,9 @@ class Camera
     friend class AI;
 
     std::deque<CameraEvent> tiers[CAMERA_NUM_TIERS];
-    int32_t dwell_until;
+    int32_t dwell_remaining;
     int32_t dwell_tier;
+    int32_t citizen_scan_counter;
     df::coord last_event_coord;
 
 public:

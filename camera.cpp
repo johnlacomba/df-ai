@@ -16,7 +16,6 @@
 #include "df/viewscreen_dwarfmodest.h"
 #include "df/world.h"
 
-REQUIRE_GLOBAL(cur_year_tick);
 REQUIRE_GLOBAL(gps);
 REQUIRE_GLOBAL(pause_state);
 REQUIRE_GLOBAL(plotinfo);
@@ -28,8 +27,9 @@ Camera::Camera(AI & ai) :
     onupdate_handle(nullptr),
     onstatechange_handle(nullptr),
     tiers(),
-    dwell_until(0),
+    dwell_remaining(0),
     dwell_tier(-1),
+    citizen_scan_counter(0),
     last_event_coord(),
     following(-1),
     following_prev(),
@@ -50,7 +50,7 @@ void Camera::queue_event(int tier, df::coord pos, const std::string & descriptio
     if (!td || td->bits.hidden)
         return;
     if (static_cast<int>(tiers[tier].size()) >= CAMERA_TIER_CAP)
-        tiers[tier].pop_back();
+        tiers[tier].pop_front();
     tiers[tier].push_back({ pos, description });
 }
 
@@ -132,7 +132,7 @@ void Camera::update(color_ostream &)
     }
 
     // dwell timer: hold position until dwell expires or a higher-priority event arrives
-    if (*cur_year_tick < dwell_until)
+    if (dwell_remaining > 0)
     {
         bool interrupted = false;
         for (int t = 0; t < dwell_tier; t++)
@@ -145,19 +145,24 @@ void Camera::update(color_ostream &)
             }
         }
         if (!interrupted)
+        {
+            dwell_remaining--;
             return;
+        }
+        dwell_remaining = 0;
     }
 
     // consume events: drain highest-priority tier first
+    int32_t vx, vy, vz;
+    Gui::getViewCoords(vx, vy, vz);
+
     for (int t = 0; t < CAMERA_NUM_TIERS; t++)
     {
+        bool had_events = !tiers[t].empty();
         while (!tiers[t].empty())
         {
-            CameraEvent ev = tiers[t].front();
+            CameraEvent ev = std::move(tiers[t].front());
             tiers[t].pop_front();
-
-            int32_t vx, vy, vz;
-            Gui::getViewCoords(vx, vy, vz);
 
             int32_t dx = ev.pos.x - vx;
             int32_t dy = ev.pos.y - vy;
@@ -173,7 +178,7 @@ void Camera::update(color_ostream &)
             DFAI_DEBUG(camera, 1, "panning to event: " << ev.description << " at (" << ev.pos.x << "," << ev.pos.y << "," << ev.pos.z << ")");
             Gui::revealInDwarfmodeMap(ev.pos, true);
             plotinfo->follow_unit = -1;
-            dwell_until = *cur_year_tick + 1000;
+            dwell_remaining = CAMERA_DWELL_EVENT;
             dwell_tier = t;
             last_event_coord = ev.pos;
 
@@ -182,16 +187,26 @@ void Camera::update(color_ostream &)
             world->status.flags.bits.sparring = 0;
             return;
         }
+        if (had_events)
+        {
+            dwell_remaining = CAMERA_DWELL_EVENT;
+            dwell_tier = t;
+            return;
+        }
     }
 
     // citizen fallback: all queues empty and dwell expired
     // if already following a citizen, keep following them for the full dwell period
     if (following != -1 && plotinfo->follow_unit == following)
     {
-        dwell_until = *cur_year_tick + 2000;
+        dwell_remaining = CAMERA_DWELL_CITIZEN;
         dwell_tier = CAMERA_TIER_CITIZEN;
         return;
     }
+
+    if (++citizen_scan_counter < 4)
+        return;
+    citizen_scan_counter = 0;
 
     std::vector<df::unit *> citizens;
     for (auto u : world->units.active)
@@ -282,13 +297,17 @@ void Camera::update(color_ostream &)
     }
 
     following = target->id;
+    last_event_coord = df::coord();
     DFAI_DEBUG(camera, 2, "citizen fallback: " << AI::describe_unit(target));
 
     if (!*pause_state)
     {
-        Gui::revealInDwarfmodeMap(Units::getPosition(target), true);
+        df::coord target_pos = Units::getPosition(target);
+        if (!target_pos.isValid())
+            return;
+        Gui::revealInDwarfmodeMap(target_pos, true);
         plotinfo->follow_unit = following;
-        dwell_until = *cur_year_tick + 2000;
+        dwell_remaining = CAMERA_DWELL_CITIZEN;
         dwell_tier = CAMERA_TIER_CITIZEN;
     }
 
@@ -311,9 +330,13 @@ void AI::ignore_pause(int32_t x, int32_t y, int32_t z)
     {
         if (df::unit *u = df::unit::find(camera.following))
         {
-            Gui::revealInDwarfmodeMap(Units::getPosition(u), true);
-            plotinfo->follow_unit = camera.following;
-            return;
+            df::coord pos = Units::getPosition(u);
+            if (pos.isValid())
+            {
+                Gui::revealInDwarfmodeMap(pos, true);
+                plotinfo->follow_unit = camera.following;
+                return;
+            }
         }
     }
 
@@ -341,7 +364,7 @@ std::string Camera::status()
     for (int t = 0; t < CAMERA_NUM_TIERS; t++)
         total_queued += tiers[t].size();
 
-    if (*cur_year_tick < dwell_until && dwell_tier < CAMERA_TIER_CITIZEN && last_event_coord.isValid())
+    if (dwell_remaining > 0 && dwell_tier < CAMERA_TIER_CITIZEN && last_event_coord.isValid())
     {
         s << "event at (" << last_event_coord.x << "," << last_event_coord.y << "," << last_event_coord.z << ")";
     }
