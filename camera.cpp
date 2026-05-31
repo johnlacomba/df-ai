@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "modules/Gui.h"
+#include "modules/Maps.h"
 #include "modules/Units.h"
 
 #include "df/graphic.h"
@@ -44,6 +45,9 @@ void Camera::queue_event(int tier, df::coord pos, const std::string & descriptio
     if (tier < 0 || tier >= CAMERA_NUM_TIERS)
         return;
     if (!pos.isValid())
+        return;
+    auto *td = Maps::getTileDesignation(pos);
+    if (!td || td->bits.hidden)
         return;
     if (static_cast<int>(tiers[tier].size()) >= CAMERA_TIER_CAP)
         tiers[tier].pop_back();
@@ -103,9 +107,6 @@ command_result Camera::onupdate_unregister(color_ostream &)
 
 void Camera::update_tick(color_ostream &)
 {
-    if (config.camera)
-        return;
-
     if (plotinfo->follow_unit != -1 || plotinfo->follow_item != -1)
     {
         follow_stop = false;
@@ -184,11 +185,22 @@ void Camera::update(color_ostream &)
     }
 
     // citizen fallback: all queues empty and dwell expired
+    // if already following a citizen, keep following them for the full dwell period
+    if (following != -1 && plotinfo->follow_unit == following)
+    {
+        dwell_until = *cur_year_tick + 2000;
+        dwell_tier = CAMERA_TIER_CITIZEN;
+        return;
+    }
+
     std::vector<df::unit *> citizens;
     for (auto u : world->units.active)
     {
-        if (!u->flags1.bits.inactive && Units::isCitizen(u) && !u->flags1.bits.caged)
+        if (!u->flags1.bits.inactive && Units::isCitizen(u) && !Units::isBaby(u) && !u->flags1.bits.caged)
         {
+            auto *td = Maps::getTileDesignation(Units::getPosition(u));
+            if (!td || td->bits.hidden)
+                continue;
             citizens.push_back(u);
         }
     }
@@ -274,14 +286,9 @@ void Camera::update(color_ostream &)
 
     if (!*pause_state)
     {
-        df::coord upos = Units::getPosition(target);
-        if (upos.isValid())
-        {
-            Gui::revealInDwarfmodeMap(upos, true);
-            last_event_coord = upos;
-        }
-        plotinfo->follow_unit = -1;
-        dwell_until = *cur_year_tick + 500;
+        Gui::revealInDwarfmodeMap(Units::getPosition(target), true);
+        plotinfo->follow_unit = following;
+        dwell_until = *cur_year_tick + 2000;
         dwell_tier = CAMERA_TIER_CITIZEN;
     }
 
@@ -300,15 +307,25 @@ void AI::ignore_pause(int32_t x, int32_t y, int32_t z)
         return;
     }
 
+    if (camera.following != -1 && camera.dwell_tier == CAMERA_TIER_CITIZEN)
+    {
+        if (df::unit *u = df::unit::find(camera.following))
+        {
+            Gui::revealInDwarfmodeMap(Units::getPosition(u), true);
+            plotinfo->follow_unit = camera.following;
+            return;
+        }
+    }
+
     if (camera.last_event_coord.isValid())
     {
         Gui::revealInDwarfmodeMap(camera.last_event_coord, true);
+        plotinfo->follow_unit = -1;
     }
     else
     {
         Gui::setViewCoords(x, y, z);
     }
-    plotinfo->follow_unit = -1;
 }
 
 std::string Camera::status()
@@ -324,23 +341,31 @@ std::string Camera::status()
     for (int t = 0; t < CAMERA_NUM_TIERS; t++)
         total_queued += tiers[t].size();
 
-    if (*cur_year_tick < dwell_until && last_event_coord.isValid())
+    if (*cur_year_tick < dwell_until && dwell_tier < CAMERA_TIER_CITIZEN && last_event_coord.isValid())
     {
-        s << "dwelling at (" << last_event_coord.x << "," << last_event_coord.y << "," << last_event_coord.z << ")";
-        if (total_queued > 0)
-            s << " [" << total_queued << " queued]";
+        s << "event at (" << last_event_coord.x << "," << last_event_coord.y << "," << last_event_coord.z << ")";
     }
     else if (following != -1)
     {
-        s << "idle (citizen fallback: " << AI::describe_unit(df::unit::find(following)) << ")";
+        s << "following " << AI::describe_unit(df::unit::find(following));
     }
     else
     {
         s << "idle";
     }
 
-    if (total_queued > 0 && !(*cur_year_tick < dwell_until))
+    if (total_queued > 0)
         s << " [" << total_queued << " queued]";
+
+    std::string fp;
+    for (auto it = following_prev.begin(); it != following_prev.end(); it++)
+    {
+        if (!fp.empty())
+            fp += "; ";
+        fp += AI::describe_unit(df::unit::find(*it));
+    }
+    if (!fp.empty())
+        s << " (prev: " << fp << ")";
 
     return s.str();
 }

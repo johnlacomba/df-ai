@@ -240,6 +240,10 @@ void Population::update_citizenlist(color_ostream & out)
     for (auto it : old)
     {
         // u.counters.death_tg.flags.discovered dead/missing
+        if (df::unit *u = df::unit::find(it))
+        {
+            ai.camera.queue_event(CAMERA_TIER_FORT, Units::getPosition(u), "citizen lost: " + AI::describe_unit(u));
+        }
         del_citizen(out, it);
 
         if (ai.eventsJson.is_open())

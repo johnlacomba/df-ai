@@ -52,6 +52,7 @@ private:
     size_t seen_death;
     OnupdateCallback *deathwatch_handle;
     std::set<int32_t> medic;
+    std::set<int32_t> seen_ghosts;
     std::map<int32_t, df::mood_type> moody;
     std::set<int32_t> artifacts;
     std::vector<int32_t> workers;
