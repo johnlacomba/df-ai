@@ -196,6 +196,7 @@ void Plan::update(color_ostream & out)
                 {
                     ai.debug(out, "[plan_update] direct digroom: " + AI::describe_room(t->r));
                     digroom(out, t->r);
+                    ai.camera.queue_event(CAMERA_TIER_FORT, t->r->pos(), "designating: " + AI::describe_room(t->r));
                     delete t;
                     it = tasks_generic.erase(it);
                 }
@@ -622,6 +623,7 @@ bool Plan::rescue_caged(color_ostream & out, room *r, furniture *f, int32_t item
     }
     DFAI_ASSERT(lever->trap_type == trap_type::Lever, "lever is trap_type::" + enum_item_key(lever->trap_type));
 
+    ai.camera.queue_event(CAMERA_TIER_FORT, cage->pos, "creature caged: " + AI::describe_unit(prisoner));
     reason << "freeing " << AI::describe_unit(prisoner) << ": ";
 
     // step 1: someone's trapped in a cage. check for a free tile in the "release zone"
