@@ -217,6 +217,8 @@ public:
                 world->history.events.push_back(event);
             }
 
+            entity->assignments_by_type[responsibility].push_back(asn);
+
             if (bookkeeper)
                 plotinfo->nobles.bookkeeper_settings = static_cast<df::record_precision_level_type>(4);
 
