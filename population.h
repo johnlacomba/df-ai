@@ -61,6 +61,16 @@ private:
     bool did_trade;
     int32_t trade_start_x, trade_start_y, trade_start_z;
 
+    enum trade_state_t
+    {
+        TRADE_IDLE,
+        TRADE_MOVING_GOODS,
+        TRADE_AWAITING_BROKER,
+        TRADE_TRADING
+    };
+    trade_state_t trade_state;
+    std::set<int32_t> trade_designated_items;
+
     struct squad_order_change
     {
         enum order_type
