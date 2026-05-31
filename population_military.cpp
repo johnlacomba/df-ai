@@ -100,18 +100,23 @@ static void setup_squad_schedule(df::squad *squad)
 
     if (routines.empty())
     {
-        auto routine = new df::squad_routine_schedulest();
+        auto routine = df::allocate<df::squad_routine_schedulest>();
+        if (!routine)
+            return;
         for (int month = 0; month < 12; month++)
         {
-            new (&routine->month[month]) df::squad_schedule_entry;
             for (int j = 0; j < squad_size; j++)
             {
-                auto oa = new df::squad_month_positionst();
+                auto oa = df::allocate<df::squad_month_positionst>();
+                if (!oa)
+                    continue;
                 oa->assigned_order_idx = -1;
                 routine->month[month].order_assignments.push_back(oa);
             }
 
-            auto order = new df::squad_schedule_order();
+            auto order = df::allocate<df::squad_schedule_order>();
+            if (!order)
+                continue;
             order->min_count = squad_size;
             order->positions.resize(squad_size);
             auto train = df::allocate<df::squad_order_trainst>();
@@ -129,16 +134,18 @@ static void setup_squad_schedule(df::squad *squad)
 
     for (size_t ri = 0; ri < routines.size(); ri++)
     {
-        auto routine = new df::squad_routine_schedulest();
+        auto routine = df::allocate<df::squad_routine_schedulest>();
+        if (!routine)
+            continue;
         auto & asched = routine->month;
 
         for (int month = 0; month < 12; month++)
         {
-            new (&asched[month]) df::squad_schedule_entry;
-
             for (int j = 0; j < squad_size; j++)
             {
-                auto oa = new df::squad_month_positionst();
+                auto oa = df::allocate<df::squad_month_positionst>();
+                if (!oa)
+                    continue;
                 oa->assigned_order_idx = -1;
                 asched[month].order_assignments.push_back(oa);
             }
@@ -157,7 +164,9 @@ static void setup_squad_schedule(df::squad *squad)
             for (int i = 0; i < count; i++)
             {
                 int month = (start + i) % 12;
-                auto order = new df::squad_schedule_order();
+                auto order = df::allocate<df::squad_schedule_order>();
+                if (!order)
+                    continue;
                 order->min_count = squad_size;
                 order->positions.resize(squad_size);
 
@@ -237,7 +246,9 @@ static void link_squad_to_position(color_ostream & out, AI & ai, df::squad *squa
 
     if (!asn)
     {
-        asn = new df::entity_position_assignment();
+        asn = df::allocate<df::entity_position_assignment>();
+        if (!asn)
+            return;
         int32_t max_id = 0;
         for (auto a : entity->positions.assignments)
         {
@@ -322,7 +333,8 @@ static bool is_noble_excluded(df::unit *u)
     {
         if (pos.position->responsibilities[entity_position_responsibility::ACCOUNTING] ||
             pos.position->responsibilities[entity_position_responsibility::MANAGE_PRODUCTION] ||
-            pos.position->responsibilities[entity_position_responsibility::TRADE])
+            pos.position->responsibilities[entity_position_responsibility::TRADE] ||
+            pos.position->responsibilities[entity_position_responsibility::HEALTH_MANAGEMENT])
         {
             return true;
         }
