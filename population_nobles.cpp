@@ -6,9 +6,6 @@
 #include "modules/Units.h"
 
 #include "df/entity_position_assignment.h"
-#include "df/histfig_entity_link_positionst.h"
-#include "df/history_event_add_hf_entity_linkst.h"
-#include "df/history_event_remove_hf_entity_linkst.h"
 #include "df/unit.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
@@ -19,9 +16,7 @@
 #include "df/unit_soul.h"
 #include "df/world.h"
 
-REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(cur_year_tick);
-REQUIRE_GLOBAL(hist_event_next_id);
 REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
@@ -67,7 +62,6 @@ public:
     void Run(color_ostream & out)
     {
         bool bookkeeper = responsibility == entity_position_responsibility::ACCOUNTING;
-        auto entity = plotinfo->main.fortress_entity;
 
         std::vector<df::unit *> candidates;
         for (auto u : world->units.active)
@@ -90,141 +84,34 @@ public:
             return ai.pop.unit_totalxp(a) > ai.pop.unit_totalxp(b);
         });
 
-        // find a position definition with this responsibility
-        df::entity_position *target_pos = nullptr;
-        for (auto pos : entity->positions.own)
+        for (auto asn : plotinfo->main.fortress_entity->positions.assignments)
         {
-            if (pos && pos->responsibilities[responsibility])
-            {
-                target_pos = pos;
-                break;
-            }
-        }
-        if (!target_pos)
-        {
-            ai.debug(out, "No position definition with responsibility " + enum_item_key(responsibility));
-            return;
-        }
-
-        // find an existing vacant assignment for this position, or create one
-        df::entity_position_assignment *asn = nullptr;
-        for (auto a : entity->positions.assignments)
-        {
-            if (!a)
-                continue;
-            if (a->position_id != target_pos->id)
-                continue;
-            auto hf = df::historical_figure::find(a->histfig);
-            if (hf && hf->died_year == -1)
-            {
-                // position held by a living person — already filled
-                ai.debug(out, enum_item_key(responsibility) + " position already held by " + AI::describe_unit(df::unit::find(hf->unit_id)));
-                return;
-            }
-            asn = a;
-            break;
-        }
-
-        if (!asn)
-        {
-            asn = new df::entity_position_assignment();
             if (!asn)
+                continue;
+
+            auto position = binsearch_in_vector(plotinfo->main.fortress_entity->positions.own, asn->position_id);
+            if (!position || !position->responsibilities[responsibility])
+                continue;
+
+            auto hf = df::historical_figure::find(asn->histfig);
+            if (hf && hf->died_year == -1)
+                continue;
+
+            for (auto candidate : candidates)
+            {
+                if (candidate->hist_figure_id == -1)
+                    continue;
+
+                ai.debug(out, "Appointing " + AI::describe_unit(candidate) + " as " + position->name[0]);
+                asn->histfig = candidate->hist_figure_id;
+
+                if (bookkeeper)
+                    plotinfo->nobles.bookkeeper_settings = static_cast<df::record_precision_level_type>(4);
+
                 return;
-            int32_t max_id = 0;
-            for (auto a : entity->positions.assignments)
-            {
-                if (a && a->id >= max_id)
-                    max_id = a->id + 1;
             }
-            asn->id = max_id;
-            asn->position_id = target_pos->id;
-            asn->histfig = -1;
-            asn->histfig2 = -1;
-            entity->positions.assignments.push_back(asn);
-            ai.debug(out, "Created assignment slot for " + target_pos->name[0]);
         }
-
-        for (auto candidate : candidates)
-        {
-            if (candidate->hist_figure_id == -1)
-                continue;
-
-            auto hf = df::historical_figure::find(candidate->hist_figure_id);
-            if (!hf)
-                continue;
-
-            ai.debug(out, "Appointing " + AI::describe_unit(candidate) + " as " + target_pos->name[0]);
-
-            // clean up old histfig's position link if assignment was previously held
-            if (asn->histfig != -1)
-            {
-                if (auto old_hf = df::historical_figure::find(asn->histfig))
-                {
-                    for (size_t i = 0; i < old_hf->entity_links.size(); i++)
-                    {
-                        if (old_hf->entity_links[i]->getType() != df::histfig_entity_link_type::POSITION)
-                            continue;
-                        auto pos_link = strict_virtual_cast<df::histfig_entity_link_positionst>(old_hf->entity_links[i]);
-                        if (pos_link && pos_link->assignment_id == asn->id && pos_link->entity_id == entity->id)
-                        {
-                            old_hf->entity_links.erase(old_hf->entity_links.begin() + i);
-                            delete pos_link;
-                            break;
-                        }
-                    }
-
-                    auto remove_event = df::allocate<df::history_event_remove_hf_entity_linkst>();
-                    if (remove_event)
-                    {
-                        remove_event->id = (*hist_event_next_id)++;
-                        remove_event->year = *cur_year;
-                        remove_event->seconds = *cur_year_tick;
-                        remove_event->civ = entity->id;
-                        remove_event->histfig = old_hf->id;
-                        remove_event->link_type = df::histfig_entity_link_type::POSITION;
-                        remove_event->position_id = target_pos->id;
-                        world->history.events.push_back(remove_event);
-                    }
-                }
-            }
-
-            asn->histfig = candidate->hist_figure_id;
-
-            // create position link on the new histfig
-            auto link = df::allocate<df::histfig_entity_link_positionst>();
-            if (link)
-            {
-                link->entity_id = entity->id;
-                link->assignment_id = asn->id;
-                link->start_year = *cur_year;
-                link->link_strength = 100;
-                hf->entity_links.push_back(link);
-            }
-
-            // generate history event so DF's internal state stays consistent
-            auto event = df::allocate<df::history_event_add_hf_entity_linkst>();
-            if (event)
-            {
-                event->id = (*hist_event_next_id)++;
-                event->year = *cur_year;
-                event->seconds = *cur_year_tick;
-                event->civ = entity->id;
-                event->histfig = hf->id;
-                event->link_type = df::histfig_entity_link_type::POSITION;
-                event->position_id = target_pos->id;
-                event->appointer_hfid = -1;
-                event->promise_to_hfid = -1;
-                world->history.events.push_back(event);
-            }
-
-            entity->assignments_by_type[responsibility].push_back(asn);
-
-            if (bookkeeper)
-                plotinfo->nobles.bookkeeper_settings = static_cast<df::record_precision_level_type>(4);
-
-            return;
-        }
-        ai.debug(out, "Could not find eligible candidate for " + enum_item_key(responsibility));
+        ai.debug(out, "Could not find position for " + enum_item_key(responsibility));
     }
 };
 
