@@ -8,6 +8,7 @@
 #include "df/entity_position_assignment.h"
 #include "df/histfig_entity_link_positionst.h"
 #include "df/history_event_add_hf_entity_linkst.h"
+#include "df/history_event_remove_hf_entity_linkst.h"
 #include "df/unit.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
@@ -126,8 +127,9 @@ public:
 
         if (!asn)
         {
-            // no assignment slot exists — create one
             asn = new df::entity_position_assignment();
+            if (!asn)
+                return;
             int32_t max_id = 0;
             for (auto a : entity->positions.assignments)
             {
@@ -169,6 +171,19 @@ public:
                             delete pos_link;
                             break;
                         }
+                    }
+
+                    auto remove_event = df::allocate<df::history_event_remove_hf_entity_linkst>();
+                    if (remove_event)
+                    {
+                        remove_event->id = (*hist_event_next_id)++;
+                        remove_event->year = *cur_year;
+                        remove_event->seconds = *cur_year_tick;
+                        remove_event->civ = entity->id;
+                        remove_event->histfig = old_hf->id;
+                        remove_event->link_type = df::histfig_entity_link_type::POSITION;
+                        remove_event->position_id = target_pos->id;
+                        world->history.events.push_back(remove_event);
                     }
                 }
             }
