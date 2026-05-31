@@ -67,7 +67,8 @@ Population::Population(AI & ai) :
     seen_badwork(),
     last_checked_crime_year(-1),
     last_checked_crime_tick(-1),
-    did_trade(false)
+    did_trade(false),
+    trade_state(TRADE_IDLE)
 {
 }
 

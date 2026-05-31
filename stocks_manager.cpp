@@ -113,6 +113,7 @@ void ManagerOrderExclusive::Run(color_ostream & out)
     order->material_category = tmpl.material_category;
     order->amount_left = qty;
     order->amount_total = qty;
+    order->status.bits.validated = true;
     world->manager_orders.all.push_back(order);
 
     ai.debug(out, "add_manager_order(" + stl_sprintf("%d", qty) + ") " + AI::describe_job(&tmpl));
