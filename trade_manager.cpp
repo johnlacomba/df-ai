@@ -1,5 +1,4 @@
 #include "ai.h"
-#include "camera.h"
 #include "population.h"
 #include "stocks.h"
 #include "trade.h"
@@ -45,7 +44,6 @@ void Population::update_trading(color_ostream & out)
             return;
 
         ai.debug(out, "trade: caravan detected, moving goods to depot");
-        ai.camera.queue_event(CAMERA_TIER_FORT, depot_room->pos(), "caravan arriving at depot");
         trade_state = TRADE_MOVING_GOODS;
         trade_designated_items.clear();
         break;

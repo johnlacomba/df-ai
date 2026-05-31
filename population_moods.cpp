@@ -57,7 +57,6 @@ void Population::update_moods(color_ostream & out)
 
         moody[u->id] = u->mood;
         ai.debug(out, "[moods] " + AI::describe_unit(u) + " entered " + enum_item_key(u->mood) + " mood");
-        ai.camera.queue_event(CAMERA_TIER_FORT, Units::getPosition(u), "strange mood: " + AI::describe_unit(u));
 
         unforbid_mood_materials(out);
     }
