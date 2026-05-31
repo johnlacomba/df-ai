@@ -209,12 +209,19 @@ void Population::update_citizenlist(color_ostream & out)
                 // http://www.bay12games.com/dwarves/mantisbt/view.php?id=5551
                 ai.debug(out, "[DF Bug 5551] reuniting mother (" + AI::describe_unit(mother) + ") with infant (" + AI::describe_unit(u) + ")");
                 auto seek_infant = df::allocate<df::job>();
+                auto unit_infant = df::allocate<df::general_ref_unit_infantst>();
+                auto unit_worker = df::allocate<df::general_ref_unit_workerst>();
+                if (!seek_infant || !unit_infant || !unit_worker)
+                {
+                    delete seek_infant;
+                    delete unit_infant;
+                    delete unit_worker;
+                    continue;
+                }
                 seek_infant->job_type = job_type::SeekInfant;
                 seek_infant->flags.bits.special = 1;
-                auto unit_infant = df::allocate<df::general_ref_unit_infantst>();
                 unit_infant->unit_id = u->id;
                 seek_infant->general_refs.push_back(unit_infant);
-                auto unit_worker = df::allocate<df::general_ref_unit_workerst>();
                 unit_worker->unit_id = mother->id;
                 seek_infant->general_refs.push_back(unit_worker);
                 Job::linkIntoWorld(seek_infant);
@@ -434,6 +441,8 @@ void Population::report(std::ostream & out, bool html)
     for (auto sqid : plotinfo->main.fortress_entity->squads)
     {
         df::squad *sq = df::squad::find(sqid);
+        if (!sq)
+            continue;
 
         if (html)
         {

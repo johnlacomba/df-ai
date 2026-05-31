@@ -331,7 +331,10 @@ std::string Camera::status()
         {
             fp += "; ";
         }
-        fp += AI::describe_unit(df::unit::find(*it));
+        if (auto *u = df::unit::find(*it))
+            fp += AI::describe_unit(u);
+        else
+            fp += "(gone)";
     }
     if (!fp.empty())
     {
