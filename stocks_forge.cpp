@@ -100,6 +100,15 @@ bool Stocks::queue_need_forge(color_ostream & out, df::material_flags preference
             cnt -= mo->amount_left;
         }
     }
+    events.each_exclusive<ManagerOrderExclusive>([&cnt, job, item_type, item_subtype](const ManagerOrderExclusive *excl) -> bool
+    {
+        if (excl->tmpl.job_type == job && excl->tmpl.item_type == item_type && excl->tmpl.item_subtype == item_subtype && excl->tmpl.material_category.whole == 0)
+        {
+            cnt -= excl->amount;
+        }
+        return false;
+    });
+
     std::map<int32_t, int32_t> bars = ingots;
 
     // rough account of already queued jobs consumption
@@ -111,6 +120,16 @@ bool Stocks::queue_need_forge(color_ostream & out, df::material_flags preference
             coal_bars -= mo->amount_left;
         }
     }
+    events.each_exclusive<ManagerOrderExclusive>([&bars, &coal_bars](const ManagerOrderExclusive *excl) -> bool
+    {
+        if (excl->tmpl.mat_type == 0 && bars.count(excl->tmpl.mat_index))
+        {
+            bars[excl->tmpl.mat_index] -= excl->amount;
+            coal_bars -= excl->amount;
+        }
+        return false;
+    });
+
     std::map<int32_t, int32_t> potential_bars = bars;
     if (ai.plan.should_search_for_metal)
     {
@@ -387,6 +406,20 @@ int32_t Stocks::may_forge_bars(color_ostream & out, int32_t mat_index, std::ostr
                     }
                 }
 
+                if (!already_making)
+                {
+                    already_making = events.each_exclusive<ManagerOrderExclusive>([&reason, r, mat_index](const ManagerOrderExclusive *excl) -> bool
+                    {
+                        if (excl->tmpl.job_type == job_type::CustomReaction && excl->tmpl.reaction_name == r->code)
+                        {
+                            reason << "already smelting " << MaterialInfo(0, mat_index).toString() << ": " << AI::describe_job(&excl->tmpl) << " (" << excl->amount << " remaining)\n";
+                            return true;
+                        }
+
+                        return false;
+                    });
+                }
+
                 if (already_making)
                 {
                     return prod_mult * can_reaction;
@@ -451,6 +484,19 @@ void Stocks::queue_use_metal_ore(color_ostream & out, int32_t amount, std::ostre
             return;
         }
     }
+    if (events.each_exclusive<ManagerOrderExclusive>([&reason](const ManagerOrderExclusive *excl) -> bool
+    {
+        if (excl->tmpl.job_type == job_type::SmeltOre)
+        {
+            reason << "already smelting ore: " << AI::describe_job(&excl->tmpl) << " (" << excl->amount << " remaining)";
+            return true;
+        }
+        return false;
+    }))
+    {
+        return;
+    }
+
     df::item *base = nullptr;
     for (auto i : world->items.other[items_other_id::BOULDER])
     {
@@ -513,6 +559,19 @@ void Stocks::queue_use_raw_coke(color_ostream & out, int32_t amount, std::ostrea
             return;
         }
     }
+    if (events.each_exclusive<ManagerOrderExclusive>([this, &reason](const ManagerOrderExclusive *excl) -> bool
+    {
+        if (excl->tmpl.job_type == job_type::CustomReaction && raw_coke_inv.count(excl->tmpl.reaction_name))
+        {
+            reason << "already using raw coke: " << AI::describe_job(&excl->tmpl) << " (" << excl->amount << " remaining)";
+            return true;
+        }
+        return false;
+    }))
+    {
+        return;
+    }
+
     std::string reaction;
     df::item *base = nullptr;
     for (auto i : world->items.other[items_other_id::BOULDER])

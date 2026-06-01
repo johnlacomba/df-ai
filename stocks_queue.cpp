@@ -4,12 +4,10 @@
 
 #include "Error.h"
 
-#include "modules/Job.h"
 #include "modules/Units.h"
 
 #include "df/building_furnacest.h"
 #include "df/building_workshopst.h"
-#include "df/general_ref_building_holderst.h"
 #include "df/buildings_other_id.h"
 #include "df/caste_raw.h"
 #include "df/creature_raw.h"
@@ -23,34 +21,6 @@
 
 REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(world);
-
-static bool manager_has_office(AI & ai)
-{
-    return ai.find_room(room_type::nobleroom, [&ai](room *r) -> bool
-    {
-        if (r->nobleroom_type != nobleroom_type::office)
-            return false;
-
-        auto bld = r->dfbuilding();
-        if (!bld || bld->getBuildStage() < bld->getMaxBuildStage())
-            return false;
-
-        if (auto owner = df::unit::find(r->owner))
-        {
-            std::vector<Units::NoblePosition> positions;
-            if (Units::getNoblePositions(&positions, owner))
-            {
-                for (auto pos : positions)
-                {
-                    if (pos.position->responsibilities[entity_position_responsibility::MANAGE_PRODUCTION])
-                        return true;
-                }
-            }
-        }
-
-        return false;
-    });
-}
 
 // make it so the stocks of 'what' rises by 'amount'
 void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amount, std::ostream & reason)
@@ -262,57 +232,54 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
     {
         tmpl.job_type = job_type::ConstructThrone;
         tmpl.mat_type = 0;
-        if (!manager_has_office(ai) && count_free.at(stock_item::chair) == 0)
-        {
-            room *mason_room = ai.find_room(room_type::workshop, [](room *r) -> bool
+        if (ai.find_room(room_type::nobleroom, [](room* r) -> bool
             {
-                if (r->workshop_type != workshop_type::Masons)
-                    return false;
-                auto bld = r->dfbuilding();
-                return bld && bld->getBuildStage() == bld->getMaxBuildStage();
-            });
-
-            if (mason_room)
-            {
-                auto wbld = virtual_cast<df::building_workshopst>(mason_room->dfbuilding());
-                if (wbld)
+                if (r->nobleroom_type != nobleroom_type::office || r->dfbuilding())
                 {
-                    bool already_queued = false;
-                    for (auto job : wbld->jobs)
+                    return false;
+                }
+
+                if (auto owner = df::unit::find(r->owner))
+                {
+                    std::vector<Units::NoblePosition> positions;
+                    if (Units::getNoblePositions(&positions, owner))
                     {
-                        if (job->job_type == job_type::ConstructThrone)
+                        for (auto pos : positions)
                         {
-                            already_queued = true;
-                            break;
+                            if (pos.position->responsibilities[entity_position_responsibility::MANAGE_PRODUCTION])
+                            {
+                                return true;
+                            }
                         }
+                    }
+                }
+
+                return false;
+            }))
+        {
+            // the manager doesn't have an office, which requires a chair.
+            // assign the job directly at the workshop.
+
+            if (ai.find_room(room_type::workshop, [](room* r) -> bool
+                {
+                    if (r->workshop_type != workshop_type::Masons)
+                    {
+                        return false;
                     }
 
-                    if (!already_queued && wbld->jobs.size() < 10)
-                    {
-                        auto ref = df::allocate<df::general_ref_building_holderst>();
-                        auto job = df::allocate<df::job>();
-                        if (ref && job)
-                        {
-                            ref->building_id = wbld->id;
-                            job->job_type = job_type::ConstructThrone;
-                            job->mat_type = 0;
-                            job->mat_index = -1;
-                            job->pos = df::coord(wbld->x1, wbld->y1, wbld->z);
-                            job->general_refs.push_back(ref);
-                            wbld->jobs.push_back(job);
-                            Job::linkIntoWorld(job);
-                            reason << "created chair job directly at mason workshop (bootstrapping manager office)";
-                            ai.debug(out, "bootstrap: created chair job at mason workshop [no manager office]");
-                        }
-                        else
-                        {
-                            delete ref;
-                            delete job;
-                        }
-                    }
-                    return;
-                }
+                    auto bld = r->dfbuilding();
+                    return bld && bld->getBuildStage() == bld->getMaxBuildStage();
+                }))
+            {
+                reason << "queuing chair order via manager (no office, but using direct API)";
+                tmpl.job_type = job_type::ConstructThrone;
+                add_manager_order(out, tmpl, amount, reason);
+                return;
             }
+
+            // we're screwed. for now, at least.
+            reason << "manager does not have an office and no mason workshop available";
+            return;
         }
         break;
     }
@@ -355,10 +322,13 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
     case stock_item::crafts:
     {
         tmpl.job_type = job_type::MakeCrafts;
-        tmpl.mat_type = 0;
-        if (ai.trade.caravan_is_near() && count_free.at(stock_item::stone) > 20)
+        if (count_free.at(stock_item::stone) > count_free.at(stock_item::wood))
         {
-            amount *= 3;
+            tmpl.mat_type = 0;
+        }
+        else
+        {
+            tmpl.material_category.bits.wood = 1;
         }
         break;
     }
@@ -1114,6 +1084,18 @@ void Stocks::queue_use_gems(color_ostream & out, int32_t amount, std::ostream & 
             reason << "there is already a manager order to cut gems: " << AI::describe_job(mo) << " (" << mo->amount_left << " remaining)";
             return;
         }
+    }
+    if (events.each_exclusive<ManagerOrderExclusive>([&reason](const ManagerOrderExclusive *excl) -> bool
+    {
+        if (excl->tmpl.job_type == job_type::CutGems)
+        {
+            reason << "there is already a manager order to cut gems: " << AI::describe_job(&excl->tmpl) << " (" << excl->amount << " remaining)";
+            return true;
+        }
+        return false;
+    }))
+    {
+        return;
     }
 
     df::item *base = nullptr;

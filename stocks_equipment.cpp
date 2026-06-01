@@ -1,5 +1,6 @@
 #include "ai.h"
 #include "stocks.h"
+#include "event_manager.h"
 
 #include "modules/Materials.h"
 
@@ -85,6 +86,15 @@ void Stocks::queue_need_weapon(color_ostream & out, stock_item::item stock_item,
                     cnt -= mo->amount_left;
                 }
             }
+            events.each_exclusive<ManagerOrderExclusive>([&cnt, idef](const ManagerOrderExclusive *excl) -> bool
+            {
+                if (excl->tmpl.job_type == job_type::MakeWeapon && excl->tmpl.item_subtype == idef->subtype)
+                {
+                    cnt -= excl->amount;
+                }
+                return false;
+            });
+
             if (cnt <= 0)
             {
                 reason << "already have manager order for " << idef->name << "\n";
@@ -183,6 +193,15 @@ static void queue_need_armor_helper(AI & ai, color_ostream & out, stock_item::it
                 cnt -= mo->amount_total * div;
             }
         }
+        events.each_exclusive<ManagerOrderExclusive>([&cnt, job, idef, div](const ManagerOrderExclusive *excl) -> bool
+        {
+            if (excl->tmpl.job_type == job && excl->tmpl.item_subtype == idef->subtype)
+            {
+                cnt -= excl->amount * div;
+            }
+            return false;
+        });
+
         if (cnt <= 0)
         {
             reason << "already have manager order for " << idef->name << "\n";
@@ -315,6 +334,27 @@ static void queue_need_clothes_helper(AI & ai, color_ostream & out, stock_item::
                 }
             }
         }
+        events.each_exclusive<ManagerOrderExclusive>([&](const ManagerOrderExclusive *excl) -> bool
+        {
+            if (excl->tmpl.job_type == job && excl->tmpl.item_subtype == idef->subtype)
+            {
+                cnt -= excl->amount;
+
+                if (first_def)
+                {
+                    first_def = false;
+
+                    if (first)
+                    {
+                        first = false;
+                    }
+
+                    reason << "already have manager order for " << idef->name << "\n";
+                }
+            }
+
+            return false;
+        });
         // TODO subtract available_cloth too
 
         cnt /= div;
