@@ -1,6 +1,5 @@
 #include "ai.h"
 #include "stocks.h"
-#include "event_manager.h"
 
 #include "df/manager_order.h"
 #include "df/manager_order_template.h"
@@ -18,16 +17,6 @@ int32_t Stocks::count_manager_orders_matcat(const df::job_material_category & ma
             cnt += mo->amount_left;
         }
     }
-    events.each_exclusive<ManagerOrderExclusive>([&cnt, matcat, order](const ManagerOrderExclusive *excl) -> bool
-    {
-        if (excl->tmpl.material_category.whole == matcat.whole && excl->tmpl.job_type != order)
-        {
-            cnt += excl->amount;
-        }
-
-        return false;
-    });
-
     return cnt;
 }
 
@@ -46,7 +35,6 @@ static bool template_equals(const T *a, const df::manager_order_template *b)
         return false;
     if (a->mat_index != b->mat_index)
         return false;
-    // manager_order_template::item_category and hist_figure_id removed in Steam DF
     if (a->material_category.whole != b->material_category.whole)
         return false;
     return true;
@@ -63,60 +51,8 @@ int32_t Stocks::count_manager_orders(color_ostream &, const df::manager_order_te
             amount += mo->amount_left;
         }
     }
-    events.each_exclusive<ManagerOrderExclusive>([&amount, tmpl](const ManagerOrderExclusive *excl) -> bool
-    {
-        if (template_equals(&excl->tmpl, &tmpl))
-        {
-            amount += excl->amount;
-        }
-
-        return false;
-    });
 
     return amount;
-}
-
-ManagerOrderExclusive::ManagerOrderExclusive(AI & ai, const df::manager_order_template & tmpl, int32_t amount)
-    : ExclusiveCallback{ "add_manager_order: " + AI::describe_job(&tmpl) },
-    ai(ai),
-    tmpl(tmpl),
-    amount(amount),
-    search_word()
-{
-}
-
-void ManagerOrderExclusive::Run(color_ostream & out)
-{
-    for (auto it = world->manager_orders.all.begin(); it != world->manager_orders.all.end(); it++)
-    {
-        if (template_equals(*it, &tmpl) && (*it)->amount_left == (*it)->amount_total)
-        {
-            amount += (*it)->amount_left;
-            auto *old_order = *it;
-            world->manager_orders.all.erase(it);
-            delete old_order;
-            break;
-        }
-    }
-
-    int32_t qty = std::min(amount, 9999);
-
-    auto order = new df::manager_order();
-    order->id = world->manager_orders.manager_order_next_id++;
-    order->job_type = tmpl.job_type;
-    order->reaction_name = tmpl.reaction_name;
-    order->item_type = tmpl.item_type;
-    order->item_subtype = tmpl.item_subtype;
-    order->mat_type = tmpl.mat_type;
-    order->mat_index = tmpl.mat_index;
-    // manager_order::item_category and hist_figure_id removed in Steam DF
-    order->material_category = tmpl.material_category;
-    order->amount_left = qty;
-    order->amount_total = qty;
-    order->status.bits.validated = true;
-    world->manager_orders.all.push_back(order);
-
-    ai.debug(out, "add_manager_order(" + stl_sprintf("%d", qty) + ") " + AI::describe_job(&tmpl));
 }
 
 void Stocks::add_manager_order(color_ostream & out, const df::manager_order_template & tmpl, int32_t amount)
@@ -146,6 +82,34 @@ void Stocks::add_manager_order(color_ostream & out, const df::manager_order_temp
         return;
     }
 
-    reason << "queued manager order (" << amount << "): " << AI::describe_job(&tmpl);
-    events.queue_exclusive(std::make_unique<ManagerOrderExclusive>(ai, tmpl, amount));
+    for (auto it = world->manager_orders.all.begin(); it != world->manager_orders.all.end(); it++)
+    {
+        if (template_equals(*it, &tmpl) && (*it)->amount_left == (*it)->amount_total)
+        {
+            amount += (*it)->amount_left;
+            auto *old_order = *it;
+            world->manager_orders.all.erase(it);
+            delete old_order;
+            break;
+        }
+    }
+
+    int32_t qty = std::min(amount, 9999);
+
+    auto order = new df::manager_order();
+    order->id = world->manager_orders.manager_order_next_id++;
+    order->job_type = tmpl.job_type;
+    order->reaction_name = tmpl.reaction_name;
+    order->item_type = tmpl.item_type;
+    order->item_subtype = tmpl.item_subtype;
+    order->mat_type = tmpl.mat_type;
+    order->mat_index = tmpl.mat_index;
+    order->material_category = tmpl.material_category;
+    order->amount_left = qty;
+    order->amount_total = qty;
+    order->status.bits.validated = true;
+    world->manager_orders.all.push_back(order);
+
+    reason << "add_manager_order (" << qty << "): " << AI::describe_job(&tmpl);
+    ai.debug(out, "add_manager_order(" + stl_sprintf("%d", qty) + ") " + AI::describe_job(&tmpl));
 }

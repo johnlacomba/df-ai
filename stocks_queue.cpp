@@ -1094,18 +1094,6 @@ void Stocks::queue_use_gems(color_ostream & out, int32_t amount, std::ostream & 
             return;
         }
     }
-    if (events.each_exclusive<ManagerOrderExclusive>([&reason](const ManagerOrderExclusive *excl) -> bool
-    {
-        if (excl->tmpl.job_type == job_type::CutGems)
-        {
-            reason << "there is already a manager order to cut gems: " << AI::describe_job(&excl->tmpl) << " (" << excl->amount << " remaining)";
-            return true;
-        }
-        return false;
-    }))
-    {
-        return;
-    }
 
     df::item *base = nullptr;
     for (auto i : world->items.other[items_other_id::ROUGH])

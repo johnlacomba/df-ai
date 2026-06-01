@@ -1,6 +1,5 @@
 #pragma once
 
-#include "exclusive_callback.h"
 #include "room.h"
 
 #include "df/biome_type.h"
@@ -156,18 +155,6 @@ extern struct Watch
     Json::Value to_json();
     bool from_json(Json::Value &, std::string &);
 } Watch;
-
-class ManagerOrderExclusive : public ExclusiveCallback
-{
-public:
-    AI & ai;
-    df::manager_order_template tmpl;
-    int32_t amount;
-    std::string search_word;
-
-    ManagerOrderExclusive(AI & ai, const df::manager_order_template & tmpl, int32_t amount);
-    virtual void Run(color_ostream & out);
-};
 
 class Stocks
 {
