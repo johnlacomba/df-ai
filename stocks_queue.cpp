@@ -52,54 +52,6 @@ static bool manager_has_office(AI & ai)
     });
 }
 
-static bool try_add_workshop_job(AI & ai, color_ostream & out, df::job_type jtype, int32_t mtype, int32_t mindex, int32_t amount, df::workshop_type ws_type, std::ostream & reason)
-{
-    room *ws_room = ai.find_room(room_type::workshop, [ws_type](room *r) -> bool
-    {
-        if (r->workshop_type != ws_type)
-            return false;
-        auto bld = r->dfbuilding();
-        return bld && bld->getBuildStage() == bld->getMaxBuildStage();
-    });
-
-    if (!ws_room)
-        return false;
-
-    auto bld = virtual_cast<df::building_workshopst>(ws_room->dfbuilding());
-    if (!bld)
-        return false;
-
-    int32_t qty = std::min(amount, int32_t(10 - int32_t(bld->jobs.size())));
-    if (qty <= 0)
-        return false;
-
-    for (int32_t i = 0; i < qty; i++)
-    {
-        auto ref = df::allocate<df::general_ref_building_holderst>();
-        if (!ref)
-            break;
-        ref->building_id = bld->id;
-
-        auto job = df::allocate<df::job>();
-        if (!job)
-        {
-            delete ref;
-            break;
-        }
-        job->job_type = jtype;
-        job->mat_type = mtype;
-        job->mat_index = mindex;
-        job->pos = df::coord(bld->x1, bld->y1, bld->z);
-        job->general_refs.push_back(ref);
-        bld->jobs.push_back(job);
-        Job::linkIntoWorld(job);
-    }
-
-    reason << "created " << qty << " jobs directly at workshop (manager has no office)";
-    ai.debug(out, stl_sprintf("bootstrap: created %d jobs directly at workshop [no manager office]", qty));
-    return true;
-}
-
 // make it so the stocks of 'what' rises by 'amount'
 void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amount, std::ostream & reason)
 {
@@ -310,6 +262,58 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
     {
         tmpl.job_type = job_type::ConstructThrone;
         tmpl.mat_type = 0;
+        if (!manager_has_office(ai) && count_free.at(stock_item::chair) == 0)
+        {
+            room *mason_room = ai.find_room(room_type::workshop, [](room *r) -> bool
+            {
+                if (r->workshop_type != workshop_type::Masons)
+                    return false;
+                auto bld = r->dfbuilding();
+                return bld && bld->getBuildStage() == bld->getMaxBuildStage();
+            });
+
+            if (mason_room)
+            {
+                auto wbld = virtual_cast<df::building_workshopst>(mason_room->dfbuilding());
+                if (wbld)
+                {
+                    bool already_queued = false;
+                    for (auto job : wbld->jobs)
+                    {
+                        if (job->job_type == job_type::ConstructThrone)
+                        {
+                            already_queued = true;
+                            break;
+                        }
+                    }
+
+                    if (!already_queued && wbld->jobs.size() < 10)
+                    {
+                        auto ref = df::allocate<df::general_ref_building_holderst>();
+                        auto job = df::allocate<df::job>();
+                        if (ref && job)
+                        {
+                            ref->building_id = wbld->id;
+                            job->job_type = job_type::ConstructThrone;
+                            job->mat_type = 0;
+                            job->mat_index = -1;
+                            job->pos = df::coord(wbld->x1, wbld->y1, wbld->z);
+                            job->general_refs.push_back(ref);
+                            wbld->jobs.push_back(job);
+                            Job::linkIntoWorld(job);
+                            reason << "created chair job directly at mason workshop (bootstrapping manager office)";
+                            ai.debug(out, "bootstrap: created chair job at mason workshop [no manager office]");
+                        }
+                        else
+                        {
+                            delete ref;
+                            delete job;
+                        }
+                    }
+                    return;
+                }
+            }
+        }
         break;
     }
     case stock_item::chest:
@@ -804,25 +808,6 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
     }
 
     amount = i_amount;
-
-    if (!manager_has_office(ai) && tmpl.mat_type == 0 && tmpl.reaction_name.empty())
-    {
-        switch (tmpl.job_type)
-        {
-        case job_type::ConstructThrone:
-        case job_type::ConstructDoor:
-        case job_type::ConstructTable:
-        case job_type::ConstructCabinet:
-        case job_type::ConstructArmorStand:
-        case job_type::ConstructBlocks:
-        case job_type::MakeCrafts:
-            if (try_add_workshop_job(ai, out, tmpl.job_type, tmpl.mat_type, tmpl.mat_index, amount, workshop_type::Masons, reason))
-                return;
-            break;
-        default:
-            break;
-        }
-    }
 
     add_manager_order(out, tmpl, amount, reason);
 }
