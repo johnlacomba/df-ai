@@ -2,8 +2,6 @@
 #include "stocks.h"
 #include "event_manager.h"
 
-#include "modules/Job.h"
-
 #include "df/manager_order.h"
 #include "df/manager_order_template.h"
 #include "df/world.h"
@@ -94,9 +92,7 @@ void ManagerOrderExclusive::Run(color_ostream & out)
         if (template_equals(*it, &tmpl) && (*it)->amount_left == (*it)->amount_total)
         {
             amount += (*it)->amount_left;
-            auto *old_order = *it;
             world->manager_orders.all.erase(it);
-            delete old_order;
             break;
         }
     }
@@ -115,14 +111,7 @@ void ManagerOrderExclusive::Run(color_ostream & out)
     order->material_category = tmpl.material_category;
     order->amount_left = qty;
     order->amount_total = qty;
-    order->status.bits.validated = true;
-    order->status.bits.active = true;
-    order->frequency = df::workquota_frequency_type::OneTime;
-    order->workshop_id = -1;
-    order->max_workshops = 0;
     world->manager_orders.all.push_back(order);
-
-    Job::checkBuildingsNow();
 
     ai.debug(out, "add_manager_order(" + stl_sprintf("%d", qty) + ") " + AI::describe_job(&tmpl));
 }
