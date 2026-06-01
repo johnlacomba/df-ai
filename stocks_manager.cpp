@@ -1,6 +1,8 @@
 #include "ai.h"
 #include "stocks.h"
 
+#include "modules/Job.h"
+
 #include "df/manager_order.h"
 #include "df/manager_order_template.h"
 #include "df/world.h"
@@ -113,6 +115,8 @@ void Stocks::add_manager_order(color_ostream & out, const df::manager_order_temp
     order->workshop_id = -1;
     order->max_workshops = 0;
     world->manager_orders.all.push_back(order);
+
+    Job::checkBuildingsNow();
 
     reason << "add_manager_order (" << qty << "): " << AI::describe_job(&tmpl);
     ai.debug(out, "add_manager_order(" + stl_sprintf("%d", qty) + ") " + AI::describe_job(&tmpl));

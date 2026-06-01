@@ -1895,9 +1895,58 @@ bool Plan::try_endfurnish(color_ostream & out, room *r, furniture *f, std::ostre
         if (t.y > r->max.y)
             set_ext(t.x, t.y - 1, building_extents_type::DistanceBoundary);
     }
-    // bld->is_room removed in Steam DF
+    // In Steam DF, rooms (offices, bedrooms, etc.) are civzones, not furniture-based rooms.
+    // Create a civzone overlay for the room and assign the owner to it.
+    if (r->type == room_type::nobleroom || r->type == room_type::bedroom)
+    {
+        df::civzone_type zone_type = civzone_type::NONE;
+        if (r->type == room_type::nobleroom)
+        {
+            switch (r->nobleroom_type)
+            {
+            case nobleroom_type::office:
+                zone_type = civzone_type::Office;
+                break;
+            case nobleroom_type::bedroom:
+                zone_type = civzone_type::Bedroom;
+                break;
+            case nobleroom_type::dining:
+                zone_type = civzone_type::DiningHall;
+                break;
+            case nobleroom_type::tomb:
+                zone_type = civzone_type::Tomb;
+                break;
+            default:
+                break;
+            }
+        }
+        else if (r->type == room_type::bedroom)
+        {
+            zone_type = civzone_type::Bedroom;
+        }
 
-    set_owner(out, r, r->owner);
+        if (zone_type != civzone_type::NONE)
+        {
+            auto zone = virtual_cast<df::building_civzonest>(
+                Buildings::allocInstance(r->min, building_type::Civzone));
+            if (zone)
+            {
+                Buildings::setSize(zone, r->size());
+                Buildings::constructAbstract(zone);
+                zone->type = zone_type;
+                zone->spec_sub_flag.bits.active = 1;
+
+                if (r->owner != -1)
+                {
+                    Buildings::setOwner(zone, df::unit::find(r->owner));
+                }
+
+                r->bld_id = zone->id;
+                ai.debug(out, "created " + std::string(enum_item_key(zone_type)) + " civzone for " + AI::describe_room(r));
+            }
+        }
+    }
+
     furnish_room(out, r);
 
     if (r->type == room_type::dininghall)

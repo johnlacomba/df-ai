@@ -4,10 +4,12 @@
 
 #include "Error.h"
 
+#include "modules/Job.h"
 #include "modules/Units.h"
 
 #include "df/building_furnacest.h"
 #include "df/building_workshopst.h"
+#include "df/general_ref_building_holderst.h"
 #include "df/buildings_other_id.h"
 #include "df/caste_raw.h"
 #include "df/creature_raw.h"
@@ -21,6 +23,82 @@
 
 REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(world);
+
+static bool manager_has_office(AI & ai)
+{
+    return ai.find_room(room_type::nobleroom, [&ai](room *r) -> bool
+    {
+        if (r->nobleroom_type != nobleroom_type::office)
+            return false;
+
+        auto bld = r->dfbuilding();
+        if (!bld || bld->getBuildStage() < bld->getMaxBuildStage())
+            return false;
+
+        if (auto owner = df::unit::find(r->owner))
+        {
+            std::vector<Units::NoblePosition> positions;
+            if (Units::getNoblePositions(&positions, owner))
+            {
+                for (auto pos : positions)
+                {
+                    if (pos.position->responsibilities[entity_position_responsibility::MANAGE_PRODUCTION])
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    });
+}
+
+static bool try_add_workshop_job(AI & ai, color_ostream & out, df::job_type job_type, int32_t mat_type, int32_t mat_index, int32_t amount, df::workshop_type::workshop_type ws_type, std::ostream & reason)
+{
+    room *ws_room = ai.find_room(room_type::workshop, [ws_type](room *r) -> bool
+    {
+        if (r->workshop_type != ws_type)
+            return false;
+        auto bld = r->dfbuilding();
+        return bld && bld->getBuildStage() == bld->getMaxBuildStage();
+    });
+
+    if (!ws_room)
+        return false;
+
+    auto bld = virtual_cast<df::building_workshopst>(ws_room->dfbuilding());
+    if (!bld)
+        return false;
+
+    int32_t qty = std::min(amount, int32_t(10 - bld->jobs.size()));
+    if (qty <= 0)
+        return false;
+
+    for (int32_t i = 0; i < qty; i++)
+    {
+        auto ref = df::allocate<df::general_ref_building_holderst>();
+        if (!ref)
+            break;
+        ref->building_id = bld->id;
+
+        auto job = df::allocate<df::job>();
+        if (!job)
+        {
+            delete ref;
+            break;
+        }
+        job->job_type = job_type;
+        job->mat_type = mat_type;
+        job->mat_index = mat_index;
+        job->pos = df::coord(bld->x1, bld->y1, bld->z);
+        job->general_refs.push_back(ref);
+        bld->jobs.push_back(job);
+        Job::linkIntoWorld(job);
+    }
+
+    reason << "created " << qty << " jobs directly at workshop (manager has no office)";
+    ai.debug(out, stl_sprintf("bootstrap: created %d jobs directly at workshop [no manager office]", qty));
+    return true;
+}
 
 // make it so the stocks of 'what' rises by 'amount'
 void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amount, std::ostream & reason)
@@ -232,71 +310,6 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
     {
         tmpl.job_type = job_type::ConstructThrone;
         tmpl.mat_type = 0;
-        if (ai.find_room(room_type::nobleroom, [](room* r) -> bool
-            {
-                if (r->nobleroom_type != nobleroom_type::office || r->dfbuilding())
-                {
-                    return false;
-                }
-
-                if (auto owner = df::unit::find(r->owner))
-                {
-                    std::vector<Units::NoblePosition> positions;
-                    if (Units::getNoblePositions(&positions, owner))
-                    {
-                        for (auto pos : positions)
-                        {
-                            if (pos.position->responsibilities[entity_position_responsibility::MANAGE_PRODUCTION])
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                }
-
-                return false;
-            }))
-        {
-            // the manager doesn't have an office, which requires a chair.
-            // assign the job directly at the workshop.
-
-            if (ai.find_room(room_type::workshop, [](room* r) -> bool
-                {
-                    if (r->workshop_type != workshop_type::Masons)
-                    {
-                        return false;
-                    }
-
-                    auto bld = r->dfbuilding();
-                    return bld && bld->getBuildStage() == bld->getMaxBuildStage();
-                }))
-            {
-                reason << "creating chair order directly (manager has no office)";
-                int32_t qty = std::min(amount, 30);
-                auto order = new df::manager_order();
-                order->id = world->manager_orders.manager_order_next_id++;
-                order->job_type = job_type::ConstructThrone;
-                order->item_type = tmpl.item_type;
-                order->item_subtype = tmpl.item_subtype;
-                order->mat_type = 0;
-                order->mat_index = -1;
-                order->material_category = tmpl.material_category;
-                order->amount_left = qty;
-                order->amount_total = qty;
-                order->status.bits.validated = true;
-                order->status.bits.active = true;
-                order->frequency = df::workquota_frequency_type::OneTime;
-                order->workshop_id = -1;
-                order->max_workshops = 0;
-                world->manager_orders.all.push_back(order);
-                ai.debug(out, "add_manager_order(" + stl_sprintf("%d", qty) + ") ConstructThrone [direct, no office]");
-                return;
-            }
-
-            // we're screwed. for now, at least.
-            reason << "manager does not have an office and no mason workshop available";
-            return;
-        }
         break;
     }
     case stock_item::chest:
@@ -791,6 +804,25 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
     }
 
     amount = i_amount;
+
+    if (!manager_has_office(ai) && tmpl.mat_type == 0 && tmpl.reaction_name.empty())
+    {
+        switch (tmpl.job_type)
+        {
+        case job_type::ConstructThrone:
+        case job_type::ConstructDoor:
+        case job_type::ConstructTable:
+        case job_type::ConstructCabinet:
+        case job_type::ConstructArmorStand:
+        case job_type::ConstructBlocks:
+        case job_type::MakeCrafts:
+            if (try_add_workshop_job(ai, out, tmpl.job_type, tmpl.mat_type, tmpl.mat_index, amount, workshop_type::Masons, reason))
+                return;
+            break;
+        default:
+            break;
+        }
+    }
 
     add_manager_order(out, tmpl, amount, reason);
 }
