@@ -108,6 +108,9 @@ void Stocks::add_manager_order(color_ostream & out, const df::manager_order_temp
     order->amount_left = qty;
     order->amount_total = qty;
     order->status.bits.validated = true;
+    order->frequency = df::workquota_frequency_type::OneTime;
+    order->workshop_id = -1;
+    order->max_workshops = 0;
     world->manager_orders.all.push_back(order);
 
     reason << "add_manager_order (" << qty << "): " << AI::describe_job(&tmpl);

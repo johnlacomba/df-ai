@@ -284,6 +284,9 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
                 order->amount_left = qty;
                 order->amount_total = qty;
                 order->status.bits.validated = true;
+                order->frequency = df::workquota_frequency_type::OneTime;
+                order->workshop_id = -1;
+                order->max_workshops = 0;
                 world->manager_orders.all.push_back(order);
                 ai.debug(out, "add_manager_order(" + stl_sprintf("%d", qty) + ") ConstructThrone [direct, no office]");
                 return;
