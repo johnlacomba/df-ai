@@ -284,6 +284,7 @@ void Stocks::queue_need(color_ostream & out, stock_item::item what, int32_t amou
                 order->amount_left = qty;
                 order->amount_total = qty;
                 order->status.bits.validated = true;
+                order->status.bits.active = true;
                 order->frequency = df::workquota_frequency_type::OneTime;
                 order->workshop_id = -1;
                 order->max_workshops = 0;
