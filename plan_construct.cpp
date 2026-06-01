@@ -24,6 +24,7 @@
 #include "df/building_workshopst.h"
 #include "df/builtin_mats.h"
 #include "df/general_ref_building_holderst.h"
+#include "df/unit.h"
 #include "df/general_ref_building_triggertargetst.h"
 #include "df/item_boulderst.h"
 #include "df/item.h"
