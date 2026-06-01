@@ -1,5 +1,6 @@
 #pragma once
 
+#include "exclusive_callback.h"
 #include "room.h"
 
 #include "df/biome_type.h"
