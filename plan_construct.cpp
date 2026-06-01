@@ -1938,7 +1938,11 @@ bool Plan::try_endfurnish(color_ostream & out, room *r, furniture *f, std::ostre
 
                 if (r->owner != -1)
                 {
-                    Buildings::setOwner(zone, df::unit::find(r->owner));
+                    df::unit *u = df::unit::find(r->owner);
+                    if (u)
+                    {
+                        Buildings::setOwner(zone, u);
+                    }
                 }
 
                 r->bld_id = zone->id;

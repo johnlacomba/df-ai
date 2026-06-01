@@ -52,7 +52,7 @@ static bool manager_has_office(AI & ai)
     });
 }
 
-static bool try_add_workshop_job(AI & ai, color_ostream & out, df::job_type job_type, int32_t mat_type, int32_t mat_index, int32_t amount, df::workshop_type::workshop_type ws_type, std::ostream & reason)
+static bool try_add_workshop_job(AI & ai, color_ostream & out, df::job_type jtype, int32_t mtype, int32_t mindex, int32_t amount, df::workshop_type ws_type, std::ostream & reason)
 {
     room *ws_room = ai.find_room(room_type::workshop, [ws_type](room *r) -> bool
     {
@@ -69,7 +69,7 @@ static bool try_add_workshop_job(AI & ai, color_ostream & out, df::job_type job_
     if (!bld)
         return false;
 
-    int32_t qty = std::min(amount, int32_t(10 - bld->jobs.size()));
+    int32_t qty = std::min(amount, int32_t(10 - int32_t(bld->jobs.size())));
     if (qty <= 0)
         return false;
 
@@ -86,9 +86,9 @@ static bool try_add_workshop_job(AI & ai, color_ostream & out, df::job_type job_
             delete ref;
             break;
         }
-        job->job_type = job_type;
-        job->mat_type = mat_type;
-        job->mat_index = mat_index;
+        job->job_type = jtype;
+        job->mat_type = mtype;
+        job->mat_index = mindex;
         job->pos = df::coord(bld->x1, bld->y1, bld->z);
         job->general_refs.push_back(ref);
         bld->jobs.push_back(job);
