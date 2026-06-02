@@ -7,6 +7,7 @@
 
 #include "df/entity_position_assignment.h"
 #include "df/histfig_entity_link_positionst.h"
+#include "df/history_event_add_hf_entity_linkst.h"
 #include "df/unit.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
@@ -19,6 +20,7 @@
 
 REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(cur_year_tick);
+REQUIRE_GLOBAL(hist_event_next_id);
 REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
@@ -145,21 +147,61 @@ public:
             if (candidate->hist_figure_id == -1)
                 continue;
 
+            auto hf = df::historical_figure::find(candidate->hist_figure_id);
+            if (!hf)
+                continue;
+
             ai.debug(out, "Appointing " + AI::describe_unit(candidate) + " as " + target_pos->name[0]);
+
+            // clean up old histfig's position link if assignment was previously held
+            if (asn->histfig != -1)
+            {
+                if (auto old_hf = df::historical_figure::find(asn->histfig))
+                {
+                    for (size_t i = 0; i < old_hf->entity_links.size(); i++)
+                    {
+                        if (old_hf->entity_links[i]->getType() != df::histfig_entity_link_type::POSITION)
+                            continue;
+                        auto pos_link = strict_virtual_cast<df::histfig_entity_link_positionst>(old_hf->entity_links[i]);
+                        if (pos_link && pos_link->assignment_id == asn->id && pos_link->entity_id == entity->id)
+                        {
+                            old_hf->entity_links.erase(old_hf->entity_links.begin() + i);
+                            delete pos_link;
+                            break;
+                        }
+                    }
+                }
+            }
+
             asn->histfig = candidate->hist_figure_id;
 
-            // link the historical figure to this position
-            auto hf = df::historical_figure::find(candidate->hist_figure_id);
-            if (hf)
+            // create position link on the new histfig
+            auto link = df::allocate<df::histfig_entity_link_positionst>();
+            if (link)
             {
-                auto link = (df::histfig_entity_link_positionst *)df::histfig_entity_link_positionst::_identity.instantiate();
                 link->entity_id = entity->id;
                 link->assignment_id = asn->id;
                 link->start_year = *cur_year;
+                link->link_strength = 100;
                 hf->entity_links.push_back(link);
             }
 
-            // update assignments_by_type cache
+            // generate history event so DF's internal state stays consistent
+            auto event = df::allocate<df::history_event_add_hf_entity_linkst>();
+            if (event)
+            {
+                event->id = (*hist_event_next_id)++;
+                event->year = *cur_year;
+                event->seconds = *cur_year_tick;
+                event->civ = entity->id;
+                event->histfig = hf->id;
+                event->link_type = df::histfig_entity_link_type::POSITION;
+                event->position_id = target_pos->id;
+                event->appointer_hfid = -1;
+                event->promise_to_hfid = -1;
+                world->history.events.push_back(event);
+            }
+
             entity->assignments_by_type[responsibility].push_back(asn);
 
             if (bookkeeper)
@@ -269,6 +311,8 @@ void Population::check_noble_apartments(color_ostream & out)
 
     for (auto asn : plotinfo->main.fortress_entity->positions.assignments)
     {
+        if (!asn)
+            continue;
         df::entity_position *pos = binsearch_in_vector(plotinfo->main.fortress_entity->positions.own, asn->position_id);
         if (!pos)
             continue;
