@@ -36,6 +36,11 @@
 #include "df/abstract_building_inn_tavernst.h"
 #include "df/abstract_building_libraryst.h"
 #include "df/abstract_building_templest.h"
+#include "df/creature_raw.h"
+#include "df/furniture_type.h"
+#include "df/inorganic_raw.h"
+#include "df/item_type.h"
+#include "df/organic_mat_category.h"
 #include "df/plant.h"
 #include "df/plant_raw.h"
 #include "df/plotinfost.h"
@@ -1274,6 +1279,185 @@ const static struct stockpile_keys
     }
 } stockpile_keys;
 
+static size_t food_mat_size(df::organic_mat_category cat)
+{
+    return world->raws.mat_table.organic_types[cat].size();
+}
+
+static void init_stockpile_settings(df::building_stockpilest *bld, stockpile_type sp_type)
+{
+    auto & s = bld->settings;
+    size_t num_inorganic = world->raws.inorganics.all.size();
+    size_t num_creatures = world->raws.creatures.all.size();
+    size_t num_plants = world->raws.plants.all.size();
+
+    s.flags.whole = 0;
+
+    switch (sp_type)
+    {
+    case stockpile_type::animals:
+        s.flags.bits.animals = true;
+        s.animals.empty_cages = true;
+        s.animals.empty_traps = true;
+        s.animals.enabled.resize(num_creatures, true);
+        break;
+    case stockpile_type::food:
+        s.flags.bits.food = true;
+        s.food.prepared_meals = true;
+        s.food.meat.resize(food_mat_size(organic_mat_category::Meat), true);
+        s.food.fish.resize(food_mat_size(organic_mat_category::Fish), true);
+        s.food.unprepared_fish.resize(food_mat_size(organic_mat_category::UnpreparedFish), true);
+        s.food.egg.resize(food_mat_size(organic_mat_category::Eggs), true);
+        s.food.plants.resize(food_mat_size(organic_mat_category::Plants), true);
+        s.food.drink_plant.resize(food_mat_size(organic_mat_category::PlantDrink), true);
+        s.food.drink_animal.resize(food_mat_size(organic_mat_category::CreatureDrink), true);
+        s.food.cheese_plant.resize(food_mat_size(organic_mat_category::PlantCheese), true);
+        s.food.cheese_animal.resize(food_mat_size(organic_mat_category::CreatureCheese), true);
+        s.food.seeds.resize(food_mat_size(organic_mat_category::Seed), true);
+        s.food.leaves.resize(food_mat_size(organic_mat_category::PlantGrowth), true);
+        s.food.powder_plant.resize(food_mat_size(organic_mat_category::PlantPowder), true);
+        s.food.powder_creature.resize(food_mat_size(organic_mat_category::CreaturePowder), true);
+        s.food.glob.resize(food_mat_size(organic_mat_category::Glob), true);
+        s.food.glob_paste.resize(food_mat_size(organic_mat_category::Paste), true);
+        s.food.glob_pressed.resize(food_mat_size(organic_mat_category::Pressed), true);
+        s.food.liquid_plant.resize(food_mat_size(organic_mat_category::PlantLiquid), true);
+        s.food.liquid_animal.resize(food_mat_size(organic_mat_category::CreatureLiquid), true);
+        s.food.liquid_misc.resize(food_mat_size(organic_mat_category::MiscLiquid), true);
+        break;
+    case stockpile_type::furniture:
+        s.flags.bits.furniture = true;
+        s.furniture.type.resize((int)ENUM_LAST_ITEM(furniture_type) + 1, true);
+        s.furniture.other_mats.resize(16, true);
+        s.furniture.mats.resize(num_inorganic, true);
+        for (auto & q : s.furniture.quality_core) q = true;
+        for (auto & q : s.furniture.quality_total) q = true;
+        break;
+    case stockpile_type::corpses:
+        s.flags.bits.corpses = true;
+        s.corpses.corpses.resize(num_creatures, true);
+        break;
+    case stockpile_type::refuse:
+        s.flags.bits.refuse = true;
+        s.refuse.type.resize((int)ENUM_LAST_ITEM(item_type) + 1, true);
+        s.refuse.corpses.resize(num_creatures, true);
+        s.refuse.body_parts.resize(num_creatures, true);
+        s.refuse.skulls.resize(num_creatures, true);
+        s.refuse.bones.resize(num_creatures, true);
+        s.refuse.hair.resize(num_creatures, true);
+        s.refuse.shells.resize(num_creatures, true);
+        s.refuse.teeth.resize(num_creatures, true);
+        s.refuse.horns.resize(num_creatures, true);
+        s.refuse.fresh_raw_hide = true;
+        s.refuse.rotten_raw_hide = true;
+        break;
+    case stockpile_type::stone:
+        s.flags.bits.stone = true;
+        s.stone.mats.resize(num_inorganic, true);
+        break;
+    case stockpile_type::ammo:
+        s.flags.bits.ammo = true;
+        s.ammo.type.resize(world->raws.itemdefs.ammo.size(), true);
+        s.ammo.other_mats.resize(3, true);
+        s.ammo.mats.resize(num_inorganic, true);
+        for (auto & q : s.ammo.quality_core) q = true;
+        for (auto & q : s.ammo.quality_total) q = true;
+        break;
+    case stockpile_type::coins:
+        s.flags.bits.coins = true;
+        s.coins.mats.resize(num_inorganic, true);
+        break;
+    case stockpile_type::bars_blocks:
+        s.flags.bits.bars_blocks = true;
+        s.bars_blocks.bars_other_mats.resize(5, true);
+        s.bars_blocks.blocks_other_mats.resize(4, true);
+        s.bars_blocks.bars_mats.resize(num_inorganic, true);
+        s.bars_blocks.blocks_mats.resize(num_inorganic, true);
+        break;
+    case stockpile_type::gems:
+    {
+        s.flags.bits.gems = true;
+        size_t builtin_size = std::extent<decltype(world->raws.mat_table.builtin)>::value;
+        s.gems.rough_other_mats.resize(builtin_size, true);
+        s.gems.cut_other_mats.resize(builtin_size, true);
+        s.gems.rough_mats.resize(num_inorganic, true);
+        s.gems.cut_mats.resize(num_inorganic, true);
+        break;
+    }
+    case stockpile_type::finished_goods:
+        s.flags.bits.finished_goods = true;
+        s.finished_goods.type.resize((int)ENUM_LAST_ITEM(item_type) + 1, true);
+        s.finished_goods.other_mats.resize(16, true);
+        s.finished_goods.mats.resize(num_inorganic, true);
+        s.finished_goods.dyed = true;
+        s.finished_goods.undyed = true;
+        for (auto & q : s.finished_goods.quality_core) q = true;
+        for (auto & q : s.finished_goods.quality_total) q = true;
+        break;
+    case stockpile_type::cloth:
+        s.flags.bits.cloth = true;
+        s.cloth.thread_silk.resize(food_mat_size(organic_mat_category::Silk), true);
+        s.cloth.thread_plant.resize(food_mat_size(organic_mat_category::PlantFiber), true);
+        s.cloth.thread_yarn.resize(food_mat_size(organic_mat_category::Yarn), true);
+        s.cloth.thread_metal.resize(food_mat_size(organic_mat_category::MetalThread), true);
+        s.cloth.cloth_silk.resize(food_mat_size(organic_mat_category::Silk), true);
+        s.cloth.cloth_plant.resize(food_mat_size(organic_mat_category::PlantFiber), true);
+        s.cloth.cloth_yarn.resize(food_mat_size(organic_mat_category::Yarn), true);
+        s.cloth.cloth_metal.resize(food_mat_size(organic_mat_category::MetalThread), true);
+        s.cloth.dyed = true;
+        s.cloth.undyed = true;
+        break;
+    case stockpile_type::leather:
+        s.flags.bits.leather = true;
+        s.leather.mats.resize(food_mat_size(organic_mat_category::Leather), true);
+        s.leather.dyed = true;
+        s.leather.undyed = true;
+        break;
+    case stockpile_type::wood:
+        s.flags.bits.wood = true;
+        s.wood.mats.resize(num_plants, true);
+        break;
+    case stockpile_type::weapons:
+        s.flags.bits.weapons = true;
+        s.weapons.weapon_type.resize(world->raws.itemdefs.weapons.size(), true);
+        s.weapons.trapcomp_type.resize(world->raws.itemdefs.trapcomps.size(), true);
+        s.weapons.other_mats.resize(11, true);
+        s.weapons.mats.resize(num_inorganic, true);
+        for (auto & q : s.weapons.quality_core) q = true;
+        for (auto & q : s.weapons.quality_total) q = true;
+        s.weapons.usable = true;
+        s.weapons.unusable = true;
+        break;
+    case stockpile_type::armor:
+        s.flags.bits.armor = true;
+        s.armor.body.resize(world->raws.itemdefs.armor.size(), true);
+        s.armor.head.resize(world->raws.itemdefs.helms.size(), true);
+        s.armor.feet.resize(world->raws.itemdefs.shoes.size(), true);
+        s.armor.hands.resize(world->raws.itemdefs.gloves.size(), true);
+        s.armor.legs.resize(world->raws.itemdefs.pants.size(), true);
+        s.armor.shield.resize(world->raws.itemdefs.shields.size(), true);
+        s.armor.other_mats.resize(11, true);
+        s.armor.mats.resize(num_inorganic, true);
+        for (auto & q : s.armor.quality_core) q = true;
+        for (auto & q : s.armor.quality_total) q = true;
+        s.armor.usable = true;
+        s.armor.unusable = true;
+        s.armor.dyed = true;
+        s.armor.undyed = true;
+        break;
+    case stockpile_type::sheets:
+        s.flags.bits.sheet = true;
+        s.sheet.paper.resize(food_mat_size(organic_mat_category::Paper), true);
+        s.sheet.parchment.resize(food_mat_size(organic_mat_category::Parchment), true);
+        break;
+    case stockpile_type::fresh_raw_hide:
+        s.flags.bits.refuse = true;
+        s.refuse.fresh_raw_hide = true;
+        break;
+    default:
+        break;
+    }
+}
+
 class ConstructStockpile : public ExclusiveCallback
 {
     AI & ai;
@@ -1315,35 +1499,10 @@ protected:
             ai.debug(out, "[ConstructStockpile] Failed to cast: " + AI::describe_room(r));
             return;
         }
-        ai.debug(out, "[ConstructStockpile] cast OK, setting flags");
+        ai.debug(out, "[ConstructStockpile] cast OK, initializing settings");
 
-        bld->settings.flags.whole = 0;
-        switch (r->stockpile_type)
-        {
-        case stockpile_type::animals:        bld->settings.flags.bits.animals = true; break;
-        case stockpile_type::food:           bld->settings.flags.bits.food = true; break;
-        case stockpile_type::weapons:        bld->settings.flags.bits.weapons = true; break;
-        case stockpile_type::armor:          bld->settings.flags.bits.armor = true; break;
-        case stockpile_type::furniture:      bld->settings.flags.bits.furniture = true; break;
-        case stockpile_type::corpses:        bld->settings.flags.bits.corpses = true; break;
-        case stockpile_type::refuse:         bld->settings.flags.bits.refuse = true; break;
-        case stockpile_type::wood:           bld->settings.flags.bits.wood = true; break;
-        case stockpile_type::stone:          bld->settings.flags.bits.stone = true; break;
-        case stockpile_type::gems:           bld->settings.flags.bits.gems = true; break;
-        case stockpile_type::bars_blocks:    bld->settings.flags.bits.bars_blocks = true; break;
-        case stockpile_type::cloth:          bld->settings.flags.bits.cloth = true; break;
-        case stockpile_type::leather:        bld->settings.flags.bits.leather = true; break;
-        case stockpile_type::ammo:           bld->settings.flags.bits.ammo = true; break;
-        case stockpile_type::coins:          bld->settings.flags.bits.coins = true; break;
-        case stockpile_type::finished_goods: bld->settings.flags.bits.finished_goods = true; break;
-        case stockpile_type::sheets:         bld->settings.flags.bits.sheet = true; break;
-        case stockpile_type::fresh_raw_hide:
-            bld->settings.flags.bits.refuse = true;
-            bld->settings.refuse.fresh_raw_hide = true;
-            break;
-        default: break;
-        }
-        ai.debug(out, "[ConstructStockpile] flags set, assigning bld_id");
+        init_stockpile_settings(bld, r->stockpile_type);
+        ai.debug(out, "[ConstructStockpile] settings initialized, assigning bld_id");
 
         r->bld_id = bld->id;
         ai.plan.furnish_room(out, r);
