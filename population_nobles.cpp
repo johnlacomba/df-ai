@@ -202,7 +202,12 @@ public:
                 world->history.events.push_back(event);
             }
 
-            entity->assignments_by_type[responsibility].push_back(asn);
+            for (int r = 0; r <= ENUM_LAST_ITEM(entity_position_responsibility); r++)
+            {
+                auto resp = static_cast<df::entity_position_responsibility>(r);
+                if (target_pos->responsibilities[resp])
+                    entity->assignments_by_type[resp].push_back(asn);
+            }
 
             if (bookkeeper)
                 plotinfo->nobles.bookkeeper_settings = static_cast<df::record_precision_level_type>(4);
@@ -291,6 +296,8 @@ void Population::update_nobles(color_ostream & out)
         events.queue_exclusive(std::make_unique<AssignNoblesExclusive>(ai, entity_position_responsibility::pos)); \
     }
 
+    WANT_POS(RECEIVE_DIPLOMATS);
+    WANT_POS(MEET_WORKERS);
     WANT_POS(MANAGE_PRODUCTION);
     WANT_POS(ACCOUNTING);
     if (ai.find_room(room_type::infirmary, [](room *r) -> bool { return r->status != room_status::plan; }))

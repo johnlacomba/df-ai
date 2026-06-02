@@ -264,7 +264,9 @@ static bool is_noble_excluded(df::unit *u)
 
     for (auto & pos : positions)
     {
-        if (pos.position->responsibilities[entity_position_responsibility::ACCOUNTING] ||
+        if (pos.position->responsibilities[entity_position_responsibility::RECEIVE_DIPLOMATS] ||
+            pos.position->responsibilities[entity_position_responsibility::MEET_WORKERS] ||
+            pos.position->responsibilities[entity_position_responsibility::ACCOUNTING] ||
             pos.position->responsibilities[entity_position_responsibility::MANAGE_PRODUCTION] ||
             pos.position->responsibilities[entity_position_responsibility::TRADE] ||
             pos.position->responsibilities[entity_position_responsibility::HEALTH_MANAGEMENT])
