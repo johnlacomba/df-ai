@@ -1284,7 +1284,7 @@ static size_t food_mat_size(df::organic_mat_category cat)
     return world->raws.mat_table.organic_types[cat].size();
 }
 
-static void init_stockpile_settings(df::building_stockpilest *bld, stockpile_type sp_type)
+static void init_stockpile_settings(df::building_stockpilest *bld, stockpile_type::type sp_type)
 {
     auto & s = bld->settings;
     size_t num_inorganic = world->raws.inorganics.all.size();
