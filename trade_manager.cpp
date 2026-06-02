@@ -77,23 +77,34 @@ void Population::update_trading(color_ostream & out)
             if (!ai.stocks.is_item_free(item))
                 continue;
 
-            auto ref = df::allocate<df::general_ref_building_holderst>();
-            if (!ref)
+            auto bld_ref = df::allocate<df::general_ref_building_holderst>();
+            if (!bld_ref)
                 continue;
-            ref->building_id = depot->id;
+            bld_ref->building_id = depot->id;
+
+            auto item_ref = df::allocate<df::general_ref_contains_itemst>();
+            if (!item_ref)
+            {
+                delete bld_ref;
+                continue;
+            }
+            item_ref->item_id = item->id;
 
             auto job = df::allocate<df::job>();
             if (!job)
             {
-                delete ref;
+                delete bld_ref;
+                delete item_ref;
                 continue;
             }
             job->job_type = job_type::BringItemToDepot;
             job->pos = df::coord(depot->x1, depot->y1, depot->z);
-            job->general_refs.push_back(ref);
+            job->general_refs.push_back(bld_ref);
+            job->general_refs.push_back(item_ref);
             depot->jobs.push_back(job);
             Job::linkIntoWorld(job);
 
+            item->flags.bits.in_job = true;
             trade_designated_items.insert(item->id);
             any_new = true;
         }
@@ -246,22 +257,8 @@ bool Population::perform_trade(color_ostream & out)
         }
     }
 
-    ai.debug(out, stl_sprintf("trade: offering %zu items (value %d) for %zu items (value %d)",
+    ai.debug(out, stl_sprintf("trade: %zu items at depot (value %d), want %zu caravan items (value %d) — trade screen interaction not yet implemented for Steam DF",
         depot_items.size(), sell_value, buy_list.size(), buy_value));
 
-    // Direct item transfer: move bought items to fortress, sold items to caravan
-    for (auto item : buy_list)
-    {
-        item->flags.bits.trader = false;
-        item->flags.bits.foreign = false;
-    }
-
-    for (auto item : depot_items)
-    {
-        item->flags.bits.trader = true;
-        item->flags.bits.forbid = true;
-    }
-
-    ai.debug(out, "trade: executed trade");
-    return true;
+    return false;
 }

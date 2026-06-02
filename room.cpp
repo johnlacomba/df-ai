@@ -8,7 +8,9 @@
 #include "df/abstract_building.h"
 #include "df/abstract_building_contents.h"
 #include "df/building.h"
+#include "df/buildings_other_id.h"
 #include "df/plotinfost.h"
+#include "df/tile_designation.h"
 #include "df/tile_occupancy.h"
 #include "df/unit.h"
 #include "df/world.h"
@@ -434,10 +436,39 @@ int32_t room::compute_value() const
         }
     }
 
-    // building::getRoomValue removed in Steam DF
-    // TODO: find replacement API for room value calculation
-    (void)owner;
-    return 0;
+    int32_t value = 0;
+
+    for (auto other_bld : world->buildings.other[buildings_other_id::IN_PLAY])
+    {
+        if (!other_bld || other_bld == bld)
+            continue;
+        if (other_bld->z != min.z)
+            continue;
+        if (other_bld->x1 > max.x || other_bld->x2 < min.x ||
+            other_bld->y1 > max.y || other_bld->y2 < min.y)
+            continue;
+        if (other_bld->getBuildStage() < other_bld->getMaxBuildStage())
+            continue;
+
+        value += 1;
+    }
+
+    for (int16_t x = min.x; x <= max.x; x++)
+    {
+        for (int16_t y = min.y; y <= max.y; y++)
+        {
+            auto des = Maps::getTileDesignation(x, y, min.z);
+            if (!des)
+                continue;
+
+            if (des->bits.smooth >= 1)
+                value += 1;
+            if (des->bits.smooth >= 2)
+                value += 2;
+        }
+    }
+
+    return value;
 }
 
 int32_t room::distance_to(const room *other) const

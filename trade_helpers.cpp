@@ -58,6 +58,8 @@ bool Trade::can_trade()
 {
     auto room = ai.find_room(room_type::tradedepot);
     auto bld = room ? room->dfbuilding() : nullptr;
+    if (!bld)
+        return false;
 
     for (auto & caravan : plotinfo->caravans)
     {
@@ -773,14 +775,22 @@ int32_t Trade::item_or_container_price_for_caravan(df::item *item, df::caravan_s
         if (auto contains_item = virtual_cast<df::general_ref_contains_itemst>(ref))
         {
             auto item2 = df::item::find(contains_item->item_id);
-            value = value + item_or_container_price_for_caravan(item2, caravan, entity, creature, item2->getStackSize(), pricetable_buy, pricetable_sell);
+            if (item2)
+            {
+                value = value + item_or_container_price_for_caravan(item2, caravan, entity, creature, item2->getStackSize(), pricetable_buy, pricetable_sell);
+            }
         }
         else if (auto contains_unit = virtual_cast<df::general_ref_contains_unitst>(ref))
         {
             auto unit2 = df::unit::find(contains_unit->unit_id);
-            auto creature_raw = df::creature_raw::find(unit2->race);
-            auto caste_raw = creature_raw->caste.at(unit2->caste);
-            value = value + caste_raw->misc.petvalue;
+            if (unit2)
+            {
+                auto creature_raw = df::creature_raw::find(unit2->race);
+                if (creature_raw && size_t(unit2->caste) < creature_raw->caste.size())
+                {
+                    value = value + creature_raw->caste.at(unit2->caste)->misc.petvalue;
+                }
+            }
         }
     }
 
