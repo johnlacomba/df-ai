@@ -6,6 +6,7 @@
 
 #include "df/entity_material_category.h"
 #include "df/entity_position.h"
+#include "df/entity_position_assignment.h"
 #include "df/entity_position_responsibility.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
@@ -209,6 +210,70 @@ static void setup_squad_schedule(df::squad *squad)
     }
 }
 
+static void link_squad_to_position(color_ostream & out, AI & ai, df::squad *squad, bool is_commander)
+{
+    auto entity = plotinfo->main.fortress_entity;
+    if (!entity)
+        return;
+
+    auto responsibility = is_commander ?
+        entity_position_responsibility::MILITARY_STRATEGY :
+        entity_position_responsibility::MILITARY_GOALS;
+
+    df::entity_position *target_pos = nullptr;
+    for (auto pos : entity->positions.own)
+    {
+        if (pos && pos->responsibilities[responsibility])
+        {
+            target_pos = pos;
+            break;
+        }
+    }
+    if (!target_pos)
+        return;
+
+    df::entity_position_assignment *asn = nullptr;
+    for (auto a : entity->positions.assignments)
+    {
+        if (!a || a->position_id != target_pos->id)
+            continue;
+        if (a->squad_id == -1)
+        {
+            asn = a;
+            break;
+        }
+    }
+
+    if (!asn)
+    {
+        asn = df::allocate<df::entity_position_assignment>();
+        if (!asn)
+            return;
+        int32_t max_id = 0;
+        for (auto a : entity->positions.assignments)
+        {
+            if (a && a->id >= max_id)
+                max_id = a->id + 1;
+        }
+        asn->id = max_id;
+        asn->position_id = target_pos->id;
+        asn->histfig = -1;
+        asn->histfig2 = -1;
+        asn->squad_id = squad->id;
+        entity->positions.assignments.push_back(asn);
+    }
+    else
+    {
+        asn->squad_id = squad->id;
+    }
+
+    squad->leader_position = target_pos->id;
+    squad->leader_assignment = asn->id;
+
+    ai.debug(out, stl_sprintf("[military] linked squad %d to %s position (assignment %d)",
+        squad->id, target_pos->name[0].c_str(), asn->id));
+}
+
 static df::squad *create_squad(color_ostream & out, AI & ai)
 {
     auto entity = plotinfo->main.fortress_entity;
@@ -248,9 +313,11 @@ static df::squad *create_squad(color_ostream & out, AI & ai)
     world->squads.all.push_back(squad);
     entity->squads.push_back(squad->id);
 
+    bool is_first_squad = (entity->squads.size() == 1);
     bool ranged = (entity->squads.size() % 3 == 1);
     setup_squad_equipment(squad, ranged);
     setup_squad_schedule(squad);
+    link_squad_to_position(out, ai, squad, is_first_squad);
 
     ai.debug(out, stl_sprintf("[military] created %s squad id=%d", ranged ? "ranged" : "melee", squad->id));
     return squad;
@@ -304,6 +371,8 @@ static bool draft_unit(color_ostream & out, AI & ai, df::unit *u, df::squad *squ
     if (!u || !squad || u->hist_figure_id == -1)
         return false;
 
+    auto entity = plotinfo->main.fortress_entity;
+
     for (size_t i = 0; i < squad->positions.size(); i++)
     {
         auto pos = squad->positions[i];
@@ -316,6 +385,18 @@ static bool draft_unit(color_ostream & out, AI & ai, df::unit *u, df::squad *squ
             u->status.labors[unit_labor::MINE] = false;
             u->status.labors[unit_labor::CUTWOOD] = false;
             u->status.labors[unit_labor::HUNT] = false;
+
+            if (i == 0 && squad->leader_assignment != -1 && entity)
+            {
+                for (auto asn : entity->positions.assignments)
+                {
+                    if (asn && asn->id == squad->leader_assignment)
+                    {
+                        asn->histfig = u->hist_figure_id;
+                        break;
+                    }
+                }
+            }
 
             ai.pop.military[u->id] = squad->id;
             ai.plan.getsoldierbarrack(out, u->id);

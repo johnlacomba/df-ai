@@ -2,26 +2,7 @@
 
 #include "event_manager.h"
 
-#include <deque>
-
-#include "df/coord.h"
-
 class AI;
-
-const int CAMERA_TIER_COMBAT = 0;
-const int CAMERA_TIER_FORT = 1;
-const int CAMERA_TIER_CITIZEN = 2;
-const int CAMERA_NUM_TIERS = 3;
-const int CAMERA_ON_SCREEN_RADIUS = 15;
-const int CAMERA_TIER_CAP = 20;
-const int CAMERA_DWELL_EVENT = 2;
-const int CAMERA_DWELL_CITIZEN = 4;
-
-struct CameraEvent
-{
-    df::coord pos;
-    std::string description;
-};
 
 class Camera
 {
@@ -30,12 +11,6 @@ class Camera
     OnupdateCallback *onupdate_handle;
     OnstatechangeCallback *onstatechange_handle;
     friend class AI;
-
-    std::deque<CameraEvent> tiers[CAMERA_NUM_TIERS];
-    int32_t dwell_remaining;
-    int32_t dwell_tier;
-    int32_t citizen_scan_counter;
-    df::coord last_event_coord;
 
 public:
     Camera(AI & ai);
@@ -49,8 +24,6 @@ public:
     void update_tick(color_ostream & out);
     void update(color_ostream & out);
     std::string status();
-
-    void queue_event(int tier, df::coord pos, const std::string & description);
 
     int32_t following;
     std::vector<int32_t> following_prev;

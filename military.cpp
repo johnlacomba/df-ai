@@ -58,66 +58,53 @@ bool AI::tag_enemies(color_ostream & out)
             !Units::isOwnCiv(u) && Units::getContainer(u) == nullptr &&
             _td49 && !_td49->bits.hidden)
         {
-            std::string threat_reason;
             if (race && race->flags.is_set(creature_raw_flags::HAS_ANY_MEGABEAST))
             {
-                threat_reason = "primary antagonist: megabeast";
-                found = pop.military_all_squads_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_all_squads_attack_unit(out, u, "primary antagonist: megabeast") || found;
             }
             else if (race && race->flags.is_set(creature_raw_flags::HAS_ANY_SEMIMEGABEAST))
             {
-                threat_reason = "primary antagonist: semi-megabeast";
-                found = pop.military_all_squads_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_all_squads_attack_unit(out, u, "primary antagonist: semi-megabeast") || found;
             }
             else if (race && race->flags.is_set(creature_raw_flags::HAS_ANY_FEATURE_BEAST))
             {
-                threat_reason = "primary antagonist: forgotten beast";
-                found = pop.military_all_squads_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_all_squads_attack_unit(out, u, "primary antagonist: forgotten beast") || found;
             }
             else if (race && race->flags.is_set(creature_raw_flags::HAS_ANY_TITAN))
             {
-                threat_reason = "primary antagonist: titan";
-                found = pop.military_all_squads_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_all_squads_attack_unit(out, u, "primary antagonist: titan") || found;
             }
             else if (race && race->flags.is_set(creature_raw_flags::HAS_ANY_UNIQUE_DEMON))
             {
-                threat_reason = "primary antagonist: demon";
-                found = pop.military_all_squads_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_all_squads_attack_unit(out, u, "primary antagonist: demon") || found;
             }
             else if (race && race->flags.is_set(creature_raw_flags::HAS_ANY_DEMON))
             {
-                threat_reason = "antagonist: demon";
-                found = pop.military_all_squads_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_all_squads_attack_unit(out, u, "antagonist: demon") || found;
             }
             else if (race && race->flags.is_set(creature_raw_flags::HAS_ANY_NIGHT_CREATURE))
             {
-                threat_reason = "antagonist: night creature";
-                found = pop.military_all_squads_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_all_squads_attack_unit(out, u, "antagonist: night creature") || found;
             }
             else if (Units::isOpposedToLife(u))
             {
-                threat_reason = "undead";
-                found = pop.military_random_squad_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_random_squad_attack_unit(out, u, "undead") || found;
             }
             else if (u->flags1.bits.active_invader)
             {
-                threat_reason = "active invader";
-                found = pop.military_random_squad_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_random_squad_attack_unit(out, u, "active invader") || found;
             }
             else if (u->flags1.bits.marauder)
             {
-                threat_reason = "marauder";
-                found = pop.military_random_squad_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_random_squad_attack_unit(out, u, "marauder") || found;
             }
             else if (u->flags2.bits.underworld)
             {
-                threat_reason = "underworld creature";
-                found = pop.military_random_squad_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_random_squad_attack_unit(out, u, "underworld creature") || found;
             }
             else if (u->flags2.bits.visitor_uninvited)
             {
-                threat_reason = "uninvited visitor";
-                found = pop.military_random_squad_attack_unit(out, u, threat_reason) || found;
+                found = pop.military_random_squad_attack_unit(out, u, "uninvited visitor") || found;
             }
             else if (auto hunter = is_hunting_target(u))
             {
@@ -125,12 +112,7 @@ bool AI::tag_enemies(color_ostream & out)
             }
             else if (auto citizen = u->flags2.bits.roaming_wilderness_population_source ? is_attacking_citizen(u) : nullptr)
             {
-                threat_reason = "attacking citizen: " + AI::describe_unit(citizen);
-                found = pop.military_random_squad_attack_unit(out, u, threat_reason) || found;
-            }
-            if (!threat_reason.empty())
-            {
-                camera.queue_event(CAMERA_TIER_COMBAT, Units::getPosition(u), "combat (" + threat_reason + "): " + AI::describe_unit(u));
+                found = pop.military_random_squad_attack_unit(out, u, "attacking citizen: " + AI::describe_unit(citizen)) || found;
             }
         }
     }

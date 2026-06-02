@@ -377,8 +377,6 @@ void Plan::monitor_cistern(color_ostream & out, std::ostream & reason)
                                 for (auto it = items.begin(); it != items.end(); it++)
                                 {
                                     df::item *i = df::item::find(*it);
-                                    if (!i)
-                                        continue;
                                     if (Items::getPosition(i) == t)
                                     {
                                         std::string msg = stl_sprintf("item (%d, %d, %d) (%s) %s", x, y, z, AI::describe_item(i).c_str(), AI::describe_room(r).c_str());

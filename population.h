@@ -52,7 +52,6 @@ private:
     size_t seen_death;
     OnupdateCallback *deathwatch_handle;
     std::set<int32_t> medic;
-    std::set<int32_t> seen_ghosts;
     std::map<int32_t, df::mood_type> moody;
     std::set<int32_t> artifacts;
     std::vector<int32_t> workers;
@@ -60,16 +59,6 @@ private:
     int32_t last_checked_crime_year, last_checked_crime_tick;
     bool did_trade;
     int32_t trade_start_x, trade_start_y, trade_start_z;
-
-    enum trade_state_t
-    {
-        TRADE_IDLE,
-        TRADE_MOVING_GOODS,
-        TRADE_AWAITING_BROKER,
-        TRADE_TRADING
-    };
-    trade_state_t trade_state;
-    std::set<int32_t> trade_designated_items;
 
     struct squad_order_change
     {

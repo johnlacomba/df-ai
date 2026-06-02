@@ -196,7 +196,6 @@ void Plan::update(color_ostream & out)
                 {
                     ai.debug(out, "[plan_update] direct digroom: " + AI::describe_room(t->r));
                     digroom(out, t->r);
-                    ai.camera.queue_event(CAMERA_TIER_FORT, t->r->pos(), "designating: " + AI::describe_room(t->r));
                     delete t;
                     it = tasks_generic.erase(it);
                 }

@@ -1087,11 +1087,6 @@ Stocks::find_item_info Stocks::find_item_helper_tool(df::tool_uses use, std::fun
     }, &find_item_info::default_count, [](df::item *item) -> bool
     {
         auto i = virtual_cast<df::item_toolst>(item);
-        if (!i || i->stockpile.id != -1)
-            return false;
-        if (i->vehicle_id == -1)
-            return true;
-        auto *v = df::vehicle::find(i->vehicle_id);
-        return !v || v->route_id == -1;
+        return i && i->stockpile.id == -1 && (i->vehicle_id == -1 || df::vehicle::find(i->vehicle_id)->route_id == -1);
     }, idefs, false);
 }

@@ -94,11 +94,6 @@ bool Trade::can_move_goods()
     return false;
 }
 
-bool Trade::caravan_is_near()
-{
-    return can_move_goods();
-}
-
 void Trade::read_trader_reply(std::string & reply, std::string & mood)
 {
     reply.clear();

@@ -1,5 +1,6 @@
 #include "ai.h"
 #include "camera.h"
+#include "hooks.h"
 #include "debug.h"
 
 #include <random>
@@ -7,16 +8,24 @@
 
 #include "modules/Gui.h"
 #include "modules/Maps.h"
+#include "modules/Screen.h"
 #include "modules/Units.h"
 
+#include "df/activity_event_conflictst.h"
+#include "df/creature_interaction_effect_body_transformationst.h"
+#include "df/creature_raw.h"
 #include "df/graphic.h"
+#include "df/interfacest.h"
 #include "df/job.h"
+#include "df/syndrome.h"
 #include "df/plotinfost.h"
 #include "df/unit.h"
+#include "df/unit_syndrome.h"
 #include "df/viewscreen_dwarfmodest.h"
 #include "df/world.h"
 
 REQUIRE_GLOBAL(gps);
+REQUIRE_GLOBAL(gview);
 REQUIRE_GLOBAL(pause_state);
 REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
@@ -26,11 +35,6 @@ Camera::Camera(AI & ai) :
     ontick_handle(nullptr),
     onupdate_handle(nullptr),
     onstatechange_handle(nullptr),
-    tiers(),
-    dwell_remaining(0),
-    dwell_tier(-1),
-    citizen_scan_counter(0),
-    last_event_coord(),
     following(-1),
     following_prev(),
     follow_unit(-1),
@@ -38,20 +42,6 @@ Camera::Camera(AI & ai) :
     follow_stop(true),
     movie_started_in_lockstep(false)
 {
-}
-
-void Camera::queue_event(int tier, df::coord pos, const std::string & description)
-{
-    if (tier < 0 || tier >= CAMERA_NUM_TIERS)
-        return;
-    if (!pos.isValid())
-        return;
-    auto *td = Maps::getTileDesignation(pos);
-    if (!td || td->bits.hidden)
-        return;
-    if (static_cast<int>(tiers[tier].size()) >= CAMERA_TIER_CAP)
-        tiers[tier].pop_front();
-    tiers[tier].push_back({ pos, description });
 }
 
 Camera::~Camera()
@@ -72,7 +62,7 @@ command_result Camera::onupdate_register(color_ostream &)
         gps->display_frames = 1;
     }
     ontick_handle = events.onupdate_register("df-ai camera (every tick)", 1, 1, [this](color_ostream& out) { update_tick(out); });
-    onupdate_handle = events.onupdate_register("df-ai camera", 500, 100, [this](color_ostream & out) { update(out); });
+    onupdate_handle = events.onupdate_register("df-ai camera", 2000, 100, [this](color_ostream & out) { update(out); });
     onstatechange_handle = events.onstatechange_register("fps meter watcher", [this](color_ostream &, state_change_event mode)
     {
         if (config.fps_meter && mode == SC_VIEWSCREEN_CHANGED)
@@ -131,107 +121,78 @@ void Camera::update(color_ostream &)
         return;
     }
 
-    // dwell timer: hold position until dwell expires or a higher-priority event arrives
-    if (dwell_remaining > 0)
+    if (following != plotinfo->follow_unit && !events.is_client())
     {
-        bool interrupted = false;
-        for (int t = 0; t < dwell_tier; t++)
+        DFAI_DEBUG(camera, 1, "followed unit changed externally! was " << following << ", now " << plotinfo->follow_unit);
+        following = plotinfo->follow_unit;
+        return;
+    }
+
+    std::vector<df::unit *> targets0;
+    std::vector<df::unit *> targets1;
+    for (auto it = world->units.active.begin(); it != world->units.active.end(); it++)
+    {
+        df::unit *u = *it;
+        df::tile_designation *td = Maps::getTileDesignation(Units::getPosition(u));
+        if (u->flags1.bits.inactive || !td || td->bits.hidden)
+            continue;
+        df::creature_raw *race = df::creature_raw::find(u->race);
+        if (race &&
+            (race->flags.is_set(creature_raw_flags::HAS_ANY_MEGABEAST) ||
+                race->flags.is_set(creature_raw_flags::HAS_ANY_SEMIMEGABEAST) ||
+                race->flags.is_set(creature_raw_flags::HAS_ANY_FEATURE_BEAST) ||
+                race->flags.is_set(creature_raw_flags::HAS_ANY_TITAN) ||
+                race->flags.is_set(creature_raw_flags::HAS_ANY_UNIQUE_DEMON) ||
+                race->flags.is_set(creature_raw_flags::HAS_ANY_DEMON) ||
+                race->flags.is_set(creature_raw_flags::HAS_ANY_NIGHT_CREATURE)))
         {
-            if (!tiers[t].empty())
+            DFAI_DEBUG(camera, 4, "adding candidate: " << AI::describe_unit(u) << " (primary antagonist)");
+            targets0.push_back(u);
+        }
+        else if (u->training_level != animal_training_level::Domesticated &&
+            (u->flags1.bits.marauder ||
+            u->flags1.bits.active_invader ||
+            u->flags2.bits.underworld ||
+            u->flags2.bits.visitor_uninvited ||
+            // conflict_sidest removed in Steam DF — conflict side/enemy structure changed
+            // AI::is_in_conflict(u, ...) stubbed out
+            false ||
+            std::find_if(u->syndromes.active.begin(), u->syndromes.active.end(), [](df::unit_syndrome *us) -> bool
             {
-                DFAI_DEBUG(camera, 2, "dwell interrupted by tier " << t << " event");
-                interrupted = true;
-                break;
-            }
-        }
-        if (!interrupted)
+                auto & s = df::syndrome::find(us->type)->ce;
+                return std::find_if(s.begin(), s.end(), [](df::creature_interaction_effect *ce) -> bool
+                {
+                    return virtual_cast<df::creature_interaction_effect_body_transformationst>(ce) != nullptr;
+                }) != s.end();
+            }) != u->syndromes.active.end()))
         {
-            dwell_remaining--;
-            return;
+            DFAI_DEBUG(camera, 4, "adding candidate: " << AI::describe_unit(u) << " (conflict)");
+            targets1.push_back(u);
         }
-        dwell_remaining = 0;
     }
-
-    // consume events: drain highest-priority tier first
-    int32_t vx, vy, vz;
-    Gui::getViewCoords(vx, vy, vz);
-
-    for (int t = 0; t < CAMERA_NUM_TIERS; t++)
+    std::shuffle(targets0.begin(), targets0.end(), ai.rng);
+    std::shuffle(targets1.begin(), targets1.end(), ai.rng);
+    std::vector<df::unit *> targets2;
+    for (auto it = world->units.active.begin(); it != world->units.active.end(); it++)
     {
-        bool had_events = !tiers[t].empty();
-        while (!tiers[t].empty())
+        df::unit *u = *it;
+        if (!u->flags1.bits.inactive && Units::isCitizen(u))
         {
-            CameraEvent ev = std::move(tiers[t].front());
-            tiers[t].pop_front();
-
-            int32_t dx = ev.pos.x - vx;
-            int32_t dy = ev.pos.y - vy;
-            if (dx < 0) dx = -dx;
-            if (dy < 0) dy = -dy;
-
-            if (dx <= CAMERA_ON_SCREEN_RADIUS && dy <= CAMERA_ON_SCREEN_RADIUS && ev.pos.z == vz)
-            {
-                DFAI_DEBUG(camera, 3, "event on-screen, skipping: " << ev.description);
-                continue;
-            }
-
-            DFAI_DEBUG(camera, 1, "panning to event: " << ev.description << " at (" << ev.pos.x << "," << ev.pos.y << "," << ev.pos.z << ")");
-            Gui::revealInDwarfmodeMap(ev.pos, true);
-            plotinfo->follow_unit = -1;
-            dwell_remaining = CAMERA_DWELL_EVENT;
-            dwell_tier = t;
-            last_event_coord = ev.pos;
-
-            world->status.flags.bits.combat = 0;
-            world->status.flags.bits.hunting = 0;
-            world->status.flags.bits.sparring = 0;
-            return;
-        }
-        if (had_events)
-        {
-            dwell_remaining = CAMERA_DWELL_EVENT;
-            dwell_tier = t;
-            return;
+            DFAI_DEBUG(camera, 5, "adding candidate: " << AI::describe_unit(u) << " (citizen)");
+            targets2.push_back(u);
         }
     }
-
-    // citizen fallback: all queues empty and dwell expired
-    // if already following a citizen, keep following them for the full dwell period
-    if (following != -1 && plotinfo->follow_unit == following)
-    {
-        dwell_remaining = CAMERA_DWELL_CITIZEN;
-        dwell_tier = CAMERA_TIER_CITIZEN;
-        return;
-    }
-
-    if (++citizen_scan_counter < 4)
-        return;
-    citizen_scan_counter = 0;
-
-    std::vector<df::unit *> citizens;
-    for (auto u : world->units.active)
-    {
-        if (!u->flags1.bits.inactive && Units::isCitizen(u) && !Units::isBaby(u) && !u->flags1.bits.caged)
-        {
-            auto *td = Maps::getTileDesignation(Units::getPosition(u));
-            if (!td || td->bits.hidden)
-                continue;
-            citizens.push_back(u);
-        }
-    }
-
-    if (citizens.empty())
-    {
-        DFAI_DEBUG(camera, 1, "no citizens for fallback");
-        return;
-    }
-
+    std::shuffle(targets2.begin(), targets2.end(), ai.rng);
     auto score = [](df::unit *u) -> int
     {
         if (!u->job.current_job)
+        {
             return 0;
+        }
         if (u->job.current_job->job_type == job_type::Sleep)
+        {
             return 100;
+        }
         switch (ENUM_ATTR(job_type, type, u->job.current_job->job_type))
         {
         case job_type_class::Misc:
@@ -271,9 +232,7 @@ void Camera::update(color_ostream &)
         }
         return 0;
     };
-
-    std::shuffle(citizens.begin(), citizens.end(), ai.rng);
-    std::sort(citizens.begin(), citizens.end(), [score](df::unit *a, df::unit *b) -> bool { return score(a) < score(b); });
+    std::sort(targets2.begin(), targets2.end(), [score](df::unit *a, df::unit *b) -> bool { return score(a) < score(b); });
 
     if (following != -1)
         following_prev.push_back(following);
@@ -282,33 +241,58 @@ void Camera::update(color_ostream &)
         following_prev.erase(following_prev.begin(), following_prev.end() - 3);
     }
 
-    df::unit *target = nullptr;
-    for (auto u : citizens)
+    size_t targets1_count = targets1.size();
+    if (targets1_count > 3)
+        targets1_count = 3;
+    if (!targets2.empty())
     {
-        if (std::find(following_prev.begin(), following_prev.end(), u->id) == following_prev.end())
+        for (auto it = targets1.begin(); it != targets1.end(); it++)
         {
-            target = u;
-            break;
+            df::unit *u = *it;
+            if (std::find(following_prev.begin(), following_prev.end(), u->id) == following_prev.end())
+            {
+                targets1_count--;
+                if (targets1_count == 0)
+                    break;
+            }
         }
     }
-    if (!target)
+
+    targets1.erase(targets1.begin(), targets1.begin() + targets1_count);
+    targets0.insert(targets0.end(), targets1.begin(), targets1.end());
+    targets0.insert(targets0.end(), targets2.begin(), targets2.end());
+
+    df::unit *following_unit = nullptr;
+    following = -1;
+    if (!targets0.empty())
     {
-        target = citizens[std::uniform_int_distribution<size_t>(0, citizens.size() - 1)(ai.rng)];
+        for (auto it = targets0.begin(); it != targets0.end(); it++)
+        {
+            df::unit *u = *it;
+            if (std::find(following_prev.begin(), following_prev.end(), u->id) == following_prev.end() && !u->flags1.bits.caged)
+            {
+                following_unit = u;
+                DFAI_DEBUG(camera, 1, "fallback: following candidate " << (it - targets0.begin()) << ": " << AI::describe_unit(following_unit));
+                following = u->id;
+                break;
+            }
+        }
+        if (following == -1)
+        {
+            following_unit = targets0[std::uniform_int_distribution<size_t>(0, targets0.size() - 1)(ai.rng)];
+            DFAI_DEBUG(camera, 1, "fallback: following unit " << AI::describe_unit(following_unit));
+            following = following_unit->id;
+        }
+    }
+    else
+    {
+        DFAI_DEBUG(camera, 1, "no good follow candidates");
     }
 
-    following = target->id;
-    last_event_coord = df::coord();
-    DFAI_DEBUG(camera, 2, "citizen fallback: " << AI::describe_unit(target));
-
-    if (!*pause_state)
+    if (following != -1 && !*pause_state)
     {
-        df::coord target_pos = Units::getPosition(target);
-        if (!target_pos.isValid())
-            return;
-        Gui::revealInDwarfmodeMap(target_pos, true);
+        Gui::revealInDwarfmodeMap(Units::getPosition(following_unit), true);
         plotinfo->follow_unit = following;
-        dwell_remaining = CAMERA_DWELL_CITIZEN;
-        dwell_tier = CAMERA_TIER_CITIZEN;
     }
 
     world->status.flags.bits.combat = 0;
@@ -326,28 +310,10 @@ void AI::ignore_pause(int32_t x, int32_t y, int32_t z)
         return;
     }
 
-    if (camera.following != -1 && camera.dwell_tier == CAMERA_TIER_CITIZEN)
+    if (df::unit *u = df::unit::find(camera.following))
     {
-        if (df::unit *u = df::unit::find(camera.following))
-        {
-            df::coord pos = Units::getPosition(u);
-            if (pos.isValid())
-            {
-                Gui::revealInDwarfmodeMap(pos, true);
-                plotinfo->follow_unit = camera.following;
-                return;
-            }
-        }
-    }
-
-    if (camera.last_event_coord.isValid())
-    {
-        Gui::revealInDwarfmodeMap(camera.last_event_coord, true);
-        plotinfo->follow_unit = -1;
-    }
-    else
-    {
-        Gui::setViewCoords(x, y, z);
+        Gui::revealInDwarfmodeMap(Units::getPosition(u), true);
+        plotinfo->follow_unit = camera.following;
     }
 }
 
@@ -358,43 +324,22 @@ std::string Camera::status()
         return "disabled by config";
     }
 
-    std::ostringstream s;
-
-    size_t total_queued = 0;
-    for (int t = 0; t < CAMERA_NUM_TIERS; t++)
-        total_queued += tiers[t].size();
-
-    if (dwell_remaining > 0 && dwell_tier < CAMERA_TIER_CITIZEN && last_event_coord.isValid())
-    {
-        s << "event at (" << last_event_coord.x << "," << last_event_coord.y << "," << last_event_coord.z << ")";
-    }
-    else if (following != -1)
-    {
-        if (auto *u = df::unit::find(following))
-            s << "following " << AI::describe_unit(u);
-        else
-            s << "following (unit " << following << " gone)";
-    }
-    else
-    {
-        s << "idle";
-    }
-
-    if (total_queued > 0)
-        s << " [" << total_queued << " queued]";
-
     std::string fp;
     for (auto it = following_prev.begin(); it != following_prev.end(); it++)
     {
         if (!fp.empty())
+        {
             fp += "; ";
-        if (auto *u = df::unit::find(*it))
-            fp += AI::describe_unit(u);
-        else
-            fp += "(gone)";
+        }
+        fp += AI::describe_unit(df::unit::find(*it));
     }
     if (!fp.empty())
-        s << " (prev: " << fp << ")";
-
-    return s.str();
+    {
+        fp = " (previously: " + fp + ")";
+    }
+    if (following != -1 && (plotinfo->follow_unit == following || events.is_client()))
+    {
+        return "following " + AI::describe_unit(df::unit::find(following)) + fp;
+    }
+    return "inactive" + fp;
 }
