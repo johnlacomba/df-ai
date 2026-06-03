@@ -1162,25 +1162,22 @@ void PlanSetup::handle_special_exits()
                         df::coord prev = source_tile.count(cur) ? source_tile.at(cur) : cur;
 
                         df::coord adjacent_river;
-                        auto *_td1161 = Maps::getTileDesignation(cur.x, cur.y, cur.z + 1);
-                        if (_td1161 && _td1161->bits.light)
+                        for (int16_t scan_dz = 1; scan_dz <= 5 && !adjacent_river.isValid(); scan_dz++)
                         {
-                            if (check_river(cur + df::coord(-2, 0, 0)) || check_river(cur + df::coord(-2, 0, 1)))
-                            {
-                                adjacent_river = cur + df::coord(-1, 0, 0);
-                            }
-                            else if (check_river(cur + df::coord(2, 0, 0)) || check_river(cur + df::coord(2, 0, 1)))
-                            {
-                                adjacent_river = cur + df::coord(1, 0, 0);
-                            }
-                            else if (check_river(cur + df::coord(0, -2, 0)) || check_river(cur + df::coord(0, -2, 1)))
-                            {
-                                adjacent_river = cur + df::coord(0, -1, 0);
-                            }
-                            else if (check_river(cur + df::coord(0, 2, 0)) || check_river(cur + df::coord(0, 2, 1)))
-                            {
-                                adjacent_river = cur + df::coord(0, 1, 0);
-                            }
+                            auto *td_scan = Maps::getTileDesignation(cur.x, cur.y, cur.z + scan_dz);
+                            if (!td_scan || !td_scan->bits.light)
+                                continue;
+
+                            int16_t sz = cur.z + scan_dz;
+                            if (check_river(df::coord(cur.x - 2, cur.y, sz)) || check_river(df::coord(cur.x - 2, cur.y, sz - 1)))
+                                adjacent_river = df::coord(cur.x - 1, cur.y, sz - 1);
+                            else if (check_river(df::coord(cur.x + 2, cur.y, sz)) || check_river(df::coord(cur.x + 2, cur.y, sz - 1)))
+                                adjacent_river = df::coord(cur.x + 1, cur.y, sz - 1);
+                            else if (check_river(df::coord(cur.x, cur.y - 2, sz)) || check_river(df::coord(cur.x, cur.y - 2, sz - 1)))
+                                adjacent_river = df::coord(cur.x, cur.y - 1, sz - 1);
+                            else if (check_river(df::coord(cur.x, cur.y + 2, sz)) || check_river(df::coord(cur.x, cur.y + 2, sz - 1)))
+                                adjacent_river = df::coord(cur.x, cur.y + 1, sz - 1);
+                            break;
                         }
 
                         if (!adjacent_river.isValid())
@@ -1216,11 +1213,11 @@ void PlanSetup::handle_special_exits()
                             continue;
                         }
 
-                        DFAI_DEBUG(blueprint, 1, "aqueduct: found river connection at " << DBG_COORD(adjacent_river) << " after checking " << bfs_tiles_checked << " tiles");
+                        DFAI_DEBUG(blueprint, 1, "aqueduct: found river connection at " << DBG_COORD(adjacent_river) << " (bfs tile " << DBG_COORD(cur) << ", dz=" << (adjacent_river.z - cur.z + 1) << ") after checking " << bfs_tiles_checked << " tiles");
                         r->channel_enable = adjacent_river;
                         if (prev.x != cur.x || prev.y != cur.y)
                             prev = cur;
-                        cur.z++;
+                        cur.z = adjacent_river.z + 1;
                         source_tile[cur] = prev;
 
                         do

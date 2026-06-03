@@ -460,7 +460,8 @@ void Plan::monitor_cistern(color_ostream & out, std::ostream & reason)
                     df::tiletype_material tm = ENUM_ATTR(tiletype, material, tt);
                     if (tm != tiletype_material::STONE && tm != tiletype_material::MINERAL && tm != tiletype_material::SOIL && tm != tiletype_material::ROOT)
                         continue;
-                    if (AI::spiral_search(gate + df::coord(x, y, 0), 1, 1, [](df::coord ttt) -> bool { df::tile_designation *td = Maps::getTileDesignation(ttt); return td && td->bits.feature_local; }).isValid())
+                    if (AI::spiral_search(gate + df::coord(x, y, 0), 1, 1, [](df::coord ttt) -> bool { df::tile_designation *td = Maps::getTileDesignation(ttt); return td && td->bits.feature_local; }).isValid() ||
+                        AI::spiral_search(gate + df::coord(x, y, 1), 1, 1, [](df::coord ttt) -> bool { df::tile_designation *td = Maps::getTileDesignation(ttt); return td && td->bits.feature_local; }).isValid())
                     {
                         AI::dig_tile(gate + df::coord(x, y, 1), tile_dig_designation::Channel);
                     }
@@ -485,7 +486,12 @@ void Plan::monitor_cistern(color_ostream & out, std::ostream & reason)
     auto *_td479 = Maps::getTileDesignation(m_c_reserve->pos());
     uint32_t resvlvl = _td479 ? _td479->bits.flow_size : 0;
 
-    df::coord river = AI::spiral_search(m_c_reserve->channel_enable, 0, 2, [](df::coord t) -> bool { df::tile_designation *td = Maps::getTileDesignation(t); return td && td->bits.feature_local; });
+    df::coord channel_pos = m_c_reserve->channel_enable;
+    df::coord river = AI::spiral_search(channel_pos, 0, 2, [](df::coord t) -> bool { df::tile_designation *td = Maps::getTileDesignation(t); return td && td->bits.feature_local; });
+    if (!river.isValid())
+    {
+        river = AI::spiral_search(channel_pos + df::coord(0, 0, 1), 0, 2, [](df::coord t) -> bool { df::tile_designation *td = Maps::getTileDesignation(t); return td && td->bits.feature_local; });
+    }
     auto *_tt482 = river.isValid() ? Maps::getTileType(river) : nullptr;
     auto *_td482 = river.isValid() ? Maps::getTileDesignation(river) : nullptr;
     bool river_is_frozen_or_dry = river.isValid() && ((_tt482 && ENUM_ATTR(tiletype, material, *_tt482) == tiletype_material::FROZEN_LIQUID) || (_td482 && _td482->bits.flow_size == 0));
