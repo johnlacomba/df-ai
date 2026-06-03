@@ -12,6 +12,7 @@
 #include "df/building_civzonest.h"
 #include "df/d_init.h"
 #include "df/entity_position.h"
+#include "df/unit.h"
 #include "df/entity_position_assignment.h"
 #include "df/entity_position_responsibility.h"
 #include "df/gamest.h"
@@ -129,7 +130,7 @@ void AI::handle_pause_event(color_ostream & out, df::report *announce)
 
         auto entity = plotinfo->main.fortress_entity;
         debug(out, stl_sprintf("[DIAG] dip_meeting_info count: %zu, meeting_requests count: %zu",
-            plotinfo->main.dip_meeting_info.size(), plotinfo->main.meeting_requests.size()));
+            plotinfo->dip_meeting_info.size(), plotinfo->meeting_requests.size()));
 
         bool found_receive_diplomats = false;
         for (auto asn : entity->positions.assignments)
@@ -180,7 +181,7 @@ void AI::handle_pause_event(color_ostream & out, df::report *announce)
     {
         auto entity = plotinfo->main.fortress_entity;
         debug(out, stl_sprintf("[DIAG] diplomat left unhappy. dip_meeting_info: %zu, meeting_requests: %zu, diplomacy.open: %d",
-            plotinfo->main.dip_meeting_info.size(), plotinfo->main.meeting_requests.size(),
+            plotinfo->dip_meeting_info.size(), plotinfo->meeting_requests.size(),
             game ? (int)game->main_interface.diplomacy.open : -1));
         for (auto asn : entity->positions.assignments)
         {
