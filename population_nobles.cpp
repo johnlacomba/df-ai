@@ -401,12 +401,12 @@ void Population::update_diplomacy(color_ostream & out)
 
     if (!office)
     {
-        if (*cur_year_tick - last_error_tick >= 1200 || last_error_tick == -1)
+        static int32_t last_no_office_tick = -1;
+        if (*cur_year_tick - last_no_office_tick >= 1200 || last_no_office_tick == -1)
         {
-            ai.debug(out, "[DIPLO] noble " + AI::describe_unit(noble_unit) + " has no office — meeting will fail");
-            last_error_tick = *cur_year_tick;
+            ai.debug(out, "[DIPLO] noble " + AI::describe_unit(noble_unit) + " has no office — meeting may proceed without one");
+            last_no_office_tick = *cur_year_tick;
         }
-        return;
     }
 
     // throttle routine status logs — log once per state change or every ~200 ticks
@@ -431,44 +431,58 @@ void Population::update_diplomacy(color_ostream & out)
             const char *state_names[] = { "SelectNoble", "FollowNoble", "DoMeeting", "LeaveMap" };
             const char *state_name = (state_val >= 0 && state_val <= 3) ? state_names[state_val] : "unknown";
 
-            ai.debug(out, "[DIPLO] diplomat " + AI::describe_unit(diplomat_unit) +
-                stl_sprintf(" state=%s(%d) target_role=%d pos=(%d,%d,%d) noble_office=(%d,%d,%d)",
-                    state_name, state_val,
-                    static_cast<int>(diplomat_unit->meeting.target_role),
-                    diplomat_unit->pos.x, diplomat_unit->pos.y, diplomat_unit->pos.z,
-                    office->centerx, office->centery, office->z));
+            if (office)
+            {
+                ai.debug(out, "[DIPLO] diplomat " + AI::describe_unit(diplomat_unit) +
+                    stl_sprintf(" state=%s(%d) target_role=%d pos=(%d,%d,%d) noble_office=(%d,%d,%d)",
+                        state_name, state_val,
+                        static_cast<int>(diplomat_unit->meeting.target_role),
+                        diplomat_unit->pos.x, diplomat_unit->pos.y, diplomat_unit->pos.z,
+                        office->centerx, office->centery, office->z));
+            }
+            else
+            {
+                ai.debug(out, "[DIPLO] diplomat " + AI::describe_unit(diplomat_unit) +
+                    stl_sprintf(" state=%s(%d) target_role=%d pos=(%d,%d,%d) (no office)",
+                        state_name, state_val,
+                        static_cast<int>(diplomat_unit->meeting.target_role),
+                        diplomat_unit->pos.x, diplomat_unit->pos.y, diplomat_unit->pos.z));
+            }
             last_logged_state[diplomat_unit->id] = static_cast<int8_t>(state_val);
             last_status_tick = *cur_year_tick;
         }
 
-        bool has_activity = false;
-        for (auto act : plotinfo->activities)
+        if (office)
         {
-            if (act && act->unit_actor == diplomat_unit->id)
+            bool has_activity = false;
+            for (auto act : plotinfo->activities)
             {
-                has_activity = true;
-                if (act->place != office->id)
+                if (act && act->unit_actor == diplomat_unit->id)
                 {
-                    act->place = office->id;
-                    ai.debug(out, "[DIPLO] corrected activity place to current office");
+                    has_activity = true;
+                    if (act->place != office->id)
+                    {
+                        act->place = office->id;
+                        ai.debug(out, "[DIPLO] corrected activity place to current office");
+                    }
+                    break;
                 }
-                break;
             }
-        }
 
-        if (!has_activity && state_val <= 1)
-        {
-            auto act = df::allocate<df::activity_info>();
-            if (act)
+            if (!has_activity && state_val <= 1)
             {
-                act->unit_actor = diplomat_unit->id;
-                act->unit_noble = noble_unit->id;
-                act->place = office->id;
-                act->flags.whole = 0;
-                plotinfo->activities.push_back(act);
-                ai.debug(out, "[DIPLO] created meeting activity: " +
-                    AI::describe_unit(diplomat_unit) + " at office " +
-                    stl_sprintf("(%d,%d,%d)", office->centerx, office->centery, office->z));
+                auto act = df::allocate<df::activity_info>();
+                if (act)
+                {
+                    act->unit_actor = diplomat_unit->id;
+                    act->unit_noble = noble_unit->id;
+                    act->place = office->id;
+                    act->flags.whole = 0;
+                    plotinfo->activities.push_back(act);
+                    ai.debug(out, "[DIPLO] created meeting activity: " +
+                        AI::describe_unit(diplomat_unit) + " at office " +
+                        stl_sprintf("(%d,%d,%d)", office->centerx, office->centery, office->z));
+                }
             }
         }
 
