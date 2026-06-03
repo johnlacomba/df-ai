@@ -2,12 +2,22 @@
 #include "camera.h"
 #include "embark.h"
 #include "plan.h"
+#include "population.h"
 
+#include "modules/Buildings.h"
 #include "modules/Gui.h"
 #include "modules/Screen.h"
+#include "modules/Units.h"
 
+#include "df/building_civzonest.h"
 #include "df/d_init.h"
+#include "df/entity_position.h"
+#include "df/entity_position_assignment.h"
+#include "df/entity_position_responsibility.h"
 #include "df/gamest.h"
+#include "df/historical_entity.h"
+#include "df/historical_figure.h"
+#include "df/plotinfost.h"
 #include "df/popup_message.h"
 #include "df/report.h"
 #include "df/world.h"
@@ -17,6 +27,7 @@ REQUIRE_GLOBAL(cur_year_tick);
 REQUIRE_GLOBAL(d_init);
 REQUIRE_GLOBAL(game);
 REQUIRE_GLOBAL(pause_state);
+REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
 
 void AI::unpause()
@@ -38,7 +49,12 @@ void AI::unpause()
 
     if (game && game->main_interface.diplomacy.open)
     {
-        game->main_interface.diplomacy.open = false;
+        // diplomatic meeting in progress — do not dismiss
+        if (*pause_state)
+        {
+            Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
+        }
+        return;
     }
 
     if (game && game->main_interface.petitions.open)
@@ -106,10 +122,91 @@ void AI::handle_pause_event(color_ostream & out, df::report *announce)
         break;
     case announcement_type::DIPLOMAT_ARRIVAL:
     case announcement_type::LIAISON_ARRIVAL:
+    case announcement_type::TRADE_DIPLOMAT_ARRIVAL:
+    {
+        debug(out, "pause: diplomat/liaison arrived, ensuring map walkability");
+        plan.make_map_walkable(out);
+
+        auto entity = plotinfo->main.fortress_entity;
+        debug(out, stl_sprintf("[DIAG] dip_meeting_info count: %zu, meeting_requests count: %zu",
+            plotinfo->main.dip_meeting_info.size(), plotinfo->main.meeting_requests.size()));
+
+        bool found_receive_diplomats = false;
+        for (auto asn : entity->positions.assignments)
+        {
+            if (!asn || asn->histfig == -1)
+                continue;
+            auto pos = binsearch_in_vector(entity->positions.own, asn->position_id);
+            if (!pos)
+                continue;
+            if (pos->responsibilities[entity_position_responsibility::RECEIVE_DIPLOMATS])
+            {
+                found_receive_diplomats = true;
+                auto hf = df::historical_figure::find(asn->histfig);
+                auto u = hf ? df::unit::find(hf->unit_id) : nullptr;
+                debug(out, "[DIAG] RECEIVE_DIPLOMATS held by: " + (u ? AI::describe_unit(u) : "unknown unit") +
+                    ", position: " + pos->name[0] +
+                    ", required_office: " + std::to_string(pos->required_office));
+
+                if (u)
+                {
+                    bool has_office = false;
+                    for (auto bld : u->owned_buildings)
+                    {
+                        if (auto zone = virtual_cast<df::building_civzonest>(bld))
+                        {
+                            if (zone->type == civzone_type::Office)
+                            {
+                                has_office = true;
+                                debug(out, stl_sprintf("[DIAG] noble has Office civzone id=%d at (%d,%d,%d)",
+                                    zone->id, zone->centerx, zone->centery, zone->z));
+                            }
+                        }
+                    }
+                    if (!has_office)
+                        debug(out, "[DIAG] WARNING: noble has NO Office civzone in owned_buildings");
+                }
+            }
+        }
+        if (!found_receive_diplomats)
+        {
+            debug(out, "[DIAG] WARNING: no position assignment with RECEIVE_DIPLOMATS found!");
+            debug(out, stl_sprintf("[DIAG] assignments_by_type[RECEIVE_DIPLOMATS] count: %zu",
+                entity->assignments_by_type[entity_position_responsibility::RECEIVE_DIPLOMATS].size()));
+        }
+        break;
+    }
+    case announcement_type::DIPLOMAT_LEFT_UNHAPPY:
+    {
+        auto entity = plotinfo->main.fortress_entity;
+        debug(out, stl_sprintf("[DIAG] diplomat left unhappy. dip_meeting_info: %zu, meeting_requests: %zu, diplomacy.open: %d",
+            plotinfo->main.dip_meeting_info.size(), plotinfo->main.meeting_requests.size(),
+            game ? (int)game->main_interface.diplomacy.open : -1));
+        for (auto asn : entity->positions.assignments)
+        {
+            if (!asn || asn->histfig == -1) continue;
+            auto pos = binsearch_in_vector(entity->positions.own, asn->position_id);
+            if (pos && pos->responsibilities[entity_position_responsibility::RECEIVE_DIPLOMATS])
+            {
+                auto hf = df::historical_figure::find(asn->histfig);
+                auto u = hf ? df::unit::find(hf->unit_id) : nullptr;
+                debug(out, "[DIAG] at departure, RECEIVE_DIPLOMATS held by: " + (u ? AI::describe_unit(u) : "?") +
+                    ", pos: " + pos->name[0]);
+                if (u)
+                {
+                    bool has_office = false;
+                    for (auto bld : u->owned_buildings)
+                        if (auto zone = virtual_cast<df::building_civzonest>(bld))
+                            if (zone->type == civzone_type::Office)
+                                has_office = true;
+                    debug(out, stl_sprintf("[DIAG] has_office=%d, owned_buildings count=%zu", has_office, u->owned_buildings.size()));
+                }
+            }
+        }
+        break;
+    }
     case announcement_type::CARAVAN_ARRIVAL:
     case announcement_type::FIRST_CARAVAN_ARRIVAL:
-    case announcement_type::TRADE_DIPLOMAT_ARRIVAL:
-    case announcement_type::DIPLOMAT_LEFT_UNHAPPY:
     case announcement_type::MONARCH_ARRIVAL:
     case announcement_type::HASTY_MONARCH:
     case announcement_type::SATISFIED_MONARCH:
@@ -182,6 +279,15 @@ void AI::statechanged(color_ostream & out, state_change_event st)
             }
         }
 
+        if (game && game->main_interface.diplomacy.open)
+        {
+            debug(out, "pause during diplomacy meeting, letting it proceed");
+            if (*pause_state)
+            {
+                Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
+            }
+            return;
+        }
         debug(out, "pause without an event");
         unpause();
     }
