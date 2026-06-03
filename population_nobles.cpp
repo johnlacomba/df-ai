@@ -313,6 +313,7 @@ void Population::update_nobles(color_ostream & out)
         WANT_POS(HEALTH_MANAGEMENT);
     }
     WANT_POS(TRADE);
+    WANT_POS(MILITARY_STRATEGY);
     if (ai.find_room(room_type::jail, [](room *r) -> bool { return r->status == room_status::finished; }))
     {
         WANT_POS(LAW_ENFORCEMENT);
