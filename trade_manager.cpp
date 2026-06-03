@@ -33,8 +33,12 @@ void Population::update_trading(color_ostream & out)
             trade_state = TRADE_IDLE;
             trade_designated_items.clear();
         }
+        did_trade = false;
         return;
     }
+
+    if (did_trade)
+        return;
 
     switch (trade_state)
     {
@@ -257,8 +261,56 @@ bool Population::perform_trade(color_ostream & out)
         }
     }
 
-    ai.debug(out, stl_sprintf("trade: %zu items at depot (value %d), want %zu caravan items (value %d) — trade screen interaction not yet implemented for Steam DF",
+    ai.debug(out, stl_sprintf("trade: selling %zu items (value %d), buying %zu caravan items (value %d)",
         depot_items.size(), sell_value, buy_list.size(), buy_value));
 
-    return false;
+    // Transfer fortress items to caravan
+    for (auto item : depot_items)
+    {
+        item->flags.bits.trader = true;
+        for (auto & ref : item->general_refs)
+        {
+            if (auto contains = virtual_cast<df::general_ref_contains_itemst>(ref))
+            {
+                auto contained = df::item::find(contains->item_id);
+                if (contained)
+                    contained->flags.bits.trader = true;
+            }
+        }
+    }
+
+    // Transfer merchant items to fortress
+    for (auto item : buy_list)
+    {
+        item->flags.bits.trader = false;
+        for (auto & ref : item->general_refs)
+        {
+            if (auto contains = virtual_cast<df::general_ref_contains_itemst>(ref))
+            {
+                auto contained = df::item::find(contains->item_id);
+                if (contained)
+                    contained->flags.bits.trader = false;
+            }
+        }
+    }
+
+    active_caravan->export_value_total += sell_value;
+
+    // Cancel the TradeAtDepot job so the broker leaves
+    df::job *trade_job = nullptr;
+    for (auto & j : depot->jobs)
+    {
+        if (j->job_type == job_type::TradeAtDepot)
+        {
+            trade_job = j;
+            break;
+        }
+    }
+    if (trade_job)
+        Job::removeJob(trade_job);
+
+    ai.debug(out, stl_sprintf("trade: complete! sold %zu items (value %d), bought %zu items (value %d)",
+        depot_items.size(), sell_value, buy_list.size(), buy_value));
+
+    return true;
 }
