@@ -1092,11 +1092,12 @@ void PlanSetup::handle_special_exits()
 
                 if (!river_init)
                 {
-                    // no river, no aqueduct
+                    DFAI_DEBUG(blueprint, 1, "aqueduct: no river feature found on map");
                     continue;
                 }
 
                 auto river = river_init->feature;
+                DFAI_DEBUG(blueprint, 1, "aqueduct: river feature found with " << river->embark_pos.size() << " embark positions");
 
                 std::map<df::coord, df::coord> source_tile;
                 std::vector<df::coord> check_0, check_1, check_2;
@@ -1150,30 +1151,33 @@ void PlanSetup::handle_special_exits()
 
                 df::coord origin = r->min + exit.first;
                 check_0.push_back(origin);
+                DFAI_DEBUG(blueprint, 1, "aqueduct: starting BFS from " << DBG_COORD(origin));
+                int32_t bfs_tiles_checked = 0;
 
                 while (!check_0.empty() || !check_1.empty() || !check_2.empty())
                 {
                     for (df::coord cur : check_0)
                     {
+                        bfs_tiles_checked++;
                         df::coord prev = source_tile.count(cur) ? source_tile.at(cur) : cur;
 
                         df::coord adjacent_river;
                         auto *_td1161 = Maps::getTileDesignation(cur.x, cur.y, cur.z + 1);
                         if (_td1161 && _td1161->bits.light)
                         {
-                            if (check_river(cur + df::coord(-2, 0, 0)))
+                            if (check_river(cur + df::coord(-2, 0, 0)) || check_river(cur + df::coord(-2, 0, 1)))
                             {
                                 adjacent_river = cur + df::coord(-1, 0, 0);
                             }
-                            else if (check_river(cur + df::coord(2, 0, 0)))
+                            else if (check_river(cur + df::coord(2, 0, 0)) || check_river(cur + df::coord(2, 0, 1)))
                             {
                                 adjacent_river = cur + df::coord(1, 0, 0);
                             }
-                            else if (check_river(cur + df::coord(0, -2, 0)))
+                            else if (check_river(cur + df::coord(0, -2, 0)) || check_river(cur + df::coord(0, -2, 1)))
                             {
                                 adjacent_river = cur + df::coord(0, -1, 0);
                             }
-                            else if (check_river(cur + df::coord(0, 2, 0)))
+                            else if (check_river(cur + df::coord(0, 2, 0)) || check_river(cur + df::coord(0, 2, 1)))
                             {
                                 adjacent_river = cur + df::coord(0, 1, 0);
                             }
@@ -1212,6 +1216,7 @@ void PlanSetup::handle_special_exits()
                             continue;
                         }
 
+                        DFAI_DEBUG(blueprint, 1, "aqueduct: found river connection at " << DBG_COORD(adjacent_river) << " after checking " << bfs_tiles_checked << " tiles");
                         r->channel_enable = adjacent_river;
                         if (prev.x != cur.x || prev.y != cur.y)
                             prev = cur;
@@ -1242,6 +1247,11 @@ void PlanSetup::handle_special_exits()
 
                     check_0 = std::move(check_1);
                     check_1 = std::move(check_2);
+                }
+
+                if (!r->channel_enable.isValid())
+                {
+                    DFAI_DEBUG(blueprint, 1, "aqueduct: BFS exhausted after " << bfs_tiles_checked << " tiles without finding river connection from " << DBG_COORD(origin));
                 }
             }
         }
