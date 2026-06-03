@@ -103,6 +103,8 @@ command_result Population::onupdate_unregister(color_ostream &)
 
 void Population::update(color_ostream & out)
 {
+    update_diplomacy(out);
+
     update_counter++;
     switch (update_counter % 10)
     {

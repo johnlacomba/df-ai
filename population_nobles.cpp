@@ -5,9 +5,16 @@
 
 #include "modules/Units.h"
 
+#include "df/activity_info.h"
+#include "df/building_civzonest.h"
+#include "df/dipscript_popup.h"
+#include "df/entity_position.h"
 #include "df/entity_position_assignment.h"
+#include "df/entity_position_responsibility.h"
+#include "df/gamest.h"
 #include "df/histfig_entity_link_positionst.h"
 #include "df/history_event_add_hf_entity_linkst.h"
+#include "df/meeting_diplomat_info.h"
 #include "df/unit.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
@@ -20,6 +27,7 @@
 
 REQUIRE_GLOBAL(cur_year);
 REQUIRE_GLOBAL(cur_year_tick);
+REQUIRE_GLOBAL(game);
 REQUIRE_GLOBAL(hist_event_next_id);
 REQUIRE_GLOBAL(plotinfo);
 REQUIRE_GLOBAL(world);
@@ -333,4 +341,156 @@ void Population::check_noble_apartments(color_ostream & out)
     }
 
     ai.plan.attribute_noblerooms(out, noble_ids);
+}
+
+void Population::update_diplomacy(color_ostream & out)
+{
+    if (!game)
+        return;
+
+    std::vector<df::meeting_diplomat_info *> pending;
+    for (auto dipev : plotinfo->dip_meeting_info)
+    {
+        if (dipev && !dipev->flags.bits.failure && !dipev->flags.bits.success)
+            pending.push_back(dipev);
+    }
+
+    if (pending.empty())
+        return;
+
+    if (game->main_interface.diplomacy.open)
+        return;
+
+    auto entity = plotinfo->main.fortress_entity;
+
+    df::unit *noble_unit = nullptr;
+    for (auto asn : entity->positions.assignments)
+    {
+        if (!asn || asn->histfig == -1)
+            continue;
+        auto pos = binsearch_in_vector(entity->positions.own, asn->position_id);
+        if (!pos || !pos->responsibilities[entity_position_responsibility::RECEIVE_DIPLOMATS])
+            continue;
+        auto hf = df::historical_figure::find(asn->histfig);
+        noble_unit = hf ? df::unit::find(hf->unit_id) : nullptr;
+        break;
+    }
+
+    static int32_t last_error_tick = -1;
+
+    if (!noble_unit)
+    {
+        if (*cur_year_tick - last_error_tick >= 1200 || last_error_tick == -1)
+        {
+            ai.debug(out, "[DIPLO] no noble with RECEIVE_DIPLOMATS — cannot conduct meeting");
+            last_error_tick = *cur_year_tick;
+        }
+        return;
+    }
+
+    df::building_civzonest *office = nullptr;
+    for (auto bld : noble_unit->owned_buildings)
+    {
+        auto zone = virtual_cast<df::building_civzonest>(bld);
+        if (zone && zone->type == civzone_type::Office)
+        {
+            office = zone;
+            break;
+        }
+    }
+
+    if (!office)
+    {
+        if (*cur_year_tick - last_error_tick >= 1200 || last_error_tick == -1)
+        {
+            ai.debug(out, "[DIPLO] noble " + AI::describe_unit(noble_unit) + " has no office — meeting will fail");
+            last_error_tick = *cur_year_tick;
+        }
+        return;
+    }
+
+    // throttle routine status logs — log once per state change or every ~200 ticks
+    static std::map<int32_t, int8_t> last_logged_state;
+    static int32_t last_status_tick = -1;
+    bool do_status_log = (*cur_year_tick - last_status_tick >= 200) || last_status_tick == -1;
+
+    for (auto dipev : pending)
+    {
+        auto diplomat_hf = df::historical_figure::find(dipev->diplomat_id);
+        auto diplomat_unit = diplomat_hf ? df::unit::find(diplomat_hf->unit_id) : nullptr;
+
+        if (!diplomat_unit || !Units::isAlive(diplomat_unit))
+            continue;
+
+        int state_val = static_cast<int>(diplomat_unit->meeting.state);
+        bool state_changed = !last_logged_state.count(diplomat_unit->id) ||
+            last_logged_state[diplomat_unit->id] != state_val;
+
+        if (state_changed || do_status_log)
+        {
+            const char *state_names[] = { "SelectNoble", "FollowNoble", "DoMeeting", "LeaveMap" };
+            const char *state_name = (state_val >= 0 && state_val <= 3) ? state_names[state_val] : "unknown";
+
+            ai.debug(out, "[DIPLO] diplomat " + AI::describe_unit(diplomat_unit) +
+                stl_sprintf(" state=%s(%d) target_role=%d pos=(%d,%d,%d) noble_office=(%d,%d,%d)",
+                    state_name, state_val,
+                    static_cast<int>(diplomat_unit->meeting.target_role),
+                    diplomat_unit->pos.x, diplomat_unit->pos.y, diplomat_unit->pos.z,
+                    office->centerx, office->centery, office->z));
+            last_logged_state[diplomat_unit->id] = static_cast<int8_t>(state_val);
+            last_status_tick = *cur_year_tick;
+        }
+
+        bool has_activity = false;
+        for (auto act : plotinfo->activities)
+        {
+            if (act && act->unit_actor == diplomat_unit->id)
+            {
+                has_activity = true;
+                if (act->place != office->id)
+                {
+                    act->place = office->id;
+                    ai.debug(out, "[DIPLO] corrected activity place to current office");
+                }
+                break;
+            }
+        }
+
+        if (!has_activity && state_val <= 1)
+        {
+            auto act = df::allocate<df::activity_info>();
+            if (act)
+            {
+                act->unit_actor = diplomat_unit->id;
+                act->unit_noble = noble_unit->id;
+                act->place = office->id;
+                act->flags.whole = 0;
+                plotinfo->activities.push_back(act);
+                ai.debug(out, "[DIPLO] created meeting activity: " +
+                    AI::describe_unit(diplomat_unit) + " at office " +
+                    stl_sprintf("(%d,%d,%d)", office->centerx, office->centery, office->z));
+            }
+        }
+
+        for (auto popup : plotinfo->dipscript_popups)
+        {
+            if (!popup || popup->meeting_holder_actor != diplomat_unit->id)
+                continue;
+
+            ai.debug(out, "[DIPLO] dipscript_popup found for " +
+                AI::describe_unit(diplomat_unit) +
+                stl_sprintf(" flags=%d time_left=%d", popup->flags.whole, popup->moment_time_left));
+
+            game->main_interface.diplomacy.open = true;
+            game->main_interface.diplomacy.actor = diplomat_unit;
+            game->main_interface.diplomacy.target = noble_unit;
+            game->main_interface.diplomacy.actor_unid = diplomat_unit->id;
+            game->main_interface.diplomacy.target_unid = noble_unit->id;
+            game->main_interface.diplomacy.dipev = dipev;
+            game->main_interface.diplomacy.mm = popup;
+            ai.debug(out, "[DIPLO] opened diplomacy interface for " +
+                AI::describe_unit(diplomat_unit));
+            return;
+        }
+    }
 }

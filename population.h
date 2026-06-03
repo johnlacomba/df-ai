@@ -102,6 +102,7 @@ public:
     void del_citizen(color_ostream & out, int32_t id);
 
     void update_trading(color_ostream & out);
+    void update_diplomacy(color_ostream & out);
     void update_citizenlist(color_ostream & out);
     void update_jobs(color_ostream & out);
     void update_deads(color_ostream & out);

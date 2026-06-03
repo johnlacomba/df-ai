@@ -18,6 +18,7 @@
 #include "df/gamest.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
+#include "df/meeting_diplomat_info.h"
 #include "df/plotinfost.h"
 #include "df/popup_message.h"
 #include "df/report.h"
@@ -289,6 +290,19 @@ void AI::statechanged(color_ostream & out, state_change_event st)
             }
             return;
         }
+
+        // check for pending diplomat meetings — diplomat events in Steam DF
+        // don't always set the PAUSE announcement flag, so we detect them here
+        for (auto dipev : plotinfo->dip_meeting_info)
+        {
+            if (dipev && !dipev->flags.bits.failure && !dipev->flags.bits.success)
+            {
+                debug(out, "pause: pending diplomat meeting detected, unpausing to let update_diplomacy handle it");
+                unpause();
+                return;
+            }
+        }
+
         debug(out, "pause without an event");
         unpause();
     }
