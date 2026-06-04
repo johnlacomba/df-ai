@@ -52,11 +52,6 @@ void AI::unpause()
 
     if (game && game->main_interface.diplomacy.open)
     {
-        auto *mm = game->main_interface.diplomacy.mm;
-        if (mm)
-        {
-            mm->flags.bits.close_screen = true;
-        }
         if (*pause_state)
         {
             Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
@@ -288,12 +283,7 @@ void AI::statechanged(color_ostream & out, state_change_event st)
 
         if (game && game->main_interface.diplomacy.open)
         {
-            auto *mm = game->main_interface.diplomacy.mm;
-            if (mm)
-            {
-                mm->flags.bits.close_screen = true;
-                debug(out, "pause during diplomacy meeting, advancing dialog (set close_screen)");
-            }
+            debug(out, "pause during diplomacy meeting, unpausing to let update_diplomacy handle it");
             if (*pause_state)
             {
                 Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
