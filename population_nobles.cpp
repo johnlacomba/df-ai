@@ -360,7 +360,16 @@ void Population::update_diplomacy(color_ostream & out)
         return;
 
     if (game->main_interface.diplomacy.open)
+    {
+        auto *open_dipev = game->main_interface.diplomacy.dipev;
+        if (open_dipev && !open_dipev->flags.bits.success && !open_dipev->flags.bits.failure)
+        {
+            open_dipev->flags.bits.success = true;
+            ai.debug(out, "[DIPLO] acknowledged diplomacy dialog, marking meeting successful");
+        }
+        game->main_interface.diplomacy.open = false;
         return;
+    }
 
     auto entity = plotinfo->main.fortress_entity;
 
@@ -496,14 +505,8 @@ void Population::update_diplomacy(color_ostream & out)
                 AI::describe_unit(diplomat_unit) +
                 stl_sprintf(" flags=%d time_left=%d", popup->flags.whole, popup->moment_time_left));
 
-            game->main_interface.diplomacy.open = true;
-            game->main_interface.diplomacy.actor = diplomat_unit;
-            game->main_interface.diplomacy.target = noble_unit;
-            game->main_interface.diplomacy.actor_unid = diplomat_unit->id;
-            game->main_interface.diplomacy.target_unid = noble_unit->id;
-            game->main_interface.diplomacy.dipev = dipev;
-            game->main_interface.diplomacy.mm = popup;
-            ai.debug(out, "[DIPLO] opened diplomacy interface for " +
+            dipev->flags.bits.success = true;
+            ai.debug(out, "[DIPLO] marked diplomatic meeting as successful for " +
                 AI::describe_unit(diplomat_unit));
             return;
         }
