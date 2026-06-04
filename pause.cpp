@@ -283,14 +283,13 @@ void AI::statechanged(color_ostream & out, state_change_event st)
 
         if (game && game->main_interface.diplomacy.open)
         {
-            static int32_t diplomacy_opened_tick = -1;
-            if (diplomacy_opened_tick == -1)
+            static int32_t diplomacy_pause_count = 0;
+            diplomacy_pause_count++;
+            if (diplomacy_pause_count == 1)
             {
-                diplomacy_opened_tick = *cur_year_tick;
                 debug(out, "pause during diplomacy meeting, letting it proceed");
             }
-
-            if (*cur_year_tick - diplomacy_opened_tick >= 5 || *cur_year_tick < diplomacy_opened_tick)
+            if (diplomacy_pause_count >= 4)
             {
                 auto *dipev = game->main_interface.diplomacy.dipev;
                 if (dipev && !dipev->flags.bits.success && !dipev->flags.bits.failure)
@@ -298,7 +297,7 @@ void AI::statechanged(color_ostream & out, state_change_event st)
                     dipev->flags.bits.success = true;
                 }
                 game->main_interface.diplomacy.open = false;
-                diplomacy_opened_tick = -1;
+                diplomacy_pause_count = 0;
                 debug(out, "[DIPLO] completed diplomacy dialog");
                 unpause();
             }
