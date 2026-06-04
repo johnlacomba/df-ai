@@ -283,25 +283,8 @@ void AI::statechanged(color_ostream & out, state_change_event st)
 
         if (game && game->main_interface.diplomacy.open)
         {
-            static int32_t diplomacy_pause_count = 0;
-            diplomacy_pause_count++;
-            if (diplomacy_pause_count == 1)
-            {
-                debug(out, "pause during diplomacy meeting, letting it proceed");
-            }
-            if (diplomacy_pause_count >= 4)
-            {
-                auto *dipev = game->main_interface.diplomacy.dipev;
-                if (dipev && !dipev->flags.bits.success && !dipev->flags.bits.failure)
-                {
-                    dipev->flags.bits.success = true;
-                }
-                game->main_interface.diplomacy.open = false;
-                diplomacy_pause_count = 0;
-                debug(out, "[DIPLO] completed diplomacy dialog");
-                unpause();
-            }
-            else if (*pause_state)
+            debug(out, "pause during diplomacy meeting, letting it proceed");
+            if (*pause_state)
             {
                 Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
             }

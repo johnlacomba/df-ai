@@ -1,20 +1,29 @@
 #include "ai.h"
 #include "population.h"
 #include "plan.h"
+#include "stocks.h"
 #include "debug.h"
 
+#include "modules/Items.h"
 #include "modules/Units.h"
 
 #include "df/activity_info.h"
 #include "df/building_civzonest.h"
 #include "df/dipscript_popup.h"
+#include "df/entity_buy_prices.h"
+#include "df/entity_buy_requests.h"
 #include "df/entity_position.h"
 #include "df/entity_position_assignment.h"
 #include "df/entity_position_responsibility.h"
 #include "df/gamest.h"
 #include "df/histfig_entity_link_positionst.h"
 #include "df/history_event_add_hf_entity_linkst.h"
+#include "df/item_type.h"
+#include "df/job_material_category.h"
 #include "df/meeting_diplomat_info.h"
+#include "df/meeting_event.h"
+#include "df/meeting_event_type.h"
+#include "df/meeting_topic.h"
 #include "df/unit.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
@@ -496,15 +505,61 @@ void Population::update_diplomacy(color_ostream & out)
                 AI::describe_unit(diplomat_unit) +
                 stl_sprintf(" flags=%d time_left=%d", popup->flags.whole, popup->moment_time_left));
 
-            game->main_interface.diplomacy.open = true;
-            game->main_interface.diplomacy.actor = diplomat_unit;
-            game->main_interface.diplomacy.target = noble_unit;
-            game->main_interface.diplomacy.actor_unid = diplomat_unit->id;
-            game->main_interface.diplomacy.target_unid = noble_unit->id;
-            game->main_interface.diplomacy.dipev = dipev;
-            game->main_interface.diplomacy.mm = popup;
-            ai.debug(out, "[DIPLO] opened diplomacy interface for " +
-                AI::describe_unit(diplomat_unit));
+            auto civ_entity = df::historical_entity::find(dipev->civ_id);
+
+            // request anvils if we need them
+            int32_t anvil_count = ai.stocks.count_free[stock_item::anvil];
+            int32_t anvil_needed = ai.stocks.num_needed(stock_item::anvil);
+            if (anvil_count < anvil_needed && civ_entity)
+            {
+                auto *buy_req = df::allocate<df::entity_buy_requests>();
+                if (buy_req)
+                {
+                    buy_req->item_type.push_back(df::item_type::ANVIL);
+                    buy_req->item_subtype.push_back(-1);
+                    buy_req->mat_types.push_back(-1);
+                    buy_req->mat_indices.push_back(-1);
+                    df::job_material_category cat;
+                    cat.whole = 0;
+                    buy_req->mat_cats.push_back(cat);
+                    buy_req->priority.push_back(4);
+
+                    auto *buy_prices = df::allocate<df::entity_buy_prices>();
+                    if (buy_prices)
+                    {
+                        buy_prices->items = buy_req;
+                        buy_prices->price.push_back(128);
+
+                        auto *event = df::allocate<df::meeting_event>();
+                        if (event)
+                        {
+                            event->type = df::meeting_event_type::ExportAgreement;
+                            event->topic = df::meeting_topic::ExportAgreement;
+                            event->buy_prices = buy_prices;
+                            event->sell_prices = nullptr;
+                            event->year = *cur_year;
+                            event->ticks = *cur_year_tick;
+                            civ_entity->meeting_events.push_back(event);
+                            ai.debug(out, stl_sprintf("[DIPLO] requested anvils from caravan (have %d, need %d)",
+                                anvil_count, anvil_needed));
+                        }
+                        else
+                        {
+                            delete buy_req;
+                            delete buy_prices;
+                        }
+                    }
+                    else
+                    {
+                        delete buy_req;
+                    }
+                }
+            }
+
+            dipev->flags.bits.success = true;
+            ai.debug(out, "[DIPLO] completed diplomacy meeting for " +
+                AI::describe_unit(diplomat_unit) +
+                (civ_entity ? " (civ: " + std::to_string(civ_entity->id) + ")" : ""));
             return;
         }
     }
