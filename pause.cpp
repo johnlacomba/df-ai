@@ -51,7 +51,12 @@ void AI::unpause()
 
     if (game && game->main_interface.diplomacy.open)
     {
-        game->main_interface.diplomacy.open = false;
+        Gui::getCurViewscreen(true)->feed_key(interface_key::SELECT);
+        if (*pause_state)
+        {
+            Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
+        }
+        return;
     }
 
     if (game && game->main_interface.petitions.open)
@@ -278,8 +283,13 @@ void AI::statechanged(color_ostream & out, state_change_event st)
 
         if (game && game->main_interface.diplomacy.open)
         {
-            debug(out, "pause during diplomacy meeting, closing dialog");
-            game->main_interface.diplomacy.open = false;
+            debug(out, "pause during diplomacy meeting, advancing dialog");
+            Gui::getCurViewscreen(true)->feed_key(interface_key::SELECT);
+            if (*pause_state)
+            {
+                Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
+            }
+            return;
         }
 
         // check for pending diplomat meetings — diplomat events in Steam DF
