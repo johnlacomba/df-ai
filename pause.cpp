@@ -18,7 +18,6 @@
 #include "df/gamest.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
-#include "df/dipscript_popup.h"
 #include "df/meeting_diplomat_info.h"
 #include "df/plotinfost.h"
 #include "df/popup_message.h"
@@ -52,12 +51,12 @@ void AI::unpause()
 
     if (game && game->main_interface.diplomacy.open)
     {
-        auto *dipev = game->main_interface.diplomacy.dipev;
-        if (dipev && !dipev->flags.bits.success && !dipev->flags.bits.failure)
+        // diplomatic meeting in progress — do not dismiss
+        if (*pause_state)
         {
-            dipev->flags.bits.success = true;
+            Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
         }
-        game->main_interface.diplomacy.open = false;
+        return;
     }
 
     if (game && game->main_interface.petitions.open)
@@ -284,14 +283,29 @@ void AI::statechanged(color_ostream & out, state_change_event st)
 
         if (game && game->main_interface.diplomacy.open)
         {
-            auto *dipev = game->main_interface.diplomacy.dipev;
-            if (dipev && !dipev->flags.bits.success && !dipev->flags.bits.failure)
+            static int32_t diplomacy_opened_tick = -1;
+            if (diplomacy_opened_tick == -1)
             {
-                dipev->flags.bits.success = true;
+                diplomacy_opened_tick = *cur_year_tick;
+                debug(out, "pause during diplomacy meeting, letting it proceed");
             }
-            game->main_interface.diplomacy.open = false;
-            debug(out, "[DIPLO] completed diplomacy dialog");
-            unpause();
+
+            if (*cur_year_tick - diplomacy_opened_tick >= 5 || *cur_year_tick < diplomacy_opened_tick)
+            {
+                auto *dipev = game->main_interface.diplomacy.dipev;
+                if (dipev && !dipev->flags.bits.success && !dipev->flags.bits.failure)
+                {
+                    dipev->flags.bits.success = true;
+                }
+                game->main_interface.diplomacy.open = false;
+                diplomacy_opened_tick = -1;
+                debug(out, "[DIPLO] completed diplomacy dialog");
+                unpause();
+            }
+            else if (*pause_state)
+            {
+                Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
+            }
             return;
         }
 

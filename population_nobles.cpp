@@ -360,16 +360,7 @@ void Population::update_diplomacy(color_ostream & out)
         return;
 
     if (game->main_interface.diplomacy.open)
-    {
-        auto *open_dipev = game->main_interface.diplomacy.dipev;
-        if (open_dipev && !open_dipev->flags.bits.success && !open_dipev->flags.bits.failure)
-        {
-            open_dipev->flags.bits.success = true;
-        }
-        game->main_interface.diplomacy.open = false;
-        ai.debug(out, "[DIPLO] completed diplomacy dialog");
         return;
-    }
 
     auto entity = plotinfo->main.fortress_entity;
 
