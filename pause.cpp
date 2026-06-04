@@ -18,6 +18,7 @@
 #include "df/gamest.h"
 #include "df/historical_entity.h"
 #include "df/historical_figure.h"
+#include "df/dipscript_popup.h"
 #include "df/meeting_diplomat_info.h"
 #include "df/plotinfost.h"
 #include "df/popup_message.h"
@@ -51,7 +52,11 @@ void AI::unpause()
 
     if (game && game->main_interface.diplomacy.open)
     {
-        Gui::getCurViewscreen(true)->feed_key(interface_key::SELECT);
+        auto *mm = game->main_interface.diplomacy.mm;
+        if (mm)
+        {
+            mm->flags.bits.close_screen = true;
+        }
         if (*pause_state)
         {
             Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);
@@ -283,8 +288,12 @@ void AI::statechanged(color_ostream & out, state_change_event st)
 
         if (game && game->main_interface.diplomacy.open)
         {
-            debug(out, "pause during diplomacy meeting, advancing dialog");
-            Gui::getCurViewscreen(true)->feed_key(interface_key::SELECT);
+            auto *mm = game->main_interface.diplomacy.mm;
+            if (mm)
+            {
+                mm->flags.bits.close_screen = true;
+                debug(out, "pause during diplomacy meeting, advancing dialog (set close_screen)");
+            }
             if (*pause_state)
             {
                 Gui::getCurViewscreen(true)->feed_key(interface_key::D_PAUSE);

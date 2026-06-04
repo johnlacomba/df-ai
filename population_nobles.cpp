@@ -362,8 +362,15 @@ void Population::update_diplomacy(color_ostream & out)
     static int32_t diplomacy_open_ticks = 0;
     if (game->main_interface.diplomacy.open)
     {
+        auto *mm = game->main_interface.diplomacy.mm;
+        if (mm && !mm->flags.bits.close_screen)
+        {
+            mm->flags.bits.close_screen = true;
+            ai.debug(out, "[DIPLO] advancing diplomacy dialog (set close_screen)");
+        }
+
         diplomacy_open_ticks++;
-        if (diplomacy_open_ticks > 20)
+        if (diplomacy_open_ticks > 40)
         {
             auto *open_dipev = game->main_interface.diplomacy.dipev;
             if (open_dipev && !open_dipev->flags.bits.success && !open_dipev->flags.bits.failure)

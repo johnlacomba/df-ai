@@ -8,9 +8,14 @@
 #include "df/abstract_building_inn_tavernst.h"
 #include "df/abstract_building_libraryst.h"
 #include "df/abstract_building_templest.h"
+#include "df/agreement.h"
+#include "df/agreement_details.h"
+#include "df/agreement_details_type.h"
 #include "df/building.h"
+#include "df/historical_figure.h"
 #include "df/occupation.h"
 #include "df/plotinfost.h"
+#include "df/unit.h"
 #include "df/world.h"
 #include "df/world_site.h"
 
@@ -30,14 +35,100 @@ const static int32_t wanted_temple_performer = 4;
 const static int32_t wanted_temple_performer_min = 0;
 
 static bool occupation_warned = false;
-static bool petition_warned = false;
 
 void Population::update_locations(color_ostream & out)
 {
-    if (!plotinfo->petitions.empty() && !petition_warned)
+    if (!plotinfo->petitions.empty())
     {
-        ai.debug(out, stl_sprintf("petition handling deferred (Steam DF not yet implemented): %zu pending", plotinfo->petitions.size()));
-        petition_warned = true;
+        std::vector<int32_t> to_process(plotinfo->petitions.begin(), plotinfo->petitions.end());
+        for (int32_t agr_id : to_process)
+        {
+            auto agr = df::agreement::find(agr_id);
+            if (!agr || agr->details.empty())
+                continue;
+
+            auto detail = agr->details[0];
+            std::string desc;
+            bool should_accept = false;
+
+            switch (detail->type)
+            {
+            case agreement_details_type::Residency:
+            {
+                desc = "residency";
+                should_accept = true;
+                auto &parties = agr->parties;
+                auto res = detail->data.Residency;
+                if (res && res->applicant >= 0 && res->applicant < (int32_t)parties.size())
+                {
+                    auto &hfids = parties[res->applicant]->histfig_ids;
+                    if (!hfids.empty())
+                    {
+                        auto hf = df::historical_figure::find(hfids[0]);
+                        auto u = hf ? df::unit::find(hf->unit_id) : nullptr;
+                        if (u)
+                            desc = "residency from " + AI::describe_unit(u);
+                    }
+                }
+                break;
+            }
+            case agreement_details_type::Citizenship:
+            {
+                desc = "citizenship";
+                should_accept = true;
+                auto &parties = agr->parties;
+                auto cit = detail->data.Citizenship;
+                if (cit && cit->applicant >= 0 && cit->applicant < (int32_t)parties.size())
+                {
+                    auto &hfids = parties[cit->applicant]->histfig_ids;
+                    if (!hfids.empty())
+                    {
+                        auto hf = df::historical_figure::find(hfids[0]);
+                        auto u = hf ? df::unit::find(hf->unit_id) : nullptr;
+                        if (u)
+                            desc = "citizenship from " + AI::describe_unit(u);
+                    }
+                }
+                break;
+            }
+            case agreement_details_type::Location:
+            {
+                auto loc = detail->data.Location;
+                if (loc)
+                {
+                    std::string loc_type = loc->type == abstract_building_type::TEMPLE ? "temple" : "guildhall";
+                    desc = stl_sprintf("%s (tier %d)", loc_type.c_str(), loc->tier);
+                }
+                else
+                {
+                    desc = "location";
+                }
+                should_accept = true;
+                break;
+            }
+            default:
+                desc = "type " + std::to_string(static_cast<int>(detail->type));
+                should_accept = false;
+                break;
+            }
+
+            if (should_accept)
+            {
+                agr->flags.bits.petition_not_accepted = false;
+                plotinfo->petitions.erase(
+                    std::remove(plotinfo->petitions.begin(), plotinfo->petitions.end(), agr_id),
+                    plotinfo->petitions.end());
+                plotinfo->continuing_agreement_id.push_back(agr_id);
+                ai.debug(out, "[PETITION] accepted petition: " + desc);
+            }
+            else
+            {
+                plotinfo->petitions.erase(
+                    std::remove(plotinfo->petitions.begin(), plotinfo->petitions.end(), agr_id),
+                    plotinfo->petitions.end());
+                ai.debug(out, "[PETITION] rejected petition: " + desc);
+            }
+        }
     }
 
     // occupation assignment deferred — just count needs for future implementation

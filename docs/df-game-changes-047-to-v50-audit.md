@@ -89,8 +89,9 @@ Replacement for labor assignment (see §1.1 above).
 - Focus strings (e.g., `dwarfmode/Info/CREATURES/CITIZEN`) control when widgets appear.
 - Free UI for enable/disable and repositioning. State persists across restarts.
 
-### 2.3 Standing Orders for Petitions
+### 2.3 Standing Orders for Petitions ✅
 - Automatic accept/reject for citizen petitions and residency petitions.
+- **Implemented**: `population_occupations.cpp` auto-accepts Residency, Citizenship, and Location (temple/guildhall) petitions by manipulating `df::agreement` flags and moving IDs from `plotinfo->petitions` to `plotinfo->continuing_agreement_id`. Intrigue/unknown petition types are rejected.
 
 ### 2.4 Portraits System (v50.13+)
 - Procedurally assembled portraits for dwarves, elves, humans, and animal people.
