@@ -528,7 +528,7 @@ void Population::update_diplomacy(color_ostream & out)
                     if (buy_prices)
                     {
                         buy_prices->items = buy_req;
-                        buy_prices->price.push_back(128);
+                        buy_prices->price.push_back(192);
 
                         auto *event = df::allocate<df::meeting_event>();
                         if (event)
@@ -539,6 +539,9 @@ void Population::update_diplomacy(color_ostream & out)
                             event->sell_prices = nullptr;
                             event->year = *cur_year;
                             event->ticks = *cur_year_tick;
+                            event->topic_parm = -1;
+                            event->quota_total = -1;
+                            event->quota_remaining = -1;
                             civ_entity->meeting_events.push_back(event);
                             ai.debug(out, stl_sprintf("[DIPLO] requested anvils from caravan (have %d, need %d)",
                                 anvil_count, anvil_needed));

@@ -63,7 +63,7 @@ void Population::update_locations(color_ostream & out)
                 should_accept = true;
                 auto &parties = agr->parties;
                 auto res = detail->data.Residency;
-                if (res && res->applicant >= 0 && res->applicant < (int32_t)parties.size())
+                if (res && res->applicant >= 0 && res->applicant < (int32_t)parties.size() && parties[res->applicant])
                 {
                     auto &hfids = parties[res->applicant]->histfig_ids;
                     if (!hfids.empty())
@@ -82,7 +82,7 @@ void Population::update_locations(color_ostream & out)
                 should_accept = true;
                 auto &parties = agr->parties;
                 auto cit = detail->data.Citizenship;
-                if (cit && cit->applicant >= 0 && cit->applicant < (int32_t)parties.size())
+                if (cit && cit->applicant >= 0 && cit->applicant < (int32_t)parties.size() && parties[cit->applicant])
                 {
                     auto &hfids = parties[cit->applicant]->histfig_ids;
                     if (!hfids.empty())
@@ -127,10 +127,7 @@ void Population::update_locations(color_ostream & out)
             }
             else
             {
-                plotinfo->petitions.erase(
-                    std::remove(plotinfo->petitions.begin(), plotinfo->petitions.end(), agr_id),
-                    plotinfo->petitions.end());
-                ai.debug(out, "[PETITION] rejected petition: " + desc);
+                ai.debug(out, "[PETITION] ignoring petition: " + desc);
             }
         }
     }
