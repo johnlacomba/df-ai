@@ -4,7 +4,7 @@
 		{
 			"type": "corridor",
 			"min": [-4, -4, 0],
-			"max": [4, 4, 0],
+			"max": [8, 4, 0],
 			"outdoor": true,
 			"comment": "trade depot - surrounding area"
 		},
@@ -12,6 +12,16 @@
 			"type": "tradedepot",
 			"min": [-2, -2, 0],
 			"max": [2, 2, 0],
+			"outdoor": true,
+			"in_corridor": true,
+			"accesspath": [0]
+		},
+		{
+			"type": "workshop",
+			"workshop_type": "Craftsdwarfs",
+			"level": 0,
+			"min": [5, -1, 0],
+			"max": [7, 1, 0],
 			"outdoor": true,
 			"in_corridor": true,
 			"accesspath": [0]
