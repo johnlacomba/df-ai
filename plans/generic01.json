@@ -186,6 +186,7 @@
 			}
 		},
 		{
+			"continue": true,
 			"name": "Mason's Workshop",
 			"action": "dig_immediate",
 			"count": {
@@ -199,6 +200,23 @@
 			"match": {
 				"type": "workshop",
 				"workshop_type": "Masons",
+				"level": 1
+			}
+		},
+		{
+			"name": "Craftsdwarf's Workshop (early)",
+			"action": "dig_immediate",
+			"count": {
+				"match": {
+					"status_not": "plan",
+					"type": "workshop",
+					"workshop_type": "Craftsdwarfs"
+				},
+				"is": 0
+			},
+			"match": {
+				"type": "workshop",
+				"workshop_type": "Craftsdwarfs",
 				"level": 1
 			}
 		},
@@ -368,24 +386,6 @@
 				"type": "location",
 				"location_type": "tavern",
 				"comment": "well"
-			}
-		},
-		{
-			"name": "Craftsdwarf's Workshop",
-			"action": "dig",
-			"count": {
-				"match": {
-					"status_not": "plan",
-					"type": "workshop",
-					"workshop_type": "Craftsdwarfs",
-					"level": 1
-				},
-				"is": 0
-			},
-			"match": {
-				"type": "workshop",
-				"workshop_type": "Craftsdwarfs",
-				"level": 1
 			}
 		},
 		{
