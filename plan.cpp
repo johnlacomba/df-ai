@@ -82,12 +82,12 @@ Plan::Plan(AI & ai) :
     important_workshops.push_back(workshop_type::Farmers);
     important_workshops.push_back(workshop_type::Mechanics);
     important_workshops.push_back(workshop_type::Still);
+    important_workshops.push_back(workshop_type::Craftsdwarfs);
 
     important_workshops2.push_back(furnace_type::Smelter);
     important_workshops2.push_back(furnace_type::WoodFurnace);
 
     important_workshops3.push_back(workshop_type::Loom);
-    important_workshops3.push_back(workshop_type::Craftsdwarfs);
     important_workshops3.push_back(workshop_type::Tanners);
     important_workshops3.push_back(workshop_type::Kitchen);
 

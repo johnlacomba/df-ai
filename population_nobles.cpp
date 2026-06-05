@@ -578,6 +578,22 @@ void Population::update_diplomacy(color_ostream & out)
                 }
             }
 
+            // remove dipscript_popups for this diplomat so DF doesn't
+            // wait for the player to click through the dialog
+            for (size_t pi = 0; pi < plotinfo->dipscript_popups.size(); )
+            {
+                auto *popup = plotinfo->dipscript_popups[pi];
+                if (popup && popup->meeting_holder_actor == diplomat_unit->id)
+                {
+                    plotinfo->dipscript_popups.erase(plotinfo->dipscript_popups.begin() + pi);
+                    delete popup;
+                }
+                else
+                {
+                    pi++;
+                }
+            }
+
             dipev->flags.bits.success = true;
             ai.debug(out, "[DIPLO] completed diplomacy meeting for " +
                 AI::describe_unit(diplomat_unit) +
