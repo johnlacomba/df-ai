@@ -341,7 +341,8 @@ void Population::check_noble_apartments(color_ostream & out)
         df::entity_position *pos = binsearch_in_vector(plotinfo->main.fortress_entity->positions.own, asn->position_id);
         if (!pos)
             continue;
-        if (pos->required_office > 0 || pos->required_dining > 0 || pos->required_tomb > 0)
+        if (pos->required_office > 0 || pos->required_dining > 0 || pos->required_tomb > 0 ||
+            pos->responsibilities[entity_position_responsibility::RECEIVE_DIPLOMATS])
         {
             if (df::historical_figure *hf = df::historical_figure::find(asn->histfig))
             {
@@ -521,10 +522,8 @@ void Population::update_diplomacy(color_ostream & out)
             }
         }
 
-        // complete the meeting as soon as the diplomat is at the fortress
-        // don't wait for dipscript_popup — it requires a physical meeting
-        // that may never happen if the noble has no office
-        if (state_val <= 2)
+        // only complete the meeting once the diplomat reaches DoMeeting state
+        if (state_val == 2)
         {
             auto civ_entity = df::historical_entity::find(dipev->civ_id);
 
