@@ -496,18 +496,13 @@ void Population::update_diplomacy(color_ostream & out)
             }
         }
 
-        for (auto popup : plotinfo->dipscript_popups)
+        // complete the meeting as soon as the diplomat is at the fortress
+        // don't wait for dipscript_popup — it requires a physical meeting
+        // that may never happen if the noble has no office
+        if (state_val <= 2)
         {
-            if (!popup || popup->meeting_holder_actor != diplomat_unit->id)
-                continue;
-
-            ai.debug(out, "[DIPLO] dipscript_popup found for " +
-                AI::describe_unit(diplomat_unit) +
-                stl_sprintf(" flags=%d time_left=%d", popup->flags.whole, popup->moment_time_left));
-
             auto civ_entity = df::historical_entity::find(dipev->civ_id);
 
-            // request anvils if we need them
             int32_t anvil_count = ai.stocks.count_free[stock_item::anvil];
             int32_t anvil_needed = ai.stocks.num_needed(stock_item::anvil);
             if (anvil_count < anvil_needed && civ_entity)
