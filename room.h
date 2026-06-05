@@ -242,7 +242,7 @@ struct room
         return df::coord{ uint16_t(min.x + s.x / 2), uint16_t(min.y + s.y / 2), uint16_t(min.z + s.z / 2) };
     }
 
-    void dig(bool plan = false, bool channel = false);
+    void dig(bool plan = false, bool channel = false, const std::set<df::coord> &skip_tiles = {});
 
     bool include(df::coord t) const;
     bool safe_include(df::coord t) const;

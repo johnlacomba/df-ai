@@ -449,7 +449,7 @@ bool Plan::wantdig(color_ostream & out, room *r, int32_t queue)
     return true;
 }
 
-bool Plan::digroom(color_ostream & out, room *r, bool immediate)
+bool Plan::digroom(color_ostream & out, room *r, bool immediate, const std::set<df::coord> &skip_tiles)
 {
     if (r->status != room_status::plan)
     {
@@ -462,13 +462,30 @@ bool Plan::digroom(color_ostream & out, room *r, bool immediate)
     r->queue_dig = false;
     r->status = room_status::dig;
     fixup_open(out, r);
-    r->dig();
+
+    // build skip set from channel_enable — protect tiles near the brook
+    // connection from being dug before floodgates are ready
+    std::set<df::coord> effective_skip = skip_tiles;
+    if (r->channel_enable.isValid())
+    {
+        df::coord ce = r->channel_enable;
+        for (int16_t dx = -1; dx <= 1; dx++)
+        {
+            for (int16_t dy = -1; dy <= 1; dy++)
+            {
+                effective_skip.insert(ce + df::coord(dx, dy, 0));
+                effective_skip.insert(ce + df::coord(dx, dy, 1));
+            }
+        }
+    }
+
+    r->dig(false, false, effective_skip);
 
     add_task(immediate ? task_type::dig_room_immediate : task_type::dig_room, r);
 
     for (auto it = r->accesspath.begin(); it != r->accesspath.end(); it++)
     {
-        digroom(out, *it, immediate);
+        digroom(out, *it, immediate, effective_skip);
     }
 
     for (auto f : r->layout)

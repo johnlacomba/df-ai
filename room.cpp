@@ -139,7 +139,7 @@ room::~room()
     }
 }
 
-void room::dig(bool plan, bool channel)
+void room::dig(bool plan, bool channel, const std::set<df::coord> &skip_tiles)
 {
     for (int16_t x = min.x; x <= max.x; x++)
     {
@@ -148,6 +148,8 @@ void room::dig(bool plan, bool channel)
             for (int16_t z = min.z; z <= max.z; z++)
             {
                 df::coord t(x, y, z);
+                if (!skip_tiles.empty() && skip_tiles.count(t))
+                    continue;
                 df::tiletype *tt = Maps::getTileType(t);
                 if (tt)
                 {
