@@ -118,8 +118,27 @@ void Population::update_trading(color_ostream & out)
             ai.debug(out, stl_sprintf("trade: designated %zu items for depot", trade_designated_items.size()));
         }
 
-        trade_state = TRADE_AWAITING_BROKER;
-        set_up_trading(out, true);
+        // check if any designated items have arrived at the depot
+        bool items_at_depot = false;
+        for (auto item : world->items.other[items_other_id::IN_PLAY])
+        {
+            if (!item || !trade_designated_items.count(item->id))
+                continue;
+            if (item->pos.x >= depot->x1 && item->pos.x <= depot->x2 &&
+                item->pos.y >= depot->y1 && item->pos.y <= depot->y2 &&
+                item->pos.z == depot->z)
+            {
+                items_at_depot = true;
+                break;
+            }
+        }
+
+        if (items_at_depot || trade_designated_items.empty())
+        {
+            ai.debug(out, "trade: items arriving at depot, requesting broker");
+            trade_state = TRADE_AWAITING_BROKER;
+            set_up_trading(out, true);
+        }
         break;
     }
     case TRADE_AWAITING_BROKER:

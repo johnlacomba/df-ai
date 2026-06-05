@@ -341,10 +341,21 @@ void Population::check_noble_apartments(color_ostream & out)
         df::entity_position *pos = binsearch_in_vector(plotinfo->main.fortress_entity->positions.own, asn->position_id);
         if (!pos)
             continue;
-        if (pos->required_office > 0 || pos->required_dining > 0 || pos->required_tomb > 0 ||
-            pos->responsibilities[entity_position_responsibility::RECEIVE_DIPLOMATS])
+        if (pos->required_office > 0 || pos->required_dining > 0 || pos->required_tomb > 0)
         {
             if (df::historical_figure *hf = df::historical_figure::find(asn->histfig))
+            {
+                noble_ids.insert(hf->unit_id);
+            }
+        }
+    }
+
+    // also ensure nobles with RECEIVE_DIPLOMATS get an office for diplomat meetings
+    for (auto *asn : plotinfo->main.fortress_entity->assignments_by_type[entity_position_responsibility::RECEIVE_DIPLOMATS])
+    {
+        if (asn && asn->histfig != -1)
+        {
+            if (auto *hf = df::historical_figure::find(asn->histfig))
             {
                 noble_ids.insert(hf->unit_id);
             }
