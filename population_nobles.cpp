@@ -365,8 +365,24 @@ void Population::update_diplomacy(color_ostream & out)
             pending.push_back(dipev);
     }
 
+    static int32_t last_diplo_trace_tick = -1;
+    bool diplo_trace = (*cur_year_tick - last_diplo_trace_tick >= 400) || last_diplo_trace_tick == -1;
+
     if (pending.empty())
+    {
+        if (diplo_trace && !plotinfo->dip_meeting_info.empty())
+        {
+            ai.debug(out, stl_sprintf("[DIPLO] all %zu meetings already resolved (success/failure)", plotinfo->dip_meeting_info.size()));
+            last_diplo_trace_tick = *cur_year_tick;
+        }
         return;
+    }
+
+    if (diplo_trace)
+    {
+        ai.debug(out, stl_sprintf("[DIPLO] %zu pending meetings", pending.size()));
+        last_diplo_trace_tick = *cur_year_tick;
+    }
 
     if (game->main_interface.diplomacy.open)
         return;
@@ -430,7 +446,16 @@ void Population::update_diplomacy(color_ostream & out)
         auto diplomat_unit = diplomat_hf ? df::unit::find(diplomat_hf->unit_id) : nullptr;
 
         if (!diplomat_unit || !Units::isAlive(diplomat_unit))
+        {
+            if (diplo_trace)
+            {
+                ai.debug(out, stl_sprintf("[DIPLO] skipping meeting: diplomat_id=%d hf=%s unit=%s",
+                    dipev->diplomat_id,
+                    diplomat_hf ? "found" : "NOT FOUND",
+                    diplomat_unit ? (Units::isAlive(diplomat_unit) ? "alive" : "DEAD") : "NOT FOUND"));
+            }
             continue;
+        }
 
         int state_val = static_cast<int>(diplomat_unit->meeting.state);
         bool state_changed = !last_logged_state.count(diplomat_unit->id) ||
