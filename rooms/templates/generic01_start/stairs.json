@@ -783,26 +783,6 @@
 			"layout": [87, 89]
 		},
 		{
-			"type": "workshop",
-			"workshop_type": "Craftsdwarfs",
-			"level": 1,
-			"min": [-5, 3, -1],
-			"max": [-3, 5, -1],
-			"accesspath": [1]
-		},
-		{
-			"type": "stockpile",
-			"stockpile_type": "stone",
-			"stock_disable": [
-				"StoneOres",
-				"StoneEconomic",
-				"StoneClay"
-			],
-			"min": [-5, 6, -1],
-			"max": [-3, 6, -1],
-			"workshop": 12
-		},
-		{
 			"type": "releasecage",
 			"min": [-1, -5, -2],
 			"max": [1, -3, -2],
@@ -814,6 +794,26 @@
 				["generic01_corridor", -1, 1, 0],
 				["generic01_corridor", 3, 1, 0]
 			]
+		},
+		{
+			"type": "workshop",
+			"workshop_type": "Craftsdwarfs",
+			"level": 1,
+			"min": [-5, -8, -1],
+			"max": [-3, -6, -1],
+			"accesspath": [6]
+		},
+		{
+			"type": "stockpile",
+			"stockpile_type": "stone",
+			"stock_disable": [
+				"StoneOres",
+				"StoneEconomic",
+				"StoneClay"
+			],
+			"min": [-2, -8, -1],
+			"max": [-2, -6, -1],
+			"workshop": 13
 		}
 	]
 }
