@@ -1267,11 +1267,51 @@ void Plan::fixup_open(color_ostream & out, room *r)
         return;
     }
 
+    // for outdoor multi-Z rooms, find the highest Z-level we can build at
+    // (all lower Z-levels must have their constructions in place first)
+    int16_t max_buildable_z = r->max.z;
+    if (r->outdoor && r->min.z != r->max.z)
+    {
+        for (int16_t z = r->min.z; z < r->max.z; z++)
+        {
+            bool level_complete = true;
+            for (int16_t x = r->min.x; x <= r->max.x && level_complete; x++)
+            {
+                for (int16_t y = r->min.y; y <= r->max.y && level_complete; y++)
+                {
+                    df::coord t(x, y, z);
+                    df::tiletype *tt = Maps::getTileType(t);
+                    if (!tt)
+                        continue;
+                    auto bs = ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *tt));
+                    if (bs == tiletype_shape_basic::Open)
+                    {
+                        // check if this tile is supposed to be something
+                        for (auto f : r->layout)
+                        {
+                            df::coord ft = r->min + f->pos;
+                            if (ft == t && (f->dig == tile_dig_designation::No || f->construction != construction_type::NONE))
+                            {
+                                level_complete = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!level_complete)
+            {
+                max_buildable_z = z;
+                break;
+            }
+        }
+    }
+
     for (int16_t x = r->min.x; x <= r->max.x; x++)
     {
         for (int16_t y = r->min.y; y <= r->max.y; y++)
         {
-            for (int16_t z = r->min.z; z <= r->max.z; z++)
+            for (int16_t z = r->min.z; z <= std::min(r->max.z, max_buildable_z); z++)
             {
                 df::coord t(x, y, z);
                 df::tiletype *tt = Maps::getTileType(t);

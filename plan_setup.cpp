@@ -239,6 +239,7 @@ void PlanSetup::create_from_blueprint(room * & fort_entrance, std::vector<room *
         out->ignore = in->ignore;
         out->makeroom = in->makeroom;
         out->internal = in->internal;
+        out->scaffolding = in->scaffolding;
 
         out->comment = in->comment(in->context);
     }

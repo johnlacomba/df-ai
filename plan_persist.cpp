@@ -281,6 +281,7 @@ void Plan::save(std::ostream & out)
         f["ignore"] = (*it)->ignore;
         f["makeroom"] = (*it)->makeroom;
         f["internal"] = (*it)->internal;
+        f["scaffolding"] = (*it)->scaffolding;
         converted_furniture.append(f);
     }
 
@@ -737,6 +738,8 @@ void Plan::load(std::istream & in)
         (*it)->ignore = f["ignore"].asBool();
         (*it)->makeroom = f["makeroom"].asBool();
         (*it)->internal = f["internal"].asBool();
+        if (f.isMember("scaffolding"))
+            (*it)->scaffolding = f["scaffolding"].asBool();
         if (f.isMember("comment"))
         {
             (*it)->comment = f["comment"].asString();

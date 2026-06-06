@@ -278,6 +278,7 @@ struct furniture
     bool ignore;
     bool makeroom;
     bool internal;
+    bool scaffolding;
     std::string comment;
 
     furniture(const std::string & comment = "") :
@@ -292,6 +293,7 @@ struct furniture
         ignore(false),
         makeroom(false),
         internal(false),
+        scaffolding(false),
         comment(comment)
     {
     }

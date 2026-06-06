@@ -265,7 +265,7 @@ bool Plan::construct_room(color_ostream & out, room *r)
     return furnish_room(out, r);
 }
 
-bool Plan::furnish_room(color_ostream &, room *r)
+bool Plan::furnish_room(color_ostream & out, room *r)
 {
     for (auto it = r->layout.begin(); it != r->layout.end(); it++)
     {
@@ -273,6 +273,8 @@ bool Plan::furnish_room(color_ostream &, room *r)
         add_task(task_type::furnish, r, f);
     }
     r->status = room_status::finished;
+
+
     return true;
 }
 
@@ -308,8 +310,14 @@ bool Plan::try_furnish(color_ostream & out, room *r, furniture *f, std::ostream 
     {
         if (try_furnish_construction(out, f->construction, tgtile, reason))
         {
-            if (f->type == layout_type::none)
+            if (f->type == layout_type::none && !f->scaffolding)
                 return true;
+            if (f->scaffolding)
+            {
+                f->bld_id = 0;
+                add_task(task_type::check_furnish, r, f);
+                return true;
+            }
         }
         else
         {
@@ -1923,15 +1931,27 @@ bool Plan::try_endfurnish(color_ostream & out, room *r, furniture *f, std::ostre
 {
     if (!AI::is_dwarfmode_viewscreen())
     {
-        // some of these things need to use the UI.
         reason << "not on main viewscreen";
+        return false;
+    }
+
+    if (f->scaffolding)
+    {
+        std::ostringstream check_reason;
+        if (r->constructions_done(check_reason))
+        {
+            df::coord ft = r->min + f->pos;
+            AI::dig_tile(ft, tile_dig_designation::Default);
+            ai.debug(out, stl_sprintf("[scaffolding] removing scaffolding at (%d,%d,%d)", ft.x, ft.y, ft.z));
+            return true;
+        }
+        reason << "waiting for constructions to complete before removing scaffolding";
         return false;
     }
 
     df::building *bld = df::building::find(f->bld_id);
     if (!bld)
     {
-        // destroyed building?
         return true;
     }
     if (bld->getBuildStage() < bld->getMaxBuildStage())

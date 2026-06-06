@@ -1,0 +1,1715 @@
+{
+	"$schema": "https://ben.lubar.me/df-ai-schemas/room-template.json",
+	"f": [
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 0,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 0,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 0,
+			"y": 2,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 0,
+			"y": 3,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 0,
+			"y": 4,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 0,
+			"y": 5,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 0,
+			"y": 6,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 0,
+			"y": 7,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 0,
+			"y": 8,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 1,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 1,
+			"y": 8,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 2,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 2,
+			"y": 8,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 3,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 3,
+			"y": 8,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 4,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"type": "door",
+			"x": 4,
+			"y": 8,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 5,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 5,
+			"y": 8,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 6,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 6,
+			"y": 8,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 7,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 7,
+			"y": 8,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 8,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 8,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 8,
+			"y": 2,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 8,
+			"y": 3,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 8,
+			"y": 4,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 8,
+			"y": 5,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 8,
+			"y": 6,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 8,
+			"y": 7,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 8,
+			"y": 8,
+			"z": 0
+		},
+		{
+			"construction": "UpDownStair",
+			"x": 4,
+			"y": 4,
+			"z": 0
+		},
+		{
+			"type": "weapon_rack",
+			"x": 3,
+			"y": 1,
+			"z": 0,
+			"has_users": 5,
+			"makeroom": true
+		},
+		{
+			"type": "weapon_rack",
+			"x": 5,
+			"y": 1,
+			"z": 0,
+			"has_users": 5,
+			"ignore": true
+		},
+		{
+			"type": "archery_target",
+			"x": 4,
+			"y": 1,
+			"z": 0,
+			"has_users": 10,
+			"ignore": true
+		},
+		{
+			"type": "armor_stand",
+			"x": 7,
+			"y": 1,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "bed",
+			"x": 1,
+			"y": 1,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "armor_stand",
+			"x": 7,
+			"y": 2,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "bed",
+			"x": 1,
+			"y": 2,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "armor_stand",
+			"x": 7,
+			"y": 3,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "bed",
+			"x": 1,
+			"y": 3,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "armor_stand",
+			"x": 7,
+			"y": 5,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "bed",
+			"x": 1,
+			"y": 5,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "armor_stand",
+			"x": 7,
+			"y": 6,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "bed",
+			"x": 1,
+			"y": 6,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "armor_stand",
+			"x": 7,
+			"y": 7,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "bed",
+			"x": 1,
+			"y": 7,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 0,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 1,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 2,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 3,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 4,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 5,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 6,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 7,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 8,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 0,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 1,
+			"y": 1,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 1,
+			"y": 2,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 1,
+			"y": 3,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 1,
+			"y": 4,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 1,
+			"y": 5,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 1,
+			"y": 6,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 1,
+			"y": 7,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 8,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 0,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 2,
+			"y": 1,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 2,
+			"y": 2,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 2,
+			"y": 3,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 2,
+			"y": 4,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 2,
+			"y": 5,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 2,
+			"y": 6,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 2,
+			"y": 7,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 8,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 0,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 3,
+			"y": 1,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 3,
+			"y": 2,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 3,
+			"y": 3,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 3,
+			"y": 4,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 3,
+			"y": 5,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 3,
+			"y": 6,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 3,
+			"y": 7,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 8,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 0,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 4,
+			"y": 1,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 4,
+			"y": 2,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 4,
+			"y": 3,
+			"z": 1
+		},
+		{
+			"construction": "UpDownStair",
+			"x": 4,
+			"y": 4,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 4,
+			"y": 5,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 4,
+			"y": 6,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 4,
+			"y": 7,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 8,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 0,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 5,
+			"y": 1,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 5,
+			"y": 2,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 5,
+			"y": 3,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 5,
+			"y": 4,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 5,
+			"y": 5,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 5,
+			"y": 6,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 5,
+			"y": 7,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 8,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 0,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 6,
+			"y": 1,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 6,
+			"y": 2,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 6,
+			"y": 3,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 6,
+			"y": 4,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 6,
+			"y": 5,
+			"z": 1
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 6,
+			"y": 6,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 6,
+			"y": 7,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 8,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 0,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 7,
+			"y": 1,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 7,
+			"y": 2,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 7,
+			"y": 3,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 7,
+			"y": 4,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 7,
+			"y": 5,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 7,
+			"y": 6,
+			"z": 1
+		},
+		{
+			"construction": "Floor",
+			"x": 7,
+			"y": 7,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 8,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 0,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 1,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 2,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 3,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 4,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 5,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 6,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 7,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 8,
+			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 7,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 8,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 7,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 8,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 7,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 8,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 7,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 8,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "DownStair",
+			"x": 4,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 7,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 8,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 7,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 8,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 7,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 8,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 7,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 7,
+			"y": 8,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 7,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 8,
+			"y": 8,
+			"z": 2
+		},
+		{
+			"construction": "UpDownStair",
+			"x": -1,
+			"y": -1,
+			"z": 1,
+			"scaffolding": true
+		},
+		{
+			"construction": "UpDownStair",
+			"x": 9,
+			"y": 9,
+			"z": 1,
+			"scaffolding": true
+		},
+		{
+			"construction": "UpDownStair",
+			"x": -1,
+			"y": -1,
+			"z": 2,
+			"scaffolding": true
+		},
+		{
+			"construction": "UpDownStair",
+			"x": 9,
+			"y": 9,
+			"z": 2,
+			"scaffolding": true
+		}
+	],
+	"r": [
+		{
+			"type": "barracks",
+			"min": [
+				0,
+				0,
+				0
+			],
+			"max": [
+				8,
+				8,
+				2
+			],
+			"outdoor": true,
+			"require_floor": false,
+			"layout": [
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43,
+				44,
+				45,
+				46,
+				47,
+				48,
+				49,
+				50,
+				51,
+				52,
+				53,
+				54,
+				55,
+				56,
+				57,
+				58,
+				59,
+				60,
+				61,
+				62,
+				63,
+				64,
+				65,
+				66,
+				67,
+				68,
+				69,
+				70,
+				71,
+				72,
+				73,
+				74,
+				75,
+				76,
+				77,
+				78,
+				79,
+				80,
+				81,
+				82,
+				83,
+				84,
+				85,
+				86,
+				87,
+				88,
+				89,
+				90,
+				91,
+				92,
+				93,
+				94,
+				95,
+				96,
+				97,
+				98,
+				99,
+				100,
+				101,
+				102,
+				103,
+				104,
+				105,
+				106,
+				107,
+				108,
+				109,
+				110,
+				111,
+				112,
+				113,
+				114,
+				115,
+				116,
+				117,
+				118,
+				119,
+				120,
+				121,
+				122,
+				123,
+				124,
+				125,
+				126,
+				127,
+				128,
+				129,
+				130,
+				131,
+				132,
+				133,
+				134,
+				135,
+				136,
+				137,
+				138,
+				139,
+				140,
+				141,
+				142,
+				143,
+				144,
+				145,
+				146,
+				147,
+				148,
+				149,
+				150,
+				151,
+				152,
+				153,
+				154,
+				155,
+				156,
+				157,
+				158,
+				159,
+				160,
+				161,
+				162,
+				163,
+				164,
+				165,
+				166,
+				167,
+				168,
+				169,
+				170,
+				171,
+				172,
+				173,
+				174,
+				175,
+				176,
+				177,
+				178,
+				179,
+				180,
+				181,
+				182,
+				183,
+				184,
+				185,
+				186,
+				187,
+				188,
+				189,
+				190,
+				191,
+				192,
+				193,
+				194,
+				195,
+				196,
+				197,
+				198,
+				199,
+				200,
+				201,
+				202,
+				203,
+				204,
+				205,
+				206,
+				207,
+				208,
+				209,
+				210,
+				211,
+				212,
+				213
+			]
+		}
+	]
+}

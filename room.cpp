@@ -349,6 +349,9 @@ bool room::constructions_done(std::ostream & reason) const
     {
         furniture *f = *it;
 
+        if (f->scaffolding)
+            continue;
+
         df::coord ft = min + f->pos;
 
         df::tiletype *tt_ptr = Maps::getTileType(ft);
@@ -361,6 +364,7 @@ bool room::constructions_done(std::ostream & reason) const
         auto ts = ENUM_ATTR(tiletype, shape, tt);
 
         df::tiletype_shape want;
+
         switch (f->construction)
         {
         case construction_type::NONE:

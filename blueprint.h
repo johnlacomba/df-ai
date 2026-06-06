@@ -42,6 +42,7 @@ struct room_base
         bool ignore;
         bool makeroom;
         bool internal;
+        bool scaffolding;
         bool stairs_special;
 
         variable_string comment;
