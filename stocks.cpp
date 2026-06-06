@@ -825,7 +825,6 @@ void Stocks::queue_slab(color_ostream & out, int32_t histfig_id)
     order->specdata.hist_figure_id = histfig_id;
     order->amount_left = 1;
     order->amount_total = 1;
-    order->frequency = manager_order_frequency_type::OneTime;
     order->status.bits.validated = true;
     world->manager_orders.all.push_back(order);
 
