@@ -208,6 +208,7 @@
 			}
 		},
 		{
+			"continue": true,
 			"name": "Craftsdwarf's Workshop (early)",
 			"action": "dig_immediate",
 			"count": {
@@ -226,7 +227,7 @@
 		},
 		{
 			"name": "Guard Tower",
-			"action": "dig_immediate",
+			"action": "construct",
 			"count": {
 				"match": {
 					"status_not": "plan",

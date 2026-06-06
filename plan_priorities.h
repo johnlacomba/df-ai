@@ -11,6 +11,7 @@ struct task;
 BEGIN_ENUM(plan_priority, action) \
     ENUM_ITEM(dig) \
     ENUM_ITEM(dig_immediate) \
+    ENUM_ITEM(construct) \
     ENUM_ITEM(unignore_furniture) \
     ENUM_ITEM(finish) \
     ENUM_ITEM(start_ore_search) \
@@ -359,6 +360,7 @@ struct plan_priority_t
 private:
     static bool do_dig(AI & ai, color_ostream & out, room *r);
     static bool do_dig_immediate(AI & ai, color_ostream & out, room *r);
+    static bool do_construct(AI & ai, color_ostream & out, room *r);
     static bool do_unignore_furniture(AI & ai, color_ostream & out, room *r);
     static bool do_finish(AI & ai, color_ostream & out, room *r);
     static bool do_start_ore_search(AI & ai, color_ostream & out);

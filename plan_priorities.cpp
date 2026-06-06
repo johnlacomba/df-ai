@@ -613,13 +613,14 @@ bool plan_priority_t::act(AI & ai, color_ostream & out, std::ostream & reason)
     {
         case plan_priority_action::dig:
         case plan_priority_action::dig_immediate:
+        case plan_priority_action::construct:
         case plan_priority_action::unignore_furniture:
         case plan_priority_action::finish:
         {
             size_t skip_status = 0, skip_filter = 0, matched = 0;
             for (room *r : ai.plan.rooms_and_corridors)
             {
-                if ((action == plan_priority_action::dig || action == plan_priority_action::dig_immediate) && r->status >= room_status::dug)
+                if ((action == plan_priority_action::dig || action == plan_priority_action::dig_immediate || action == plan_priority_action::construct) && r->status >= room_status::dug)
                 {
                     skip_status++;
                     continue;
@@ -705,6 +706,17 @@ bool plan_priority_t::act(AI & ai, color_ostream & out, std::ostream & reason)
                         if (do_dig_immediate(ai, out, r))
                         {
                             reason << "dig room: " << AI::describe_room(r);
+                            if (!keep_going || !check_count())
+                            {
+                                return !keep_going;
+                            }
+                            reason << "; ";
+                        }
+                        break;
+                    case plan_priority_action::construct:
+                        if (do_construct(ai, out, r))
+                        {
+                            reason << "construct: " << AI::describe_room(r);
                             if (!keep_going || !check_count())
                             {
                                 return !keep_going;
@@ -798,6 +810,30 @@ bool plan_priority_t::do_dig_immediate(AI & ai, color_ostream & out, room *r)
     bool result = ai.plan.digroom(out, r, true);
     AI::log_dig_tile_stats(out);
     return result;
+}
+
+bool plan_priority_t::do_construct(AI & ai, color_ostream & out, room *r)
+{
+    if (r->status != room_status::plan)
+        return false;
+
+    ai.debug(out, "[construct] above-ground: " + AI::describe_room(r));
+    r->status = room_status::dug;
+    ai.plan.fixup_open(out, r);
+    ai.plan.construct_room(out, r);
+
+    for (auto it = r->accesspath.begin(); it != r->accesspath.end(); it++)
+    {
+        if ((*it)->status == room_status::plan && (*it)->outdoor)
+        {
+            ai.debug(out, "[construct] above-ground (accesspath): " + AI::describe_room(*it));
+            (*it)->status = room_status::dug;
+            ai.plan.fixup_open(out, *it);
+            ai.plan.construct_room(out, *it);
+        }
+    }
+
+    return true;
 }
 
 bool plan_priority_t::do_unignore_furniture(AI & ai, color_ostream & out, room *r)
