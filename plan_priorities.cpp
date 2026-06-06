@@ -822,14 +822,22 @@ bool plan_priority_t::do_construct(AI & ai, color_ostream & out, room *r)
     ai.plan.fixup_open(out, r);
     ai.plan.construct_room(out, r);
 
-    for (auto it = r->accesspath.begin(); it != r->accesspath.end(); it++)
+    // find rooms that connect TO this room via their accesspath (child → parent)
+    for (auto child : ai.plan.rooms_and_corridors)
     {
-        if ((*it)->status == room_status::plan && (*it)->outdoor)
+        if (child->status != room_status::plan || !child->outdoor)
+            continue;
+
+        for (auto ap : child->accesspath)
         {
-            ai.debug(out, "[construct] above-ground (accesspath): " + AI::describe_room(*it));
-            (*it)->status = room_status::dug;
-            ai.plan.fixup_open(out, *it);
-            ai.plan.construct_room(out, *it);
+            if (ap == r)
+            {
+                ai.debug(out, "[construct] above-ground (child): " + AI::describe_room(child));
+                child->status = room_status::dug;
+                ai.plan.fixup_open(out, child);
+                ai.plan.construct_room(out, child);
+                break;
+            }
         }
     }
 
