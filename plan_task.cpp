@@ -463,18 +463,53 @@ bool Plan::digroom(color_ostream & out, room *r, bool immediate, const std::set<
     r->status = room_status::dig;
     fixup_open(out, r);
 
-    // build skip set from channel_enable — protect tiles near the brook
-    // connection from being dug before floodgates are ready
+    // protect tiles adjacent to river/brook features from being dug
+    // as part of aqueduct corridors — prevents premature flooding
     std::set<df::coord> effective_skip = skip_tiles;
-    if (r->channel_enable.isValid())
+    if (r->channel_enable.isValid() || r->corridor_type == corridor_type::aqueduct)
     {
-        df::coord ce = r->channel_enable;
-        for (int16_t dx = -1; dx <= 1; dx++)
+        // add channel_enable area
+        if (r->channel_enable.isValid())
         {
-            for (int16_t dy = -1; dy <= 1; dy++)
+            df::coord ce = r->channel_enable;
+            for (int16_t dx = -1; dx <= 1; dx++)
             {
-                effective_skip.insert(ce + df::coord(dx, dy, 0));
-                effective_skip.insert(ce + df::coord(dx, dy, 1));
+                for (int16_t dy = -1; dy <= 1; dy++)
+                {
+                    effective_skip.insert(ce + df::coord(dx, dy, 0));
+                    effective_skip.insert(ce + df::coord(dx, dy, 1));
+                }
+            }
+        }
+
+        // for aqueduct corridors, also skip any tile adjacent to a river feature
+        if (r->corridor_type == corridor_type::aqueduct)
+        {
+            for (int16_t x = r->min.x; x <= r->max.x; x++)
+            {
+                for (int16_t y = r->min.y; y <= r->max.y; y++)
+                {
+                    for (int16_t z = r->min.z; z <= r->max.z; z++)
+                    {
+                        for (int16_t dx = -1; dx <= 1; dx++)
+                        {
+                            for (int16_t dy = -1; dy <= 1; dy++)
+                            {
+                                for (int16_t dz = -1; dz <= 1; dz++)
+                                {
+                                    df::coord neighbor(x + dx, y + dy, z + dz);
+                                    auto *td = Maps::getTileDesignation(neighbor);
+                                    if (td && td->bits.feature_local)
+                                    {
+                                        effective_skip.insert(df::coord(x, y, z));
+                                        goto next_tile;
+                                    }
+                                }
+                            }
+                        }
+                        next_tile:;
+                    }
+                }
             }
         }
     }

@@ -807,16 +807,29 @@ void Stocks::queue_slab(color_ostream & out, int32_t histfig_id)
         }
     }
 
-    df::manager_order_template tmpl;
-    tmpl.job_type = job_type::EngraveSlab;
-    tmpl.item_type = item_type::NONE;
-    tmpl.item_subtype = -1;
-    tmpl.mat_type = 0;
-    tmpl.mat_index = -1;
-    // manager_order_template::hist_figure_id removed in Steam DF
-    // TODO: find new way to specify histfig for slab engraving
-    (void)histfig_id;
-    add_manager_order(out, tmpl);
+    for (auto mo : world->manager_orders.all)
+    {
+        if (mo->job_type == job_type::EngraveSlab && mo->specdata.hist_figure_id == histfig_id)
+        {
+            return;
+        }
+    }
+
+    auto order = new df::manager_order();
+    order->id = world->manager_orders.manager_order_next_id++;
+    order->job_type = job_type::EngraveSlab;
+    order->item_type = item_type::NONE;
+    order->item_subtype = -1;
+    order->mat_type = 0;
+    order->mat_index = -1;
+    order->specdata.hist_figure_id = histfig_id;
+    order->amount_left = 1;
+    order->amount_total = 1;
+    order->frequency = manager_order_frequency_type::OneTime;
+    order->status.bits.validated = true;
+    world->manager_orders.all.push_back(order);
+
+    ai.debug(out, stl_sprintf("queued memorial slab engraving for histfig %d", histfig_id));
 }
 
 bool Stocks::need_more(stock_item::item type)
