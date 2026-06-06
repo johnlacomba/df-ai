@@ -11,13 +11,13 @@ struct task;
 BEGIN_ENUM(plan_priority, action) \
     ENUM_ITEM(dig) \
     ENUM_ITEM(dig_immediate) \
-    ENUM_ITEM(construct) \
     ENUM_ITEM(unignore_furniture) \
     ENUM_ITEM(finish) \
     ENUM_ITEM(start_ore_search) \
     ENUM_ITEM(past_initial_phase) \
     ENUM_ITEM(deconstruct_wagons) \
     ENUM_ITEM(dig_next_cavern_outpost) \
+    ENUM_ITEM(construct) \
 END_ENUM(plan_priority, action)
 
 #define BEGIN_ENUM BEGIN_DECLARE_ENUM
