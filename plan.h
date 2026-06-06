@@ -124,6 +124,7 @@ public:
     void freesoldierbarrack(color_ostream & out, int32_t id);
 
     df::building *getpasture(color_ostream & out, int32_t pet_id);
+    df::building *getnestbox(color_ostream & out, int32_t pet_id);
     void freepasture(color_ostream & out, int32_t pet_id);
     bool pastures_ready(color_ostream & out);
 

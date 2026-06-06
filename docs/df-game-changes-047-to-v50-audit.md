@@ -122,27 +122,31 @@ Replacement for labor assignment (see §1.1 above).
 
 ## 3. Modified Systems (exist in both but work differently)
 
-### 3.1 Viewscreen Architecture
+### 3.1 Viewscreen Architecture ⚠️ (partially adapted)
 - In 0.47, DF used a deep stack of viewscreens (`viewscreen_dwarfmodest`, `viewscreen_joblistst`, etc.).
 - In v50, there is generally **one viewscreen** (`dwarfmodest`) with a panel-based UI. Different interfaces are shown by changing mode/focus within that single viewscreen.
 - Focus strings like `dwarfmode/Info/CREATURES/CITIZEN` identify the current sub-panel context.
 - **DFHack impact**: Most old viewscreen hooks are broken. Plugins that relied on specific viewscreen types on the stack need rewriting. The overlay system is the new approach.
+- **Implemented**: `pause.cpp` handles `game->main_interface` panels (announcements, petitions, diplomacy) by closing/dismissing them. Diplomacy meetings processed programmatically (skip UI, mark `dipev->flags.bits.success`). Petition popups dismissed. **Not yet adapted**: No overlay-based UI for the AI. Old ExclusiveCallback viewscreen interaction pattern still used where possible.
 
-### 3.2 Trading/Caravans
+### 3.2 Trading/Caravans ⚠️ (partially implemented, not validated)
 - Trade is more like early DF: first trader arrives with minimal goods (couple of donkeys); you must earn a full caravan visit.
 - Broker vs. Trader: in 0.47 the broker's Appraisal skill determined value display; in v50 the trader's skill matters.
 - UI: moved from keyboard `q`-select-depot to click-based "Trade" button.
+- **Implemented**: `trade_manager.cpp` handles caravan detection, item designation to depot, broker dispatch, and programmatic trade via direct item flag manipulation. `stocks_trade.cpp` has `willing_to_trade_item()` (sells crafts, meals, gems) and `want_trader_item()` (buys materials, anvils, books, instruments). Broker now waits for items to arrive at depot before being dispatched. **Not yet validated in-game** — trade attempts showed "no items at depot" due to early-game lack of crafts (now addressed by Craftsdwarf Workshop priority boost).
 
-### 3.3 Military System
+### 3.3 Military System ⚠️ (partially implemented, not fully validated)
 - Squad equipment: can now select by item type, specific item, or create/apply uniform templates including material and color.
 - Raid missions: squads can go off-map to raid sites, rescue citizens, retrieve artifacts, explore ruins.
 - Scheduling: selectable routines per squad broken up by month, quickly swappable.
 - Soldiers could hoard rotten food in rooms (fixed in 50.10).
 - Squad ammo assignment changes (see §1.11).
+- **Implemented**: Militia commander (MILITARY_STRATEGY) noble assignment restored in `population_nobles.cpp`. Squad creation and drafting in `population_military.cpp`. Guard tower with barracks zone for training (template-based, outdoor). Militia commander assignment **validated in-game**. Squad training and barracks assignment **not yet validated**.
 
-### 3.4 Workshop Construction
+### 3.4 Workshop Construction ✅
 - Workshops now require the appropriate skill labor to build: carpenter for woodworking shop, mason for stoneworking shop, etc.
 - Material-specific: carpentry for wood, masonry for stone, metalcrafting/blacksmithing for metal, engineering for mechanical.
+- **Implemented**: Craftsdwarf's Workshop added to starting area priority (`dig_immediate` in `plans/generic01.json`) to ensure trade goods are ready before first caravan. Workshop construction uses existing material selection in `try_construct_workshop()`.
 
 ### 3.5 Zone System (expanded)
 - Zones are unlimited in size (0.47 had a 31×31 max).
@@ -266,7 +270,7 @@ A massive rename pass was done to align df-structures field names with DF's inte
 
 ## 7. Key Implications for a DFHack AI Plugin
 
-1. **Viewscreen navigation is completely different.** Any code that pushes/pops viewscreens or hooks specific viewscreen types needs full rewrite. Use focus strings and the overlay system instead.
+1. **Viewscreen navigation is completely different.** Any code that pushes/pops viewscreens or hooks specific viewscreen types needs full rewrite. Use focus strings and the overlay system instead. *Partially addressed — diplomacy and petition panels handled via main_interface struct manipulation.*
 2. **Labor management is fundamentally changed.** Must use Work Details API instead of per-unit labor flags.
 3. **Room/zone management is unified.** All room types are now civzones. Use the new `getSelectedCivZone` / `getAnyCivZone` API. `Buildings::setOwner` takes `building_civzonest*`.
 4. **Structure field names changed massively.** Any code referencing `unk_*` or `anon_*` fields needs updating to canonical names. Many type changes (pointers to refs, bools to bitmasks, enums to ints).

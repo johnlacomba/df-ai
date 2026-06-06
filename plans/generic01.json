@@ -20,6 +20,7 @@
 			"generic01_infirmary",
 			"generic01_jail",
 			"generic01_location",
+			"generic01_nestbox_room",
 			"generic01_nobleroom",
 			"generic01_underground_farm_start",
 			"generic01_workshop_3x3",
@@ -63,6 +64,7 @@
 		"generic01_infirmary": [1, 5],
 		"generic01_jail": [1, 3],
 		"generic01_mineshaft": [1, 1],
+		"generic01_nestbox_room": [1, 2],
 		"generic01_mineshaft_segment": [1, 3],
 		"generic01_nobleroom": [4, 8],
 		"generic01_outpost_entrance": [1, 1],
@@ -936,6 +938,20 @@
 			"match": {
 				"type": "stockpile",
 				"workshop_not": {}
+			}
+		},
+		{
+			"name": "Nesting Rooms",
+			"action": "dig",
+			"count": {
+				"match": {
+					"status_not": "plan",
+					"type": "pasture"
+				},
+				"is": 0
+			},
+			"match": {
+				"type": "pasture"
 			}
 		},
 		{

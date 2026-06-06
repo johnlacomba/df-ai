@@ -92,7 +92,7 @@ void Population::update_pets(color_ostream & out)
             continue;
         }
 
-        if (!Units::isOwnCiv(u) || Units::isOwnGroup(u) || Units::isOwnRace(u) || u->cultural_identity != -1)
+        if (!Units::isOwnCiv(u) || Units::isOwnRace(u) || u->cultural_identity != -1)
         {
             continue;
         }
@@ -202,6 +202,14 @@ void Population::update_pets(color_ostream & out)
         if (cst->flags.is_set(caste_raw_flags::LAYS_EGGS))
         {
             flags.bits.lays_eggs = 1;
+
+            if (cst->sex == pronoun_type::she && !Units::isBaby(u) && !Units::isChild(u))
+            {
+                if (auto bld = virtual_cast<df::building_civzonest>(ai.plan.getnestbox(out, u->id)))
+                {
+                    assign_unit_to_zone(u, bld);
+                }
+            }
         }
 
         pet[u->id] = flags;

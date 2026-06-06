@@ -1,0 +1,390 @@
+{
+	"$schema": "https://ben.lubar.me/df-ai-schemas/room-template.json",
+	"f": [
+		{
+			"type": "nest_box",
+			"x": 0,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"type": "door",
+			"x": 0,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 1,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 1,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"type": "nest_box",
+			"x": 2,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"type": "door",
+			"x": 2,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 3,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 3,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"type": "nest_box",
+			"x": 4,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"type": "door",
+			"x": 4,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 5,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 5,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"type": "nest_box",
+			"x": 6,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"type": "door",
+			"x": 6,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 7,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 7,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"type": "nest_box",
+			"x": 8,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"type": "door",
+			"x": 8,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 9,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 9,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"type": "nest_box",
+			"x": 10,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"type": "door",
+			"x": 10,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 11,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 11,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"type": "nest_box",
+			"x": 12,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"type": "door",
+			"x": 12,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 13,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"construction": "Wall",
+			"dig": "No",
+			"x": 13,
+			"y": 1,
+			"z": 0
+		},
+		{
+			"type": "nest_box",
+			"x": 14,
+			"y": 0,
+			"z": 0
+		},
+		{
+			"type": "door",
+			"x": 14,
+			"y": 1,
+			"z": 0
+		}
+	],
+	"r": [
+		{
+			"type": "pasture",
+			"min": [
+				0,
+				0,
+				0
+			],
+			"max": [
+				0,
+				0,
+				0
+			],
+			"layout": [
+				0,
+				1,
+				2,
+				3
+			],
+			"accesspath": [
+				8
+			]
+		},
+		{
+			"type": "pasture",
+			"min": [
+				2,
+				0,
+				0
+			],
+			"max": [
+				2,
+				0,
+				0
+			],
+			"layout": [
+				4,
+				5,
+				6,
+				7
+			],
+			"accesspath": [
+				8
+			]
+		},
+		{
+			"type": "pasture",
+			"min": [
+				4,
+				0,
+				0
+			],
+			"max": [
+				4,
+				0,
+				0
+			],
+			"layout": [
+				8,
+				9,
+				10,
+				11
+			],
+			"accesspath": [
+				8
+			]
+		},
+		{
+			"type": "pasture",
+			"min": [
+				6,
+				0,
+				0
+			],
+			"max": [
+				6,
+				0,
+				0
+			],
+			"layout": [
+				12,
+				13,
+				14,
+				15
+			],
+			"accesspath": [
+				8
+			]
+		},
+		{
+			"type": "pasture",
+			"min": [
+				8,
+				0,
+				0
+			],
+			"max": [
+				8,
+				0,
+				0
+			],
+			"layout": [
+				16,
+				17,
+				18,
+				19
+			],
+			"accesspath": [
+				8
+			]
+		},
+		{
+			"type": "pasture",
+			"min": [
+				10,
+				0,
+				0
+			],
+			"max": [
+				10,
+				0,
+				0
+			],
+			"layout": [
+				20,
+				21,
+				22,
+				23
+			],
+			"accesspath": [
+				8
+			]
+		},
+		{
+			"type": "pasture",
+			"min": [
+				12,
+				0,
+				0
+			],
+			"max": [
+				12,
+				0,
+				0
+			],
+			"layout": [
+				24,
+				25,
+				26,
+				27
+			],
+			"accesspath": [
+				8
+			]
+		},
+		{
+			"type": "pasture",
+			"min": [
+				14,
+				0,
+				0
+			],
+			"max": [
+				14,
+				0,
+				0
+			],
+			"layout": [
+				28,
+				29
+			],
+			"accesspath": [
+				8
+			]
+		},
+		{
+			"type": "corridor",
+			"corridor_type": "corridor",
+			"min": [
+				0,
+				2,
+				0
+			],
+			"max": [
+				14,
+				2,
+				0
+			],
+			"layout": []
+		}
+	]
+}

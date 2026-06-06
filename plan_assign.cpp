@@ -507,6 +507,39 @@ void Plan::freepasture(color_ostream &, int32_t pet_id)
     }
 }
 
+df::building *Plan::getnestbox(color_ostream & out, int32_t pet_id)
+{
+    df::unit *pet = df::unit::find(pet_id);
+    if (!pet)
+        return nullptr;
+
+    if (auto ref = Units::getGeneralRef(pet, general_ref_type::BUILDING_CIVZONE_ASSIGNED))
+    {
+        if (ref->getBuilding())
+            return ref->getBuilding();
+    }
+
+    // find a 1x1 pasture (nesting room) with no assigned animals
+    if (room *r = ai.find_room(room_type::pasture, [](room *r_) -> bool
+    {
+        if (!r_->dfbuilding())
+            return false;
+        df::coord sz = r_->size();
+        if (sz.x != 1 || sz.y != 1)
+            return false;
+        return r_->users.empty();
+    }))
+    {
+        r->users.insert(pet_id);
+        ai.debug(out, stl_sprintf("%.8s %.8s assigned to nesting room",
+            df::creature_raw::find(pet->race)->creature_id.c_str(),
+            df::creature_raw::find(pet->race)->caste[pet->caste]->caste_id.c_str()));
+        return r->dfbuilding();
+    }
+
+    return nullptr;
+}
+
 bool Plan::pastures_ready(color_ostream & out)
 {
     return !ai.find_room(room_type::pasture, [](room *r) -> bool
