@@ -882,12 +882,6 @@ bool Plan::try_furnish_construction(color_ostream &, df::construction_type ctype
     df::item *mat = nullptr;
     if (!find_item(items_other_id::BLOCKS, mat))
     {
-        if (ai.find_room(room_type::workshop, [](room *r) -> bool { return r->workshop_type == workshop_type::Masons && r->status == room_status::finished && r->dfbuilding() != nullptr; }) != nullptr)
-        {
-            // we don't have blocks but we can make them.
-            reason << "waiting for blocks to become available";
-            return false;
-        }
         if (!find_item(items_other_id::BOULDER, mat, false, true))
         {
             reason << "no building materials available";
