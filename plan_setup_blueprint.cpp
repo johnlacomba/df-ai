@@ -696,18 +696,39 @@ bool PlanSetup::try_add_room_connect(const room_blueprint & rb, std::map<std::st
 
     auto chosen = connectors.at(std::uniform_int_distribution<size_t>(0, connectors.size() - 1)(ai.rng));
 
-    if (can_add_room(rb, std::get<1>(chosen)))
+    // for outdoor templates, use the actual surface Z at the target position
+    // instead of the parent room's Z (terrain may slope)
+    df::coord connect_pos = std::get<1>(chosen);
+    bool is_outdoor = false;
+    for (auto r : rb.rooms)
+    {
+        if (r->outdoor)
+        {
+            is_outdoor = true;
+            break;
+        }
+    }
+    if (is_outdoor)
+    {
+        df::coord surface = Plan::surface_tile_at(connect_pos.x, connect_pos.y, true);
+        if (surface.isValid())
+        {
+            connect_pos.z = surface.z;
+        }
+    }
+
+    if (can_add_room(rb, connect_pos))
     {
         std::string error;
-        if (add(room_blueprint(rb, std::get<1>(chosen), std::get<2>(chosen)), std::get<0>(chosen), error, std::get<1>(chosen)))
+        if (add(room_blueprint(rb, connect_pos, std::get<2>(chosen)), std::get<0>(chosen), error, connect_pos))
         {
             add_count(rb, plan, counts, instance_counts);
-            DFAI_DEBUG(blueprint, 3, "Placed " << DBG_ROOM(rb) << " at " << DBG_COORD(std::get<1>(chosen)) << ".");
-            LogQuiet(stl_sprintf("Placed %s/%s/%s at (%d, %d, %d)", rb.type.c_str(), rb.tmpl_name.c_str(), rb.name.c_str(), std::get<1>(chosen).x, std::get<1>(chosen).y, std::get<1>(chosen).z), true);
+            DFAI_DEBUG(blueprint, 3, "Placed " << DBG_ROOM(rb) << " at " << DBG_COORD(connect_pos) << ".");
+            LogQuiet(stl_sprintf("Placed %s/%s/%s at (%d, %d, %d)", rb.type.c_str(), rb.tmpl_name.c_str(), rb.name.c_str(), connect_pos.x, connect_pos.y, connect_pos.z), true);
             return true;
         }
 
-        DFAI_DEBUG(blueprint, 4, "Error placing " << DBG_ROOM(rb) << " at " << DBG_COORD(std::get<1>(chosen)) << ": " << error);
+        DFAI_DEBUG(blueprint, 4, "Error placing " << DBG_ROOM(rb) << " at " << DBG_COORD(connect_pos) << ": " << error);
     }
 
     return false;
