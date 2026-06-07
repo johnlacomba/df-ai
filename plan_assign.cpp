@@ -222,6 +222,20 @@ void Plan::attribute_noblerooms(color_ostream & out, const std::set<int32_t> & i
             DIG_ROOM_IF(bedroom, bedroom);
             DIG_ROOM_IF(office, office);
 #undef DIG_ROOM_IF
+            // expedition leader needs an office for diplomat meetings even if
+            // the position doesn't formally require one
+            if (r->nobleroom_type == nobleroom_type::office && r->required_value == 0)
+            {
+                for (auto & np : entpos)
+                {
+                    if (np.position->responsibilities[entity_position_responsibility::RECEIVE_DIPLOMATS])
+                    {
+                        r->required_value = 1;
+                        wantdig(out, r, -2);
+                        break;
+                    }
+                }
+            }
         }
     }
 }

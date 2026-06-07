@@ -357,10 +357,16 @@ void Population::check_noble_apartments(color_ostream & out)
         {
             if (auto *hf = df::historical_figure::find(asn->histfig))
             {
+                if (!noble_ids.count(hf->unit_id))
+                {
+                    ai.debug(out, "[NOBLE] adding RECEIVE_DIPLOMATS holder unit_id=" + std::to_string(hf->unit_id) + " to noble_ids for office");
+                }
                 noble_ids.insert(hf->unit_id);
             }
         }
     }
+
+    ai.debug(out, "[NOBLE] total noble_ids needing rooms: " + std::to_string(noble_ids.size()));
 
     ai.plan.attribute_noblerooms(out, noble_ids);
 }

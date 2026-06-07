@@ -1135,13 +1135,25 @@ void PlanSetup::handle_special_exits()
                         return;
                     }
 
-                    // reject tiles directly under a river/brook feature
-                    for (int16_t check_z = c1.z; check_z <= c1.z + 5; check_z++)
+                    // reject tiles near a river/brook feature — check this tile
+                    // and all horizontal neighbors, scanning upward to the surface
+                    for (int16_t nx = -1; nx <= 1; nx++)
                     {
-                        auto *td = Maps::getTileDesignation(c1.x, c1.y, check_z);
-                        if (td && td->bits.feature_local)
+                        for (int16_t ny = -1; ny <= 1; ny++)
                         {
-                            return;
+                            for (int16_t check_z = c1.z; check_z < world->map.z_count; check_z++)
+                            {
+                                auto *td = Maps::getTileDesignation(c1.x + nx, c1.y + ny, check_z);
+                                if (td && td->bits.feature_local)
+                                {
+                                    return;
+                                }
+                                auto *tt = Maps::getTileType(c1.x + nx, c1.y + ny, check_z);
+                                if (tt && ENUM_ATTR(tiletype_shape, basic_shape, ENUM_ATTR(tiletype, shape, *tt)) == tiletype_shape_basic::Open)
+                                {
+                                    break;
+                                }
+                            }
                         }
                     }
 
