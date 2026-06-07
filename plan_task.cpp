@@ -84,7 +84,7 @@ void Plan::update(color_ostream & out)
             {
                 ai.debug(out, "[plan_update] not dug: " + AI::describe_room(t->r) + " reason: " + reason.str() +
                     stl_sprintf(" min=(%d,%d,%d) max=(%d,%d,%d)", t->r->min.x, t->r->min.y, t->r->min.z, t->r->max.x, t->r->max.y, t->r->max.z));
-                t->r->dig();
+                t->r->dig(false, false, t->r->dig_skip_tiles);
             }
             if (!del)
             {
@@ -515,6 +515,7 @@ bool Plan::digroom(color_ostream & out, room *r, bool immediate, const std::set<
         }
     }
 
+    r->dig_skip_tiles = effective_skip;
     r->dig(false, false, effective_skip);
 
     add_task(immediate ? task_type::dig_room_immediate : task_type::dig_room, r);

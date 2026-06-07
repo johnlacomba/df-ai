@@ -219,6 +219,7 @@ struct room
     bool outdoor;
     bool channeled;
     bool build_when_accessible;
+    std::set<df::coord> dig_skip_tiles;
     int32_t required_value;
     int32_t data1;
     int32_t data2;
