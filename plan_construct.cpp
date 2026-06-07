@@ -331,6 +331,27 @@ bool Plan::try_furnish(color_ostream & out, room *r, furniture *f, std::ostream 
         return false;
     }
 
+    // don't place furniture until the floor beneath it is constructed
+    if (f->type != layout_type::none && f->construction == construction_type::NONE)
+    {
+        for (auto other : r->layout)
+        {
+            if (other == f)
+                continue;
+            if (other->construction == construction_type::Floor &&
+                r->min + other->pos == tgtile)
+            {
+                df::tiletype *floor_tt = Maps::getTileType(tgtile);
+                if (floor_tt && ENUM_ATTR(tiletype, material, *floor_tt) != tiletype_material::CONSTRUCTION)
+                {
+                    reason << "waiting for constructed floor";
+                    return false;
+                }
+                break;
+            }
+        }
+    }
+
     df::building_type building_type = building_type::NONE;
     int building_subtype = -1;
     stock_item::item stocks_furniture_type;
@@ -723,9 +744,15 @@ bool Plan::try_furnish_construction(color_ostream &, df::construction_type ctype
         }
         break;
     case construction_type::Floor:
-        if (tsb == tiletype_shape_basic::Floor && ts != tiletype_shape::SAPLING)
+        if (tsb == tiletype_shape_basic::Floor && ts != tiletype_shape::SAPLING &&
+            ENUM_ATTR(tiletype, material, tt) == tiletype_material::CONSTRUCTION)
         {
             return true;
+        }
+        if (tsb == tiletype_shape_basic::Floor && ts != tiletype_shape::SAPLING)
+        {
+            // natural floor — need to construct over it
+            break;
         }
         if (tsb == tiletype_shape_basic::Ramp || tsb == tiletype_shape_basic::Wall)
         {

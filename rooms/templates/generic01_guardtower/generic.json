@@ -320,9 +320,17 @@
 			"z": 0
 		},
 		{
+			"type": "archery_target",
+			"x": 5,
+			"y": 1,
+			"z": 0,
+			"has_users": 10,
+			"ignore": true
+		},
+		{
 			"type": "weapon_rack",
 			"x": 2,
-			"y": 1,
+			"y": 5,
 			"z": 0,
 			"has_users": 5,
 			"makeroom": true
@@ -330,23 +338,15 @@
 		{
 			"type": "weapon_rack",
 			"x": 4,
-			"y": 1,
+			"y": 5,
 			"z": 0,
 			"has_users": 5,
 			"ignore": true
 		},
 		{
-			"type": "archery_target",
-			"x": 3,
-			"y": 1,
-			"z": 0,
-			"has_users": 10,
-			"ignore": true
-		},
-		{
 			"type": "armor_stand",
 			"x": 5,
-			"y": 2,
+			"y": 3,
 			"z": 0,
 			"has_users": 1,
 			"ignore": true
@@ -354,7 +354,7 @@
 		{
 			"type": "bed",
 			"x": 1,
-			"y": 2,
+			"y": 3,
 			"z": 0,
 			"has_users": 1,
 			"ignore": true
