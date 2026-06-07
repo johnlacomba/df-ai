@@ -612,6 +612,16 @@ void Population::update_diplomacy(color_ostream & out)
             }
 
             dipev->flags.bits.success = true;
+
+            // transition the diplomat to LeaveMap so DF considers the meeting done
+            diplomat_unit->meeting.state = static_cast<decltype(diplomat_unit->meeting.state)>(3);
+
+            // close the diplomacy UI if DF opened it
+            if (game && game->main_interface.diplomacy.open)
+            {
+                game->main_interface.diplomacy.open = false;
+            }
+
             ai.debug(out, "[DIPLO] completed diplomacy meeting for " +
                 AI::describe_unit(diplomat_unit) +
                 (civ_entity ? " (civ: " + std::to_string(civ_entity->id) + ")" : ""));
