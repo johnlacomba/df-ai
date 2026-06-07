@@ -1135,6 +1135,16 @@ void PlanSetup::handle_special_exits()
                         return;
                     }
 
+                    // reject tiles directly under a river/brook feature
+                    for (int16_t check_z = c1.z; check_z <= c1.z + 5; check_z++)
+                    {
+                        auto *td = Maps::getTileDesignation(c1.x, c1.y, check_z);
+                        if (td && td->bits.feature_local)
+                        {
+                            return;
+                        }
+                    }
+
                     source_tile[c1] = prev;
                     (c0 == prev ? check_2 : check_1).push_back(c1);
                 };
