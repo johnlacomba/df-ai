@@ -697,9 +697,10 @@
 			"max": [
 				6,
 				6,
-				0
+				1
 			],
 			"outdoor": true,
+			"require_floor": false,
 			"layout": [
 				0,
 				1,
@@ -758,28 +759,7 @@
 				54,
 				55,
 				56,
-				57
-			]
-		},
-		{
-			"type": "corridor",
-			"corridor_type": "corridor",
-			"min": [
-				0,
-				0,
-				1
-			],
-			"max": [
-				6,
-				6,
-				1
-			],
-			"outdoor": true,
-			"require_floor": false,
-			"accesspath": [
-				0
-			],
-			"layout": [
+				57,
 				58,
 				59,
 				60,

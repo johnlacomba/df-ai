@@ -832,12 +832,7 @@ bool plan_priority_t::do_construct(AI & ai, color_ostream & out, room *r)
         {
             if (ap == r)
             {
-                ai.debug(out, "[construct] above-ground (child): " + AI::describe_room(child) +
-                    stl_sprintf(" min=(%d,%d,%d) max=(%d,%d,%d)", child->min.x, child->min.y, child->min.z, child->max.x, child->max.y, child->max.z));
-                child->min.z--;
-                child->max.z--;
-                ai.debug(out, "[construct] adjusted Z-1: " +
-                    stl_sprintf("min=(%d,%d,%d) max=(%d,%d,%d)", child->min.x, child->min.y, child->min.z, child->max.x, child->max.y, child->max.z));
+                ai.debug(out, "[construct] above-ground (child): " + AI::describe_room(child));
                 child->status = room_status::dug;
                 ai.plan.fixup_open(out, child);
                 ai.plan.construct_room(out, child);
