@@ -311,7 +311,7 @@ static df::squad *create_squad(color_ostream & out, AI & ai, bool ranged = false
     entity->squads.push_back(squad->id);
 
     setup_squad_equipment(squad, ranged);
-    setup_squad_schedule(squad, ranged, ai);
+    setup_squad_schedule(squad, ranged, &ai);
 
     ai.debug(out, stl_sprintf("[military] created %s squad id=%d", ranged ? "ranged" : "melee", squad->id));
     return squad;
