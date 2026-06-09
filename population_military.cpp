@@ -15,6 +15,7 @@
 #include "df/squad.h"
 #include "df/squad_month_positionst.h"
 #include "df/squad_order_kill_listst.h"
+#include "df/squad_order_movest.h"
 #include "df/squad_order_trainst.h"
 #include "df/squad_position.h"
 #include "df/squad_routine_schedulest.h"
@@ -52,6 +53,22 @@ static df::squad_uniform_spec *make_uniform_spec(df::item_type itype, df::entity
     spec->color = -1;
     spec->indiv_choice = indiv;
     return spec;
+}
+
+static bool is_ranged_squad(df::squad *squad)
+{
+    for (auto pos : squad->positions)
+    {
+        if (!pos) continue;
+        for (auto & spec : pos->equipment.uniform[uniform_category::weapon])
+        {
+            if (spec && spec->indiv_choice.bits.ranged)
+                return true;
+            if (spec && spec->indiv_choice.bits.melee)
+                return false;
+        }
+    }
+    return false;
 }
 
 static void setup_squad_equipment(df::squad *squad, bool ranged)
@@ -92,10 +109,26 @@ static void setup_squad_equipment(df::squad *squad, bool ranged)
     }
 }
 
-static void setup_squad_schedule(df::squad *squad)
+static void setup_squad_schedule(df::squad *squad, bool ranged = false, AI *ai_ptr = nullptr)
 {
     int32_t squad_size = (int32_t)squad->positions.size();
     auto & routines = plotinfo->alerts.routines;
+
+    // find guard tower position for ranged squad stationing
+    df::coord tower_pos;
+    tower_pos.clear();
+    if (ranged && ai_ptr)
+    {
+        ai_ptr->find_room(room_type::barracks, [&tower_pos](room *r) -> bool
+        {
+            if (r->outdoor)
+            {
+                tower_pos = r->min + df::coord(r->size().x / 2, r->size().y / 2, 1);
+                return true;
+            }
+            return false;
+        });
+    }
 
     if (routines.empty())
     {
@@ -113,15 +146,32 @@ static void setup_squad_schedule(df::squad *squad)
                 routine->month[month].order_assignments.push_back(oa);
             }
 
+            // ranged squads: alternate between training (even months) and
+            // stationing on tower (odd months)
+            bool station_month = ranged && tower_pos.isValid() && (month % 2 == 1);
+
             auto order = df::allocate<df::squad_schedule_order>();
             if (!order)
                 continue;
             order->min_count = squad_size;
             order->positions.resize(squad_size);
-            auto train = df::allocate<df::squad_order_trainst>();
-            train->year = *cur_year;
-            train->year_tick = *cur_year_tick;
-            order->order = train;
+
+            if (station_month)
+            {
+                auto move = df::allocate<df::squad_order_movest>();
+                move->pos = tower_pos;
+                move->year = *cur_year;
+                move->year_tick = *cur_year_tick;
+                order->order = move;
+            }
+            else
+            {
+                auto train = df::allocate<df::squad_order_trainst>();
+                train->year = *cur_year;
+                train->year_tick = *cur_year_tick;
+                order->order = train;
+            }
+
             routine->month[month].orders.push_back(order);
             routine->month[month].sleep_mode = squad_sleep_option_type::AnywhereAtWill;
             routine->month[month].uniform_mode = squad_civilian_uniform_type::Regular;
@@ -169,10 +219,22 @@ static void setup_squad_schedule(df::squad *squad)
                 order->min_count = squad_size;
                 order->positions.resize(squad_size);
 
-                auto train = df::allocate<df::squad_order_trainst>();
-                train->year = *cur_year;
-                train->year_tick = *cur_year_tick;
-                order->order = train;
+                bool station_month = ranged && tower_pos.isValid() && (month % 2 == 1);
+                if (station_month)
+                {
+                    auto move = df::allocate<df::squad_order_movest>();
+                    move->pos = tower_pos;
+                    move->year = *cur_year;
+                    move->year_tick = *cur_year_tick;
+                    order->order = move;
+                }
+                else
+                {
+                    auto train = df::allocate<df::squad_order_trainst>();
+                    train->year = *cur_year;
+                    train->year_tick = *cur_year_tick;
+                    order->order = train;
+                }
 
                 asched[month].orders.push_back(order);
                 asched[month].sleep_mode = squad_sleep_option_type::AnywhereAtWill;
@@ -209,7 +271,7 @@ static void setup_squad_schedule(df::squad *squad)
     }
 }
 
-static df::squad *create_squad(color_ostream & out, AI & ai)
+static df::squad *create_squad(color_ostream & out, AI & ai, bool ranged = false)
 {
     auto entity = plotinfo->main.fortress_entity;
     if (!entity)
@@ -248,9 +310,8 @@ static df::squad *create_squad(color_ostream & out, AI & ai)
     world->squads.all.push_back(squad);
     entity->squads.push_back(squad->id);
 
-    bool ranged = (entity->squads.size() % 3 == 1);
     setup_squad_equipment(squad, ranged);
-    setup_squad_schedule(squad);
+    setup_squad_schedule(squad, ranged, ai);
 
     ai.debug(out, stl_sprintf("[military] created %s squad id=%d", ranged ? "ranged" : "melee", squad->id));
     return squad;
@@ -277,7 +338,7 @@ static bool is_noble_excluded(df::unit *u)
     return false;
 }
 
-static df::squad *find_squad_with_vacancy(int32_t max_positions)
+static df::squad *find_squad_with_vacancy_typed(int32_t max_positions, bool want_ranged)
 {
     auto entity = plotinfo->main.fortress_entity;
     if (!entity)
@@ -295,6 +356,9 @@ static df::squad *find_squad_with_vacancy(int32_t max_positions)
             if (pos && pos->occupant != -1)
                 occupied++;
         }
+        if (is_ranged_squad(squad) != want_ranged)
+            continue;
+
         if (occupied < max_positions && occupied < (int32_t)squad->positions.size())
             return squad;
     }
@@ -398,7 +462,22 @@ void Population::update_military(color_ostream & out)
         return;
     }
 
-    ai.debug(out, stl_sprintf("[military] drafting: target=%zu, current=%zu, pool=%zu", target_min, citizen_military, draft_pool.size()));
+    // count current melee vs ranged soldiers
+    size_t melee_count = 0;
+    size_t ranged_count = 0;
+    for (auto & m : military)
+    {
+        if (!citizen.count(m.first))
+            continue;
+        auto squad = df::squad::find(m.second);
+        if (squad && is_ranged_squad(squad))
+            ranged_count++;
+        else
+            melee_count++;
+    }
+
+    ai.debug(out, stl_sprintf("[military] drafting: target=%zu, current=%zu (melee=%zu, ranged=%zu), pool=%zu",
+        target_min, citizen_military, melee_count, ranged_count, draft_pool.size()));
 
     size_t to_draft = target_min - citizen_military;
     if (to_draft > draft_pool.size())
@@ -406,6 +485,9 @@ void Population::update_military(color_ostream & out)
 
     for (size_t i = 0; i < to_draft; i++)
     {
+        // 3:1 ratio: after every 3 melee soldiers, the 4th goes to ranged
+        bool draft_ranged = (melee_count >= 3 && ranged_count * 3 < melee_count);
+
         int32_t squad_size = 10;
         if (citizen_military + i < 4 * 8)
             squad_size = 8;
@@ -414,15 +496,19 @@ void Population::update_military(color_ostream & out)
         if (citizen_military + i < 3 * 4)
             squad_size = 4;
 
-        df::squad *squad = find_squad_with_vacancy(squad_size);
+        df::squad *squad = find_squad_with_vacancy_typed(squad_size, draft_ranged);
         if (!squad)
         {
-            squad = create_squad(out, ai);
+            squad = create_squad(out, ai, draft_ranged);
             if (!squad)
                 break;
         }
 
         draft_unit(out, ai, draft_pool[i], squad);
+        if (draft_ranged)
+            ranged_count++;
+        else
+            melee_count++;
     }
 }
 

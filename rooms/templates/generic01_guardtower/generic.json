@@ -345,8 +345,8 @@
 		},
 		{
 			"type": "armor_stand",
-			"x": 5,
-			"y": 3,
+			"x": 1,
+			"y": 2,
 			"z": 0,
 			"has_users": 1,
 			"ignore": true
@@ -355,6 +355,86 @@
 			"type": "bed",
 			"x": 1,
 			"y": 3,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "cabinet",
+			"x": 1,
+			"y": 4,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "chest",
+			"x": 1,
+			"y": 5,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "armor_stand",
+			"x": 2,
+			"y": 2,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "bed",
+			"x": 2,
+			"y": 3,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "cabinet",
+			"x": 2,
+			"y": 4,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "chest",
+			"x": 3,
+			"y": 5,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "armor_stand",
+			"x": 4,
+			"y": 2,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "bed",
+			"x": 4,
+			"y": 3,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "cabinet",
+			"x": 4,
+			"y": 4,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"type": "chest",
+			"x": 5,
+			"y": 5,
 			"z": 0,
 			"has_users": 1,
 			"ignore": true
@@ -362,79 +442,87 @@
 		{
 			"type": "armor_stand",
 			"x": 5,
-			"y": 4,
+			"y": 2,
 			"z": 0,
 			"has_users": 1,
 			"ignore": true
 		},
 		{
 			"type": "bed",
-			"x": 1,
-			"y": 4,
-			"z": 0,
-			"has_users": 1,
-			"ignore": true
-		},
-		{
-			"type": "armor_stand",
 			"x": 5,
-			"y": 5,
+			"y": 3,
 			"z": 0,
 			"has_users": 1,
 			"ignore": true
 		},
 		{
-			"type": "bed",
-			"x": 1,
-			"y": 5,
+			"type": "cabinet",
+			"x": 5,
+			"y": 4,
 			"z": 0,
 			"has_users": 1,
 			"ignore": true
 		},
 		{
-			"construction": "Floor",
+			"type": "chest",
+			"x": 3,
+			"y": 4,
+			"z": 0,
+			"has_users": 1,
+			"ignore": true
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 0,
 			"y": 0,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 0,
 			"y": 1,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 0,
 			"y": 2,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 0,
 			"y": 3,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 0,
 			"y": 4,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 0,
 			"y": 5,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 0,
 			"y": 6,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 1,
 			"y": 0,
 			"z": 1
@@ -470,13 +558,15 @@
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 1,
 			"y": 6,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 2,
 			"y": 0,
 			"z": 1
@@ -488,19 +578,22 @@
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Wall",
+			"dig": "No",
 			"x": 2,
 			"y": 2,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Wall",
+			"dig": "No",
 			"x": 2,
 			"y": 3,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Wall",
+			"dig": "No",
 			"x": 2,
 			"y": 4,
 			"z": 1
@@ -512,13 +605,15 @@
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 2,
 			"y": 6,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 3,
 			"y": 0,
 			"z": 1
@@ -530,7 +625,8 @@
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Wall",
+			"dig": "No",
 			"x": 3,
 			"y": 2,
 			"z": 1
@@ -554,13 +650,15 @@
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 3,
 			"y": 6,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 4,
 			"y": 0,
 			"z": 1
@@ -572,19 +670,22 @@
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Wall",
+			"dig": "No",
 			"x": 4,
 			"y": 2,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Wall",
+			"dig": "No",
 			"x": 4,
 			"y": 3,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Wall",
+			"dig": "No",
 			"x": 4,
 			"y": 4,
 			"z": 1
@@ -596,13 +697,15 @@
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 4,
 			"y": 6,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 5,
 			"y": 0,
 			"z": 1
@@ -638,52 +741,431 @@
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 5,
 			"y": 6,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 6,
 			"y": 0,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 6,
 			"y": 1,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 6,
 			"y": 2,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 6,
 			"y": 3,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 6,
 			"y": 4,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 6,
 			"y": 5,
 			"z": 1
 		},
 		{
-			"construction": "Floor",
+			"construction": "Fortification",
+			"dig": "No",
 			"x": 6,
 			"y": 6,
 			"z": 1
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 0,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 1,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 2,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"x": 3,
+			"y": 3,
+			"z": 2,
+			"dig": "No"
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 3,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 4,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 5,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 0,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 1,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 2,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 3,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 4,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 5,
+			"z": 2
+		},
+		{
+			"construction": "Fortification",
+			"dig": "No",
+			"x": 6,
+			"y": 6,
+			"z": 2
+		},
+		{
+			"construction": "UpDownStair",
+			"x": -1,
+			"y": -1,
+			"z": 1,
+			"scaffolding": true
+		},
+		{
+			"construction": "UpDownStair",
+			"x": 7,
+			"y": 7,
+			"z": 1,
+			"scaffolding": true
+		},
+		{
+			"construction": "UpDownStair",
+			"x": -1,
+			"y": -1,
+			"z": 2,
+			"scaffolding": true
+		},
+		{
+			"construction": "UpDownStair",
+			"x": 7,
+			"y": 7,
+			"z": 2,
+			"scaffolding": true
 		}
 	],
 	"r": [
@@ -697,7 +1179,7 @@
 			"max": [
 				6,
 				6,
-				1
+				2
 			],
 			"outdoor": true,
 			"require_floor": false,
@@ -808,7 +1290,70 @@
 				103,
 				104,
 				105,
-				106
+				106,
+				107,
+				108,
+				109,
+				110,
+				111,
+				112,
+				113,
+				114,
+				115,
+				116,
+				117,
+				118,
+				119,
+				120,
+				121,
+				122,
+				123,
+				124,
+				125,
+				126,
+				127,
+				128,
+				129,
+				130,
+				131,
+				132,
+				133,
+				134,
+				135,
+				136,
+				137,
+				138,
+				139,
+				140,
+				141,
+				142,
+				143,
+				144,
+				145,
+				146,
+				147,
+				148,
+				149,
+				150,
+				151,
+				152,
+				153,
+				154,
+				155,
+				156,
+				157,
+				158,
+				159,
+				160,
+				161,
+				162,
+				163,
+				164,
+				165,
+				166,
+				167,
+				168,
+				169
 			]
 		}
 	]
